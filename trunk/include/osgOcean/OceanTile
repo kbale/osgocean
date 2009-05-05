@@ -1,0 +1,125 @@
+#pragma once
+#include <osgOcean/Export>
+#include <osg/Array>
+#include <osg/Math>
+#include <osg/Notify>
+#include <osg/Texture2D>
+#include <osg/Image>
+#include <osgDB/WriteFile>
+
+// for debug
+#include <fstream>
+#include <sstream>
+
+namespace osgOcean
+{
+	class OSGOCEAN_EXPORT OceanTile
+	{
+	private:
+		unsigned int _resolution;
+		unsigned int _rowLength;
+		unsigned int _numVertices;
+		osg::ref_ptr<osg::Vec3Array> _vertices;
+		osg::ref_ptr<osg::Vec3Array> _normals;
+		osg::ref_ptr<osg::Texture2D> _normalMap;
+		float _spacing;
+		float _maxDelta;
+		float _averageHeight;
+		
+	public:
+		OceanTile( void );
+
+		OceanTile( osg::FloatArray* heights, 
+					  osg::Vec2Array* displacements, 
+					  const unsigned int resolution, 
+					  const float spacing );
+
+		OceanTile( osg::FloatArray* heights, 
+			        const unsigned int resolution, 
+					  const float spacing );
+
+		OceanTile( const OceanTile& tile, 
+						unsigned int shift, 
+						const float spacing );
+
+		OceanTile( const OceanTile& copy );
+
+		OceanTile& operator=(const OceanTile& rhs);
+
+		~OceanTile( void );
+
+		osg::ref_ptr<osg::Texture2D> createNormalMap( void ) const;
+
+		inline osg::ref_ptr<osg::Texture2D> getNormalMap( void ) const {
+			if( _normalMap.valid() )
+				return _normalMap;
+			else
+				return NULL;
+		}
+
+		inline const osg::Vec3f& getVertex( unsigned int x, unsigned int y ) const
+		{
+			return _vertices->at( x + y * _rowLength );
+		}
+
+		inline const osg::Vec3f& getVertex( unsigned int v ) const
+		{
+			return _vertices->at(v);
+		}
+
+		inline const osg::Vec3f& getNormal( unsigned int x, unsigned int y ) const
+		{
+			return _normals->at( x + y * _rowLength );
+		}
+
+		inline const osg::Vec3f& getNormal( unsigned int n ) const
+		{
+			return _normals->at(n);
+		}
+
+		inline const unsigned int& getNumVertices( void ) const
+		{
+			return _numVertices;
+		}
+
+		inline const unsigned int& getResolution( void ) const
+		{
+			return _resolution;
+		}
+
+		inline const unsigned int& getRowLen( void ) const 
+		{
+			return _rowLength;
+		}
+
+		inline const float& getSpacing( void ) const 
+		{
+			return _spacing;
+		}
+
+		inline const float getMaxDelta( void ) const 
+		{
+			return _maxDelta;
+		}
+
+		inline const float& getAverageHeight(void) const{
+			return _averageHeight;
+		}
+
+		
+
+	private:
+
+		void computeNormals( void );
+
+		void computeMaxDelta( void );
+
+		float biLinearInterp(int lx, int hx, int ly, int hy, int tx, int ty );
+
+		// Convenience method
+		inline unsigned int array_pos( unsigned int x, unsigned int y, unsigned int rowLen )
+		{
+			return x + y * rowLen;
+		}
+	};
+}

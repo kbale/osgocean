@@ -1,0 +1,83 @@
+#pragma once
+#include <osgOcean/Export>
+#include <osg/Geometry>
+
+namespace osgOcean
+{
+	class OSGOCEAN_EXPORT MipmapGeometry : public osg::Geometry
+	{
+	public:
+		enum BORDER_TYPE{ BORDER_X, BORDER_Y, BORDER_XY, BORDER_NONE };
+
+	private:
+		unsigned int _level;				// mipmap level 0 is highest level
+		unsigned int _numLevels;		// Number of mipmap levels in use
+		unsigned int _resolution;		// tile size (power of 2)
+		unsigned int _rowLen;			// Length of rows
+		unsigned int _colLen;			// Length of cols
+		unsigned int _startIdx;			// Start position in vertex array
+		
+		BORDER_TYPE	 _border;			// is the patch a border piece
+	
+	public:
+		MipmapGeometry( void );
+	
+		MipmapGeometry( unsigned int level,
+							 unsigned int numLevels, 
+							 unsigned int startIdx,
+							 BORDER_TYPE border ); 
+
+		MipmapGeometry( const MipmapGeometry& copy, const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY );
+
+		//void apply(osg::State& state );
+
+	protected:
+		~MipmapGeometry( void );
+
+	public:
+		inline unsigned int getLevel( void ) const { 
+			return _level;
+		}
+
+		inline unsigned int getResolution( void ) const {
+			return _resolution;
+		}
+
+		inline unsigned int getRowLen( void ) const {
+			return _rowLen;
+		}
+
+		inline unsigned int getColLen( void ) const {
+			return _colLen;
+		}
+		
+		inline BORDER_TYPE getBorder( void ) const {
+			return _border;
+		}
+
+		inline void setLevel( unsigned int level )
+		{
+			_level = level;
+			_resolution = 2 << (_numLevels-(level+1)); 
+			_rowLen = _border==BORDER_X || _border==BORDER_XY ? _resolution+1 : _resolution;
+			_colLen = _border==BORDER_Y || _border==BORDER_XY ? _resolution+1 : _resolution;
+		}
+
+		inline const PrimitiveSetList& getPrimitives( void ) const {
+			return _primitives;
+		}
+
+		inline unsigned int getIdx( void ) const {
+			return _startIdx;
+		}
+
+		inline void setIdx( unsigned int idx ) {
+			_startIdx = idx;
+		}
+
+		inline unsigned int getIndex( unsigned int c, unsigned r )
+		{
+			return _startIdx + (c + r * _rowLen);
+		}
+	};
+}

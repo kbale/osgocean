@@ -1,0 +1,138 @@
+#include <osgOcean/Export>
+#include <osg/Group>
+#include <osg/Camera>
+#include <osg/Texture2D>
+#include <osg/PositionAttitudeTransform>
+#include <osg/Uniform>
+#include <osgUtil/CullVisitor>
+#include <osgOcean/OceanTechnique>
+
+namespace osgOcean
+{
+	class OSGOCEAN_EXPORT OceanScene : public osg::Group
+	{
+	private:
+		const osg::Matrixf _reflectionMatrix;
+
+		osg::ref_ptr<OceanTechnique> _oceanSurface;
+
+		bool _isDirty;
+
+		bool _enableRefractions;
+		bool _enableReflections;
+
+		osg::Vec2s _reflectionTexSize;
+		osg::Vec2s _refractionTexSize;
+
+		int _reflectionUnit;
+		int _refractionUnit;
+
+		osg::Vec4f _underwaterFogColor;
+
+		osg::ref_ptr<osg::Camera> _reflectionCamera;
+		osg::ref_ptr<osg::Camera> _refractionCamera;
+		osg::ref_ptr<osg::Camera> _surfaceCamera;
+
+		osg::ref_ptr<osg::StateSet> _surfaceStateSet;
+
+		unsigned int _reflectionSceneMask;
+		unsigned int _refractionSceneMask;
+		unsigned int _surfaceMask;
+		unsigned int _normalSceneMask;
+
+		unsigned int _lightID;
+
+	public:
+		OceanScene( void );
+		OceanScene( OceanTechnique* technique );
+		OceanScene( const OceanScene& copy, const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY );
+
+		void init( void );
+
+		inline void setUnderwaterFogColor( const osg::Vec4f& color ){
+			_underwaterFogColor = color;
+			_isDirty = true;
+		}
+
+		inline void enableReflections( bool enable ){
+			_enableReflections = enable;
+			_isDirty = true;
+		}
+
+		inline void enableRefractions( bool enable ){
+			_enableRefractions = enable;
+			_isDirty = true;
+		}
+
+		inline void setReflectionTextureSize( const osg::Vec2s& size ){
+			_reflectionTexSize = size;
+			_isDirty = true;
+		}
+
+		inline void setRefractionTextureSize( const osg::Vec2s& size){
+			_refractionTexSize = size;
+			_isDirty = true;
+		}
+
+		inline void setOceanTechnique( OceanTechnique* surface ){ 
+			
+			if( _oceanSurface.valid() )
+				removeChild( _oceanSurface.get() );
+
+			_oceanSurface = surface;
+			_oceanSurface->setNodeMask( _surfaceMask );
+
+			addChild( _oceanSurface.get() );
+
+			_isDirty = true;
+		}
+
+		inline OceanTechnique* getOceanTechnique( void ) {
+			return _oceanSurface.get();
+		}
+
+		inline unsigned int getReflectedSceneMask( void ) const{
+			return _reflectionSceneMask;
+		}
+
+		inline unsigned int getRefractedSceneMask( void ) const{
+			return _refractionSceneMask;
+		}
+
+		inline unsigned int getOceanSurfaceMask( void ) const{
+			return _surfaceMask;
+		}
+
+		inline unsigned int getNormalSceneMask( void ) const{
+			return _normalSceneMask;
+		}
+
+		inline void setLightID( unsigned int id ){
+			_lightID = id;
+			_isDirty = true;
+		}
+
+	private:
+		osg::Camera* reflectionPass( osg::Texture2D* texture );
+		osg::Camera* refractionPass( osg::Texture2D* texture );
+		osg::Camera* surfacePass( osg::StateSet* ss );
+		
+		osg::Texture2D* createTextureRGBA( const osg::Vec2s& size );
+
+		void traverse( osg::NodeVisitor& nv );
+
+		void cull( osgUtil::CullVisitor& cv );
+
+	protected:
+		~OceanScene( void );
+
+		class CameraCullCallback : public osg::NodeCallback
+		{
+		public:
+			CameraCullCallback(OceanScene* st);
+			virtual void operator()(osg::Node*, osg::NodeVisitor* nv);
+		protected:
+			OceanScene* _oceanScene;
+		};
+	};
+}
