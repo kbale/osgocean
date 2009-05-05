@@ -1,4 +1,4 @@
-#summary Installation instructions
+#summary Getting up and running
 
 = Using the library =
 
@@ -22,5 +22,3 @@ resources/textures/..<br>
 resources/shader/..
 
 You should make sure that the resource directory is either in the same directory as the DLL/EXE or setup a path variable. 
-
-
