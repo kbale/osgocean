@@ -1,0 +1,26 @@
+#summary Installation instructions
+
+= Using the library =
+
+== Dependencies ==
+
+osgOcean needs to be linked against the FFTW (Fastest Fourier Transform in the West) library. <br>
+
+You may download it here:
+
+<a href="http://www.fftw.org/">http://www.fftw.org/</a>
+
+You will need to specify the include and lib directories when building the project with CMake.
+
+== Resources ==
+
+The library requires access to the 'resource' directory to load the textures and shaders that decorate the ocean surface.
+
+The path that is used within the library and example program is:
+
+resources/textures/..<br>
+resources/shader/..
+
+You should make sure that the resource directory is either in the same directory as the DLL/EXE or setup a path variable. 
+
+
