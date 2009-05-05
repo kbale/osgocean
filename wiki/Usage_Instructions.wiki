@@ -16,6 +16,8 @@ You will need to specify the include and lib directories when building the proje
 
 The library requires access to the 'resource' directory to load the textures and shaders that decorate the ocean surface.
 
+You can download the texture resources from the 'Downloads' tab.
+
 The path that is used within the library and example program is:
 
 resources/textures/..<br>
