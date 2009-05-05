@@ -1,0 +1,74 @@
+#pragma once
+#include <osgOcean/Export>
+#include <osg/Vec2f>
+#include <osg/Array>
+#include <complex>
+#include <vector>
+#include <fftw3.h>
+#include <cstdlib>
+
+namespace osgOcean
+{
+	typedef std::complex<float> complex;
+
+	class OSGOCEAN_EXPORT FFTSimulation
+	{
+	private:
+
+		const double _PI2;
+		const double _GRAVITY;
+
+		int N;				// grid size
+
+		osg::Vec2f W;		// wind direction
+
+		float v;				// wind speed m/s
+		float a;				// wave height scalar
+		float Lm;			// tile size in m
+		float w0;			// cycle time
+
+		std::vector< complex > _h0tilde;
+		std::vector< complex > _htilde;	// holds values for one fix time.
+
+	public:
+		FFTSimulation(
+			int gridsize = 64,
+			const osg::Vec2f& winddir = osg::Vec2f(0.6f, 0.8f),
+			float windspeed  = 20.f,
+			float waveheight = 0.0001f,	
+			float tilesize   = 100.f,
+			float cycletime  = 10.f
+			);
+
+		~FFTSimulation(void);
+
+		void set_time(float time);	
+
+		void compute_heights( osg::FloatArray* heights ) const;
+
+		void compute_displacements(const float& scalefac, osg::Vec2Array* wavedisplacements ) const;
+
+	private:
+		static float myrnd(void);
+
+		static std::complex<float> gaussrand();
+
+		float phillips(const osg::Vec2f& K) const;
+
+		complex h0_tilde(const osg::Vec2f& K) const;
+
+		complex h_tilde(const osg::Vec2f& K, int kx, int ky, float time) const;
+
+		void compute_h0tilde();
+
+		void compute_htilde(float time);
+
+		fftwf_complex *fft_in, *fft_in2;	
+
+		float *fft_out, *fft_out2;	
+
+		fftwf_plan plan, plan2, plan3;
+	};
+}
+
+

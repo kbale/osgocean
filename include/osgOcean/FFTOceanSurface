@@ -1,0 +1,218 @@
+#pragma once
+#include <osgOcean/Export>
+#include <osgOcean/OceanTechnique>
+
+#include <osg/Timer>
+#include <osg/Geometry>
+#include <osg/NodeCallback>
+#include <osgUtil/CullVisitor>
+#include <osg/TextureCubeMap>
+#include <osg/Texture2D>
+#include <osg/Program>
+#include <osg/TexMat>
+
+#include <osgOcean/FFTSimulation>
+#include <osgOcean/MipmapGeometry> 
+#include <osgOcean/DynamicShader>
+#include <osgOcean/OceanTile> 
+
+#include <iostream>
+#include <vector>
+
+#include <osgDB/ReadFile>
+
+namespace osgOcean
+{
+	class OSGOCEAN_EXPORT FFTOceanSurface : public OceanTechnique
+	{
+	private:
+
+		unsigned int _tileSize;					// Size of FFT grid i.e. 128,64,32 etc.
+		unsigned int _tileResolution;			// Size of tile in world width/height
+		unsigned int _numTiles;					// Number of tiles on width/height
+		unsigned int _totalPoints;				// Total number of points on width/height
+		float			 _pointSpacing;			// Spacing between points in real world
+		osg::Vec2f	 _windDirection;			// Direction of wind
+		float			 _windSpeed;				
+		float			 _waveConstant; 
+		float			 _depth;						// Depth (m)
+		float			 _cycleTime;				// Time before the ocean tiles loop
+		float			 _choppyFactor;			// amount of chop to add
+		bool			 _isChoppy;					// enable choppy waves generation
+
+		osg::Vec2f	 _startPos;					// Start position of the surface ( -half width, half height )
+		
+		const float	 _THRESHOLD;				// Pixel threshold
+		const float	 _VRES;						// Vertical resolution
+		float			 _C;							// C constant
+		
+		unsigned int _numLevels;				// Number of mipmap levels
+		unsigned int _oldFrame;					// last ocean frame
+		unsigned int _numVertices;				// total number of vertices in array
+		unsigned int _newNumVertices;			// number of vertices after updateMipmaps is called
+		
+		const unsigned int _NUMFRAMES;		// number of frames in the animation cycle
+
+		osg::Vec4f  _lightColor;				//
+		osg::Vec3f	_waveTopColor;				// Color for the upwelling shading
+		osg::Vec3f	_waveBottomColor;			// Color for the upwelling shading
+		bool			_useCrestFoam;		
+		float			_foamHeight;
+		float			_averageHeight;			// Average height over the total tiles;
+
+		bool			_isStateDirty;
+
+		std::vector<float> _minDist;			// min distances used for mipmap selection
+
+		std::vector< std::vector<OceanTile> > _mipmapData;									// wave tile data
+		std::vector< std::vector< osg::ref_ptr<MipmapGeometry> > > _oceanGeom;		// geometry tiles
+		
+		osg::ref_ptr<osg::Vec3Array> _activeVertices;	// active vertex buffer
+		osg::ref_ptr<osg::Vec3Array> _activeNormals;		// active normal buffer
+
+		osg::ref_ptr<osg::TextureCubeMap> _environmentMap;
+
+		enum TEXTURE_UNITS{ ENV_MAP=0,REFLECT_MAP=1,REFRACT_MAP=2,NORMAL_MAP=3,FOG_MAP=4,FOAM_MAP=5 };
+
+	public:
+		FFTOceanSurface( unsigned int FFTGridSize,
+						  unsigned int resolution,
+						  unsigned int numTiles, 
+						  const osg::Vec2f& windDirection,
+						  float windSpeed,
+						  float depth,
+						  bool isChoppy,
+						  float choppyFactor,
+						  float animLoopTime,
+						  unsigned int numFrames );
+
+		FFTOceanSurface( const FFTOceanSurface& copy, const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY );
+
+	protected:
+		~FFTOceanSurface(void);
+
+	public:
+		void update( unsigned int frame, const osg::Vec3f& eye );
+		void build( void );
+		float getSurfaceHeight( void );
+
+	private:
+		void computeSea( unsigned int totalFrames );
+		void createOceanTiles( void );
+		void computePrimitives( void );
+		void computeVertices( unsigned int frame );
+		bool updateMipmaps( const osg::Vec3f& eye, unsigned int frame );
+
+		void addMainBody( MipmapGeometry* cTile );
+		void addRightBorder ( MipmapGeometry* cTile, MipmapGeometry* xTile );
+		void addBottomBorder( MipmapGeometry* cTile, MipmapGeometry* yTile );
+		void addCornerPatch( MipmapGeometry* cTile, MipmapGeometry* xTile, MipmapGeometry* yTile, MipmapGeometry* xyTile );
+
+		osg::Vec3f computeNoiseCoords(int a, int b, double v, float reps, float reps2, int tileLength, float time);
+
+		void initStateSet( void );
+
+		osg::Texture2D* createTexture( const std::string& path, osg::Texture::WrapMode wrap );
+
+		inline MipmapGeometry* getTile( unsigned int x, unsigned int y ){	
+			return _oceanGeom.at(y).at(x).get();
+		}
+
+		inline osg::Vec4f colorLerp (const osg::Vec4f& c0, const osg::Vec4f& c1, const osg::Vec4f& c2) const 
+		{
+			return osg::Vec4f(
+				c1[0]*(1-c0[0]) + c2[0]*c0[0],
+				c1[1]*(1-c0[1]) + c2[1]*c0[1],
+				c1[2]*(1-c0[2]) + c2[2]*c0[2],
+				c1[3]*(1-c0[3]) + c2[3]*c0[3]
+			);
+		}
+
+	// inline setters
+	public:
+		inline void setEnvironmentMap( osg::TextureCubeMap* environmentMap ){
+			_environmentMap = environmentMap;
+			_isStateDirty = true;
+		}
+
+		void setWaveTopColor( const osg::Vec3f& color ){
+			_waveTopColor = color;
+			_isStateDirty = true;
+		}
+
+		void setWaveBottomColor( const osg::Vec3f& color ){
+			_waveBottomColor = color;
+			_isStateDirty = true;
+		}
+
+		void setLightColor( const osg::Vec4f& color ){
+			_lightColor = color;
+			_isStateDirty = true;
+		}
+
+		void enableCrestFoam( bool enable ){
+			_useCrestFoam = enable;
+			_isStateDirty = true;
+		}
+
+		void setFoamHeight( float height ){
+			_foamHeight = height;
+			_isStateDirty = true;
+		}
+
+	// -------------------------------
+	//     Callback declarations
+	// -------------------------------
+	protected:
+		class OSGOCEAN_EXPORT OceanDataType: public osg::Referenced
+		{
+		private:
+			osgOcean::FFTOceanSurface& _oceanSurface;
+			const unsigned int _NUMFRAMES;
+			osg::Vec3f _eye;
+			float _time;
+			const unsigned int _FPS;
+			float _msPerFrame;
+			unsigned int _frame;
+			osg::Timer_t _oldTime;
+			osg::Timer_t _newTime;
+
+		public:
+			OceanDataType(	FFTOceanSurface& ocean, unsigned int numFrames, unsigned int fps );
+			OceanDataType( const OceanDataType& copy, const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY );
+			
+			inline void setEye( const osg::Vec3f& eye ){ _eye = eye;	}
+			
+			void updateOcean( void );
+		};
+
+		class OSGOCEAN_EXPORT OceanAnimationCallback: public osg::NodeCallback
+		{
+		public:
+			virtual void operator()(osg::Node* node, osg::NodeVisitor* nv);
+		};
+
+		class DrawableDrawCallback : public osg::Drawable::DrawCallback
+		{
+			virtual void drawImplementation(osg::RenderInfo& renderInfo,const osg::Drawable* drawable) const
+			{
+				//renderInfo.getState()->setActiveTextureUnit(3);
+
+				//glMatrixMode(GL_TEXTURE);
+				//glLoadIdentity();
+				//float noisetilescale = 32.0f;//meters (128/16=8, 8tex/m).
+				//// fixme 32m wide noise is a good compromise, that would be a noise
+				//// sample every 12.5cm. But it works only if the noise map
+				//// has high frequencies in it... this noise map has to few details
+				//glScalef(1.0f/noisetilescale,1.0f/noisetilescale,1);	// fixme adjust scale
+				////glTranslatef(transl.x, transl.y, 0);
+				//glMatrixMode(GL_MODELVIEW);
+
+				//std::cout<<"draw call back - pre drawImplementation"<<drawable<<std::endl;
+				drawable->drawImplementation(renderInfo);
+				//std::cout<<"draw call back - post drawImplementation"<<drawable<<std::endl;
+			}
+		};
+};
+
+}// namespace

@@ -1,0 +1,66 @@
+#pragma once
+#include <osgOcean/Export>
+#include <osg/Program>
+#include <osg/Notify>
+
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <vector>
+
+namespace osgOcean
+{
+	class OSGOCEAN_EXPORT DynamicShader
+	{
+	public:
+		typedef std::vector<std::string> OPTION_LIST;
+
+	private:
+		osg::ref_ptr<osg::Program> _program;
+		osg::ref_ptr<osg::Shader> _fShader;
+		osg::ref_ptr<osg::Shader> _vShader;
+
+		std::string _origVertexSource;
+		std::string _origFragmentSource;
+
+		std::string _newVertexSource;
+		std::string _newFragmentSource;
+
+		OPTION_LIST _optionList;
+
+	public:
+		DynamicShader( void );
+		DynamicShader( const std::string& vertexPath, const std::string& fragmentPath );
+
+		virtual ~DynamicShader(void){};
+		
+		void rebuild( void );
+		void load( const std::string& vertexPath, const std::string& fragmentPath );
+
+		void addDefine( const std::string& name );
+		void addDefine( const std::string& name, unsigned int val );
+
+		void printShader(void);
+
+		inline const std::string& getDefine( unsigned int num ){
+			return _optionList.at(num);
+		}
+
+		inline osg::Program* getProgram( void ) const {
+			return _program.get();
+		}
+
+		inline bool setVertexShaderSource(const std::string& path ){
+			return storeSource( path, _origVertexSource );
+		}
+
+		inline bool setFragmentShaderSource(const std::string& path ){
+			return storeSource( path, _origFragmentSource );
+		}
+	private:
+		void amendShader( std::string& newSource, const std::string& oldSource );
+		bool storeSource( const std::string& path, std::string& source );
+
+
+	};
+}
