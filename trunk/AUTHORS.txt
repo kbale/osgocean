@@ -1,0 +1,8 @@
+osgOcean was developed by Kim Bale at the University of Hull
+as part of the VENUS project.
+
+VENUS is partially supported by the European Community under 
+project VENUS (Contract IST-034924) of the 
+"Information Society Technologies (IST) programme of the 6th 
+FP for RTD".
+
