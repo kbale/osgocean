@@ -288,7 +288,7 @@ void main( void )
 		if( refractColor.a == 0.0 )
 		{
 			float fresnel = calcFresnel( dot(E, N), 0.7 );
-			refractColor.rgb = mix( uUnderwaterFogColor.rgb, refractColor.rgb, fresnel );
+			refractColor.rgb = uUnderwaterFogColor.rgb*fresnel + (1.0-fresnel)* refractColor.rgb;
 		}
 
 		float alpha = 1.0;
