@@ -242,8 +242,6 @@ void FFTOceanSurface::createOceanTiles( void )
 			patch->setDataVariance( osg::Object::DYNAMIC );
 			patch->setIdx( _numVertices );
 
-			patch->setDrawCallback( new DrawableDrawCallback );
-
 			addDrawable( patch );
 
 			_oceanGeom[y].push_back( patch );
