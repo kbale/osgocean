@@ -4,6 +4,10 @@
 
 == Dependencies ==
 
+The main dependancy is of course the OpenSceneGraph libraries. osgOcean was built with with OSG2.8 in mind. The libraries can be downloaded here: 
+
+<a href="http://www.openscenegraph.org/projects/osg/wiki/Downloads"> http://www.openscenegraph.org/projects/osg/wiki/Downloads </a>
+
 osgOcean needs to be linked against the FFTW (Fastest Fourier Transform in the West) library. <br>
 
 You may download it here:
