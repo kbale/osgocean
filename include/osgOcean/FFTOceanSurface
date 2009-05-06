@@ -191,28 +191,6 @@ namespace osgOcean
 		public:
 			virtual void operator()(osg::Node* node, osg::NodeVisitor* nv);
 		};
-
-		class DrawableDrawCallback : public osg::Drawable::DrawCallback
-		{
-			virtual void drawImplementation(osg::RenderInfo& renderInfo,const osg::Drawable* drawable) const
-			{
-				//renderInfo.getState()->setActiveTextureUnit(3);
-
-				//glMatrixMode(GL_TEXTURE);
-				//glLoadIdentity();
-				//float noisetilescale = 32.0f;//meters (128/16=8, 8tex/m).
-				//// fixme 32m wide noise is a good compromise, that would be a noise
-				//// sample every 12.5cm. But it works only if the noise map
-				//// has high frequencies in it... this noise map has to few details
-				//glScalef(1.0f/noisetilescale,1.0f/noisetilescale,1);	// fixme adjust scale
-				////glTranslatef(transl.x, transl.y, 0);
-				//glMatrixMode(GL_MODELVIEW);
-
-				//std::cout<<"draw call back - pre drawImplementation"<<drawable<<std::endl;
-				drawable->drawImplementation(renderInfo);
-				//std::cout<<"draw call back - post drawImplementation"<<drawable<<std::endl;
-			}
-		};
 };
 
 }// namespace
