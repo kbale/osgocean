@@ -50,14 +50,14 @@ float calcFogFactor( float fog_frag, float fogDensity)
 	return clamp( fog, 0.0, 1.0 );
 }
 
-void projCoords( int texUnit )
-{
-    vec4 ecPosition = gl_ModelViewMatrix * gl_Vertex;
-    gl_TexCoord[texUnit].s = dot( ecPosition, gl_EyePlaneS[texUnit] );
-    gl_TexCoord[texUnit].t = dot( ecPosition, gl_EyePlaneT[texUnit] );
-    gl_TexCoord[texUnit].p = dot( ecPosition, gl_EyePlaneR[texUnit] );
-    gl_TexCoord[texUnit].q = dot( ecPosition, gl_EyePlaneQ[texUnit] );
-}
+//void projCoords( int texUnit )
+//{
+//    vec4 ecPosition = gl_ModelViewMatrix * gl_Vertex;
+//    gl_TexCoord[texUnit].s = dot( ecPosition, gl_EyePlaneS[texUnit] );
+//    gl_TexCoord[texUnit].t = dot( ecPosition, gl_EyePlaneT[texUnit] );
+//    gl_TexCoord[texUnit].p = dot( ecPosition, gl_EyePlaneR[texUnit] );
+//    gl_TexCoord[texUnit].q = dot( ecPosition, gl_EyePlaneQ[texUnit] );
+//}
 
 // -------------------------------
 //          Main Program
