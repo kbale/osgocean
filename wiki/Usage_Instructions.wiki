@@ -28,3 +28,5 @@ resources/textures/..<br>
 resources/shader/..
 
 You should make sure that the resource directory is either in the same directory as the DLL/EXE or setup a path variable. 
+
+They should also be placed in the resource directory before running the "INSTALL" project.
