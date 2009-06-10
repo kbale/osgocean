@@ -3,41 +3,41 @@ SET(HEADER_PATH ${osgOcean_SOURCE_DIR}/include/osgOcean )
 SET( SHADER_FILES
   ${osgOcean_SOURCE_DIR}/resources/shaders/water.frag
   ${osgOcean_SOURCE_DIR}/resources/shaders/water.vert
-  
+
   ${osgOcean_SOURCE_DIR}/resources/shaders/godrays.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/godrays.frag
   ${osgOcean_SOURCE_DIR}/resources/shaders/godray_screen_blend.vert
-  ${osgOcean_SOURCE_DIR}/resources/shaders/godray_screen_blend.frag  
-  ${osgOcean_SOURCE_DIR}/resources/shaders/godray_glare.vert  
-  ${osgOcean_SOURCE_DIR}/resources/shaders/godray_glare.frag  
-  
-  ${osgOcean_SOURCE_DIR}/resources/shaders/silt_quads.vert  
-  ${osgOcean_SOURCE_DIR}/resources/shaders/silt_quads.frag  
-  ${osgOcean_SOURCE_DIR}/resources/shaders/silt_points.vert 
-  ${osgOcean_SOURCE_DIR}/resources/shaders/silt_points.frag 
-  
-  ${osgOcean_SOURCE_DIR}/resources/shaders/streak.vert 
-  ${osgOcean_SOURCE_DIR}/resources/shaders/streak.frag 
-  ${osgOcean_SOURCE_DIR}/resources/shaders/glare_composite.vert 
-  ${osgOcean_SOURCE_DIR}/resources/shaders/glare_composite.frag 
-  ${osgOcean_SOURCE_DIR}/resources/shaders/downsample_glare.frag 
-  
-  ${osgOcean_SOURCE_DIR}/resources/shaders/downsample.vert 
-  ${osgOcean_SOURCE_DIR}/resources/shaders/downsample.frag 
-  
-  ${osgOcean_SOURCE_DIR}/resources/shaders/gaussian1.vert 
-  ${osgOcean_SOURCE_DIR}/resources/shaders/gaussian1.frag 
+  ${osgOcean_SOURCE_DIR}/resources/shaders/godray_screen_blend.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/godray_glare.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/godray_glare.frag
+
+  ${osgOcean_SOURCE_DIR}/resources/shaders/silt_quads.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/silt_quads.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/silt_points.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/silt_points.frag
+
+  ${osgOcean_SOURCE_DIR}/resources/shaders/streak.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/streak.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/glare_composite.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/glare_composite.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/downsample_glare.frag
+
+  ${osgOcean_SOURCE_DIR}/resources/shaders/downsample.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/downsample.frag
+
+  ${osgOcean_SOURCE_DIR}/resources/shaders/gaussian1.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/gaussian1.frag
   ${osgOcean_SOURCE_DIR}/resources/shaders/gaussian2.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/gaussian2.frag
   ${osgOcean_SOURCE_DIR}/resources/shaders/dof_combiner.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/dof_combiner.frag
   ${osgOcean_SOURCE_DIR}/resources/shaders/water_distortion.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/water_distortion.frag
-  
-  ${osgOcean_SOURCE_DIR}/resources/shaders/default_scene.vert 
-  ${osgOcean_SOURCE_DIR}/resources/shaders/default_scene.frag 
+
+  ${osgOcean_SOURCE_DIR}/resources/shaders/default_scene.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/default_scene.frag
 )
-  
+
 
 SET( TEXTURE_FILES
   ${osgOcean_SOURCE_DIR}/resources/textures/sea_foam.png
@@ -66,7 +66,7 @@ ADD_DEFINITIONS(-DOSGOCEAN_LIBRARY)
 INCLUDE_DIRECTORIES (
    ${OSG_INCLUDE_DIR}
    ${FFTSS_INCLUDE_DIR}
-   ${osgOcean_SOURCE_DIR}/include/ 
+   ${osgOcean_SOURCE_DIR}/include/
 )
 
 ADD_LIBRARY(
@@ -105,10 +105,9 @@ TARGET_LINK_LIBRARIES(
   debug ${OSGDB_LIBRARY_DEBUG}
   optimized ${OPENTHREADS_LIBRARY}
   debug ${OPENTHREADS_LIBRARY_DEBUG}
-  optimized ${OPENGL_LIBRARY}
-  debug ${OPENGL_LIBRARY_DEBUG}
-  optimized ${FFTSS_LIBRARY}
-  debug ${FFTSS_LIBRARY}
+
+  ${OPENGL_LIBRARY}
+  ${FFTSS_LIBRARY}
 )
 
 INSTALL(

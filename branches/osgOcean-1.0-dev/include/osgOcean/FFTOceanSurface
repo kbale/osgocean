@@ -20,7 +20,6 @@
 #include <osgOcean/OceanTechnique>
 #include <osgOcean/FFTSimulation>
 #include <osgOcean/MipmapGeometry> 
-#include <osgOcean/DynamicShader>
 #include <osgOcean/OceanTile> 
 
 #include <osg/Timer>

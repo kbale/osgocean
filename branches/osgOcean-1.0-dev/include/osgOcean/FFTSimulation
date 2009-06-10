@@ -19,106 +19,63 @@
 #include <osgOcean/Export>
 #include <osg/Vec2f>
 #include <osg/Array>
-#include <complex>
-#include <vector>
-#include "fftw3compat.h"
 
 namespace osgOcean
 {
-	typedef std::complex<double> complex;
+    /** Implementation of Jerry Tessendorf's FFT Ocean Simulation
+    * For more information see his paper "Simulating Ocean Water"
+    * http://graphics.ucsd.edu/courses/rendering/2005/jdewall/tessendorf.pdf
+    */
+    class OSGOCEAN_EXPORT FFTSimulation
+    {
+    private:
+        // Implementation hidden so that clients do not need to depend on the 
+        // FFT library's headers. All calls to FFTSimulation are delegated to
+        // the private Implementation class.
+        class Implementation;
+        Implementation* _implementation;
 
-	/** Implementation of Jerry Tessendorf's FFT Ocean Simulation
-	* For more information see his paper "Simulating Ocean Water"
-	* http://graphics.ucsd.edu/courses/rendering/2005/jdewall/tessendorf.pdf
-	*/
-	class OSGOCEAN_EXPORT FFTSimulation
-	{
-	private:
-		const double _PI2;             /**< 2*PI */
-		const double _GRAVITY;         /**< Gravitational constant 9.81 */
+    public:
 
-		int _N;                        /**< Size of FFT grid 2^n ie 128,64,32 etc. */
-		int _nOver2;			          /**< Half fourier size (_N/2)*/
-		osg::Vec2f _windDir;           /**< Direction of wind. */
-		float _windSpeed;              /**< Wind speed (m/s) */
-		float _A;                      /**< Wave scale modifier. */
-		float _length;                 /**< Real world tile resolution (m). */
-		float _w0;                     /**< Base frequency (2PI / looptime). */
+        /** Constructor.
+        * Provides default parameters for a calm ocean surface.
+        * Computes base amplitudes and initialises FFT plans and arrays.
+        * @param fourierSize Size of FFT grid 2^n ie 128,64,32 etc.
+        * @param windDir Direction of wind.
+        * @param windSpeed Speed of wind (m/s).
+        * @param waveScale Wave height modifier.
+        * @param loopTime Time for animation to repeat (secs).
+        */
+        FFTSimulation(
+            int fourierSize = 64,
+            const osg::Vec2f& windDir = osg::Vec2f(1.0f, 1.0f),
+            float windSpeed  = 12.f,
+            float waveScale = 1e-9,    
+            float tileRes = 256.f,
+            float loopTime  = 10.f
+            );
 
-		fftw_complex *_complexData0;   /**< 2D complex data array used for FFT input*/
-		fftw_complex *_complexData1;   /**< 2D complex data array used for FFT input */
+        /** Destructor.
+        * Cleans up FFT plans and arrays.
+        */
+        ~FFTSimulation(void);
 
-		fftw_complex *_realData0;      /**< 2D complex data array used for FFT output */
-		fftw_complex *_realData1;      /**< 2D complex data array used for FFT output  */
+        /** Set the current time and computes the current fourier amplitudes */
+        void setTime(float time);    
 
-		fftw_plan _fftPlan0;           /**< 2D Inverse FFT plan */
-		fftw_plan _fftPlan1;           /**< 2D Inverse FFT plan */
+        /** Compute the current height field. 
+        * Executes an FFT transform to convert the current fourier amplitudes to real height values.
+        * @param heights must be created before passing in. Function will resize and overwrite the contents with current data.
+        */
+        void computeHeights( osg::FloatArray* heights ) const;
 
-		std::vector< complex > _baseAmplitudes; /**< Base fourier amplitudes */
-		std::vector< complex > _curAmplitudes;  /**< Current fourier amplitudes */  
-
-	public:
-
-		/** Constructor.
-		* Provides default parameters for a calm ocean surface.
-		* Computes base amplitudes and initialises FFT plans and arrays.
-		* @param fourierSize Size of FFT grid 2^n ie 128,64,32 etc.
-		* @param windDir Direction of wind.
-		* @param windSpeed Speed of wind (m/s).
-		* @param waveScale Wave height modifier.
-		* @param loopTime Time for animation to repeat (secs).
-		*/
-		FFTSimulation(
-			int fourierSize = 64,
-			const osg::Vec2f& windDir = osg::Vec2f(1.0f, 1.0f),
-			float windSpeed  = 12.f,
-			float waveScale = 1e-9,	
-			float tileRes = 256.f,
-			float loopTime  = 10.f
-			);
-
-		/** Destructor.
-		* Cleans up FFT plans and arrays.
-		*/
-		~FFTSimulation(void);
-
-		/** Set the current time and computes the current fourier amplitudes */
-		void setTime(float time);	
-
-		/** Compute the current height field. 
-		* Executes an FFT transform to convert the current fourier amplitudes to real height values.
-		* @param heights must be created before passing in. Function will resize and overwrite the contents with current data.
-		*/
-		void computeHeights( osg::FloatArray* heights ) const;
-
-		/** Compute the (x,y) displacements for choppy wave effect
-		* Executes two FFT transforms to convert the current fourier amplitudes to real x,y displacements
-		* @param scaleFactor defines the magnitude of the displacements. Typically a negative value ( -3.0 > val < -1.0 ).
-		* @param waveDisplacements must be created before passing in. Function will resize and overwrite the contents with the computed displacements.
-		*/
-		void computeDisplacements( const float& scaleFactor, osg::Vec2Array* waveDisplacements ) const;
-
-	private:
-		/** Computes a random number.
-		* @return value between 0-1
-		*/
-		static float unitRand(void);
-		
-		/** Computes Gaussian distributed random complex number.
-		*/
-		static complex gaussianRand();
-
-		float phillipsSpectrum(const osg::Vec2f& K) const;
-
-		complex h0Tilde(const osg::Vec2f& K) const;
-		complex hTilde(const osg::Vec2f& K, int kx, int ky, float time) const;
-
-		/** Computes the base fourier amplitudes htilde0.*/
-		void computeBaseAmplitudes();
-
-		/** Computes the current fourier amplitudes htilde.*/
-		void computeCurrentAmplitudes(float time);
-	};
+        /** Compute the (x,y) displacements for choppy wave effect
+        * Executes two FFT transforms to convert the current fourier amplitudes to real x,y displacements
+        * @param scaleFactor defines the magnitude of the displacements. Typically a negative value ( -3.0 > val < -1.0 ).
+        * @param waveDisplacements must be created before passing in. Function will resize and overwrite the contents with the computed displacements.
+        */
+        void computeDisplacements( const float& scaleFactor, osg::Vec2Array* waveDisplacements ) const;
+    };
 }
 
 
