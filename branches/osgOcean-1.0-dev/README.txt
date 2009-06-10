@@ -15,9 +15,10 @@ You should therefore make sure that resource directory is either
 setup as a path variable or in the same path as the DLL or example
 executable.
 
-osgOcean also requires an FFT generator library. For now it only works
-with FFTW, which is GPL, so all builds of osgOcean will also be GPL.
-This will be changed soon so that osgOcean can link to another FFT
-generator library which is LGPL.
+osgOcean also requires an FFT generator library. It can work with either
+FFTW or FFTSS. FFTW is GPL, so compiling osgOcean with it will make that build of
+osgOcean GPL as well, whereas FFTSS is LGPL which will allow osgOcean to
+remain LGPL.
 
-FFTW: http://www.fftw.org/
+FFTW:  http://www.fftw.org/
+FFTSS: http://www.ssisc.org/fftss/

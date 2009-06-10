@@ -19,11 +19,53 @@
 
 #include <complex>
 #include <vector>
-#include "fftw3compat.h"
 
 using namespace osgOcean;
 
-typedef std::complex<double> complex;
+// The FFTW and FFTSS docs advise to use fftw_malloc and fftw_free instead
+// of new and delete for their data, as they claim to make special guarantees
+// of data alignment that the default new cannot do. In practice, they do not 
+// seem to make a significant difference in performance, but I guess we'd
+// better err on the side of caution and follow their recommendations.
+#define USE_FFTW_MALLOC
+
+// Sanity check - one and only one of the 3 USE_ flags should be defined.
+#if (defined(USE_FFTW3) && defined(USE_FFTW3F)) || \
+    (defined(USE_FFTW3) && defined(USE_FFTSS))  || \
+    (defined(USE_FFTW3F) && defined(USE_FFTSS)) || \
+    (!defined(USE_FFTW3) && !defined(USE_FFTW3F) && !defined(USE_FFTSS))
+#error Must use one of FFTW3 (double-precision), FFTW3F (single-precision) or FFTSS!
+#endif
+
+#if defined(USE_FFTW3) || defined(USE_FFTW3F)
+
+  #include <fftw3.h>
+
+  #if defined(USE_FFTW3)              // double precision
+    typedef double fftw_data_type;
+  #else //if defined(USE_FFTW3F)      // single precision
+    typedef float fftw_data_type;
+
+    // alias the functions so that we can use the same function calls in both
+    // the double- and single-precision FFTW paths.
+    #define fftw_complex         fftwf_complex
+    #define fftw_plan            fftwf_plan
+    #define fftw_destroy_plan    fftwf_destroy_plan
+    #define fftw_plan_dft_c2r_2d fftwf_plan_dft_c2r_2d
+    #define fftw_plan_dft_2d     fftwf_plan_dft_2d
+    #define fftw_execute         fftwf_execute
+    #define fftw_malloc          fftwf_malloc
+    #define fftw_free            fftwf_free
+  #endif
+
+#elif defined(USE_FFTSS)
+
+  #include <fftw3compat.h>
+  typedef double fftw_data_type;      // FFTSS is double-precision only
+
+#endif
+
+typedef std::complex<fftw_data_type> complex;
 
 class FFTSimulation::Implementation
 {
@@ -137,11 +179,19 @@ FFTSimulation::Implementation::Implementation( int fourierSize,
     
     _curAmplitudes.resize( _N*_N );
 
+#ifdef USE_FFTW_MALLOC
+    _complexData0 = (fftw_complex*)fftw_malloc(_N*_N * sizeof(fftw_complex));
+    _complexData1 = (fftw_complex*)fftw_malloc(_N*_N * sizeof(fftw_complex));
+
+    _realData0 = (fftw_complex*)fftw_malloc(_N*_N * sizeof(fftw_complex));
+    _realData1 = (fftw_complex*)fftw_malloc(_N*_N * sizeof(fftw_complex));
+#else
     _complexData0 = new fftw_complex[ _N*_N ];
     _complexData1 = new fftw_complex[ _N*_N ];
 
     _realData0 = new fftw_complex[ _N*_N ];
     _realData1 = new fftw_complex[ _N*_N ];
+#endif
 
     _fftPlan0 = fftw_plan_dft_2d( _N, _N, _complexData0, _realData0, FFTW_BACKWARD, FFTW_ESTIMATE );
     _fftPlan1 = fftw_plan_dft_2d( _N, _N, _complexData1, _realData1, FFTW_BACKWARD, FFTW_ESTIMATE );
@@ -152,11 +202,19 @@ FFTSimulation::Implementation::~Implementation()
     fftw_destroy_plan(_fftPlan0);
     fftw_destroy_plan(_fftPlan1);
 
+#ifdef USE_FFTW_MALLOC
+    fftw_free(_complexData0);
+    fftw_free(_complexData1);
+
+    fftw_free(_realData0);
+    fftw_free(_realData1);
+#else
     delete[] _complexData0;
     delete[] _complexData1;
 
     delete[] _realData0;
     delete[] _realData1;
+#endif
 }
 
 float FFTSimulation::Implementation::unitRand()
@@ -217,7 +275,7 @@ complex FFTSimulation::Implementation::h0Tilde( const osg::Vec2f& K ) const
 {
     complex g = gaussianRand();    
 
-    double p = sqrt( 0.5 * phillipsSpectrum(K) );
+    fftw_data_type p = sqrt( 0.5 * phillipsSpectrum(K) );
 
     return g * p;
 }
