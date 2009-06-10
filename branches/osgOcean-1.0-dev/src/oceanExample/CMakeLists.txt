@@ -38,12 +38,14 @@ SET( ISLAND_RESOURCES
 SET( EXAMPLE_SHADERS
   ${osgOcean_SOURCE_DIR}/resources/shaders/terrain.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/terrain.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/skydome.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/skydome.frag
 )
 
 INCLUDE_DIRECTORIES( 
    ${LIB_HEADER_PATH} 
    ${HEADER_PATH}
-   ${LIBFFTW3F-3_INCLUDE_DIR}
+   ${FFTSS_INCLUDE_DIR}
 )
 
 ADD_EXECUTABLE(
