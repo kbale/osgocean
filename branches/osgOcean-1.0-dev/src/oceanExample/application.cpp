@@ -358,7 +358,7 @@ public:
 
                 _oceanScene->addChild( pat );
             }
-/*
+
             {
                 ScopedTimer islandsTimer("  . Loading islands: ", osg::notify(osg::NOTICE));
                 osg::ref_ptr<osg::Node> islandModel = loadIslands();
@@ -371,7 +371,7 @@ public:
                     _oceanScene->addChild( _islandSwitch );
                 }
             }
-*/
+
             {
                 ScopedTimer lightingTimer("  . Setting up lighting: ", osg::notify(osg::NOTICE));
                 osg::LightSource* lightSource = new osg::LightSource;
