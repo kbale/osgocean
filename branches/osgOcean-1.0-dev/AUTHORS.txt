@@ -6,3 +6,6 @@ project VENUS (Contract IST-034924) of the
 "Information Society Technologies (IST) programme of the 6th 
 FP for RTD".
 
+Contributors:
+
+Jean-Sebastian Guay
