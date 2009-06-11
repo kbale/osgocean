@@ -1,9 +1,9 @@
-uniform samplerRect uFullColourMap;    // full resolution image
-uniform samplerRect uBlurMap;          // downsampled and filtered image
+uniform samplerRect osgOcean_FullColourMap;    // full resolution image
+uniform samplerRect osgOcean_BlurMap;          // downsampled and filtered image
 
-uniform vec2 uScreenRes;
-uniform vec2 uScreenResInv;
-uniform vec2 uLowRes;
+uniform vec2 osgOcean_ScreenRes;
+uniform vec2 osgOcean_ScreenResInv;
+uniform vec2 osgOcean_LowRes;
 
 #define NUM_TAPS 4
 
@@ -30,12 +30,12 @@ void main(void)
 	float discRadius, discRadiusLow, centerDepth;
 
 	// pixel size (1/image resolution) of full resolution image
-	vec2 pixelSizeHigh = uScreenResInv;
+	vec2 pixelSizeHigh = osgOcean_ScreenResInv;
 
 	// pixel size of low resolution image
 	vec2 pixelSizeLow = 4.0 * pixelSizeHigh;
 
-	vec4 color = textureRect( uFullColourMap, gl_TexCoord[0] );	// fetch center tap
+	vec4 color = textureRect( osgOcean_FullColourMap, gl_TexCoord[0] );	// fetch center tap
 	centerDepth = color.a; // save its depth
 
 	// convert depth into blur radius in pixels
@@ -50,12 +50,12 @@ void main(void)
 	for(int t = 0; t < NUM_TAPS; t++)
 	{
 		// fetch low-res tap
-		vec2 coordLow = gl_TexCoord[1].st + ( uLowRes * (pixelSizeLow * poisson[t] * discRadiusLow) );
-		vec4 tapLow = textureRect(uBlurMap, coordLow);
+		vec2 coordLow = gl_TexCoord[1].st + ( osgOcean_LowRes * (pixelSizeLow * poisson[t] * discRadiusLow) );
+		vec4 tapLow = textureRect(osgOcean_BlurMap, coordLow);
 
 		// fetch high-res tap
-		vec2 coordHigh = gl_TexCoord[0].st + ( uScreenRes * (pixelSizeHigh * poisson[t] * discRadius) );
-		vec4 tapHigh = textureRect(uFullColourMap, coordHigh);
+		vec2 coordHigh = gl_TexCoord[0].st + ( osgOcean_ScreenRes * (pixelSizeHigh * poisson[t] * discRadius) );
+		vec4 tapHigh = textureRect(osgOcean_FullColourMap, coordHigh);
 
 		// put tap blurriness into [0, 1] range
 		float tapBlur = abs(tapHigh.a * 2.0 - 1.0);

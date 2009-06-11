@@ -439,10 +439,11 @@ public:
     // The custom shader is needed to add multitexturing and bump mapping to the terrain.
     osg::Node* loadIslands(void)
     {
-        osg::ref_ptr<osg::Node> island = osgDB::readNodeFile("resources/island/islands.osg");
+        const std::string filename = "resources/island/islands.ive";
+        osg::ref_ptr<osg::Node> island = osgDB::readNodeFile(filename);
 
         if(!island){
-            osg::notify(osg::WARN) << "Could not find: resources/island/islands.osg" << std::endl;
+            osg::notify(osg::WARN) << "Could not find: " << filename << std::endl;
             return NULL;
         }
 
@@ -497,8 +498,8 @@ public:
 
         cubeMap->setFilter( osg::Texture::MIN_FILTER,    osg::Texture::LINEAR_MIPMAP_LINEAR);
         cubeMap->setFilter( osg::Texture::MAG_FILTER,    osg::Texture::LINEAR);
-        cubeMap->setWrap    ( osg::Texture::WRAP_S,            osg::Texture::CLAMP_TO_EDGE);
-        cubeMap->setWrap    ( osg::Texture::WRAP_T,            osg::Texture::CLAMP_TO_EDGE);
+        cubeMap->setWrap  ( osg::Texture::WRAP_S,        osg::Texture::CLAMP_TO_EDGE);
+        cubeMap->setWrap  ( osg::Texture::WRAP_T,        osg::Texture::CLAMP_TO_EDGE);
 
         cubeMap->setImage(osg::TextureCubeMap::NEGATIVE_X, osgDB::readImageFile( filenames[NEG_X] ) );
         cubeMap->setImage(osg::TextureCubeMap::POSITIVE_X, osgDB::readImageFile( filenames[POS_X] ) );

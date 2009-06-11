@@ -1,4 +1,4 @@
-uniform samplerRect uTexture;
+uniform samplerRect osgOcean_GlareTexture;
 
 void main( void )
 {
@@ -6,19 +6,19 @@ void main( void )
 
 	texCoordSample.x = gl_TexCoord[0].x - 1;
 	texCoordSample.y = gl_TexCoord[0].y + 1;
-	vec4 color = textureRect(uTexture, texCoordSample);
+	vec4 color = textureRect(osgOcean_GlareTexture, texCoordSample);
 
 	texCoordSample.x = gl_TexCoord[0].x + 1;
 	texCoordSample.y = gl_TexCoord[0].y + 1;
-	color += textureRect(uTexture, texCoordSample);
+	color += textureRect(osgOcean_GlareTexture, texCoordSample);
 
 	texCoordSample.x = gl_TexCoord[0].x + 1;
 	texCoordSample.y = gl_TexCoord[0].y - 1;
-	color += textureRect(uTexture, texCoordSample);
+	color += textureRect(osgOcean_GlareTexture, texCoordSample);
 
 	texCoordSample.x = gl_TexCoord[0].x - 1;
 	texCoordSample.y = gl_TexCoord[0].y - 1;
-	color += textureRect(uTexture, texCoordSample);
+	color += textureRect(osgOcean_GlareTexture, texCoordSample);
 
 	gl_FragColor = color * 0.25;
 }

@@ -17,152 +17,167 @@
 
 
 #include <osgOcean/DistortionSurface>
+#include <osgDB/Registry>
+#include <osgOcean/ShaderUtils>
 
 using namespace osgOcean;
 
-#define USE_LOCAL_SHADERS
+#define USE_LOCAL_SHADERS 1
 
 DistortionSurface::DistortionSurface( void )
-{}
+{
+    addResourcePaths();
+}
 
 DistortionSurface::DistortionSurface( const osg::Vec3f& corner, const osg::Vec2f& dims, osg::TextureRectangle* texture )
 {
-	build(corner,dims,texture);
+    build(corner,dims,texture);
+    addResourcePaths();
 }
 
 DistortionSurface::DistortionSurface( const DistortionSurface &copy, const osg::CopyOp &copyop ):
-	osg::Geode(copy,copyop)
+    osg::Geode(copy,copyop)
 {
 }
 
 void DistortionSurface::build( const osg::Vec3f& corner, const osg::Vec2f& dims, osg::TextureRectangle* texture )
 {
-	osg::notify(osg::INFO) << "DistortionSurface::build()"<< std::endl;
+    osg::notify(osg::INFO) << "DistortionSurface::build()"<< std::endl;
 
-	removeDrawables( 0, getNumDrawables() );
+    removeDrawables( 0, getNumDrawables() );
 
-	osg::Geometry* geom = new ScreenAlignedQuad(corner,dims,texture);
-	addDrawable(geom);
+    osg::Geometry* geom = new ScreenAlignedQuad(corner,dims,texture);
+    addDrawable(geom);
 
-	osg::StateSet* ss = new osg::StateSet;
+    osg::StateSet* ss = new osg::StateSet;
 
-	osg::ref_ptr<osg::Program> program = createShader();
+    osg::ref_ptr<osg::Program> program = createShader();
 
-	if(program.valid())
-		ss->setAttributeAndModes( program, osg::StateAttribute::ON );
-	else
-		osg::notify(osg::WARN) << "DistortionSurface::build() Invalid Shader"<< std::endl;
-	
-	ss->setTextureAttributeAndModes( 0, texture, osg::StateAttribute::ON);
+    if(program.valid())
+        ss->setAttributeAndModes( program, osg::StateAttribute::ON );
+    else
+        osg::notify(osg::WARN) << "DistortionSurface::build() Invalid Shader"<< std::endl;
+    
+    ss->setTextureAttributeAndModes( 0, texture, osg::StateAttribute::ON);
 
-	ss->addUniform( new osg::Uniform( "uFrameBuffer",  0 ) );
-	ss->addUniform( new osg::Uniform( "uFrequency",    2.f ) );
-	ss->addUniform( new osg::Uniform( "uOffset",       0.f ) );
-	ss->addUniform( new osg::Uniform( "uSpeed",        1.f ) );
-	ss->addUniform( new osg::Uniform( "uScreenRes",    dims ) );
+    ss->addUniform( new osg::Uniform( "osgOcean_FrameBuffer",  0 ) );
+    ss->addUniform( new osg::Uniform( "osgOcean_Frequency",    2.f ) );
+    ss->addUniform( new osg::Uniform( "osgOcean_Offset",       0.f ) );
+    ss->addUniform( new osg::Uniform( "osgOcean_Speed",        1.f ) );
+    ss->addUniform( new osg::Uniform( "osgOcean_ScreenRes",    dims ) );
 
-	setStateSet(ss);
+    setStateSet(ss);
 
-	setUserData( new DistortionDataType(*this) );
-	setUpdateCallback( new DistortionCallback );
+    setUserData( new DistortionDataType(*this) );
+    setUpdateCallback( new DistortionCallback );
 }
 
 osg::Program* DistortionSurface::createShader(void)
 {
-	osg::ref_ptr<osg::Shader> vShader = new osg::Shader( osg::Shader::VERTEX );
-	vShader->setName("distortion_surface_fragment");
+#if USE_LOCAL_SHADERS
 
-	osg::ref_ptr<osg::Shader> fShader = new osg::Shader( osg::Shader::FRAGMENT );
-	fShader->setName("distortion_surface_vertex");
+    char water_distortion_vertex[] = 
+        "varying vec4 vEyePos;\n"
+        "\n"
+        "void main(void)\n"
+        "{\n"
+        "  gl_TexCoord[0] = gl_MultiTexCoord0;"
+        "    vEyePos = gl_ModelViewProjectionMatrix * gl_Vertex;\n"
+        "    gl_Position = ftransform();\n"
+        "}\n";
 
-#ifdef USE_LOCAL_SHADERS
-
-	char water_distortion_vertex[] = 
-		"varying vec4 vEyePos;\n"
-		"\n"
-		"void main(void)\n"
-		"{\n"
-		"  gl_TexCoord[0] = gl_MultiTexCoord0;"
-		"	vEyePos = gl_ModelViewProjectionMatrix * gl_Vertex;\n"
-		"	gl_Position = ftransform();\n"
-		"}\n";
-
-	char water_distortion_fragment[] =
-		"// Based on Jon Kennedy's heat haze shader\n"
-		"// Copyright (c) 2002-2006 3Dlabs Inc. Ltd.\n"
-		"\n"
-		"uniform float uFrequency;\n"
-		"uniform float uOffset;\n"
-		"uniform float uSpeed;\n"
-		"uniform vec2  uScreenRes;\n"
-		"\n"
-		"uniform samplerRect uFrameBuffer;\n"
-		"\n"
-		"varying vec4 vEyePos;\n"
-		"\n"
-		"void main (void)\n"
-		"{\n"
-		"	vec2 index;\n"
-		"\n"
-		"	// perform the div by w to put the texture into screen space\n"
-		"	float recipW = 1.0 / vEyePos.w;\n"
-		"	vec2 eye = vEyePos.xy * vec2(recipW);\n"
-		"\n"
-		"	float blend = max(1.0 - eye.y, 0.0);   \n"
-		"	  \n"
-		"	// calc the wobble\n"
-		"	// index.s = eye.x ;\n"
-		"	index.s = eye.x + blend * sin( uFrequency * 5.0 * eye.x + uOffset * uSpeed ) * 0.004;\n"
-		"	index.t = eye.y + blend * sin( uFrequency * 5.0 * eye.y + uOffset * uSpeed ) * 0.004;\n"
-		"	  \n"
-		"	// scale and shift so we're in the range 0-1\n"
-		"	index.s = index.s * 0.5 + 0.5;\n"
-		"	index.t = index.t * 0.5 + 0.5;\n"
-		"\n"
-		"	vec2 recipRes = vec2(1.0/uScreenRes.x, 1.0/uScreenRes.y);\n"
-		"\n"
-		"	index.s = clamp(index.s, 0.0, 1.0 - recipRes.x);\n"
-		"	index.t = clamp(index.t, 0.0, 1.0 - recipRes.y);\n"
-		"\n"
-		"	// scale the texture so we just see the rendered framebuffer\n"
-		"	index.s = index.s * uScreenRes.x;\n"
-		"	index.t = index.t * uScreenRes.y;\n"
-		"	  \n"
-		"	vec3 RefractionColor = vec3( textureRect( uFrameBuffer, index ) );\n"
-		"\n"
-		"	gl_FragColor = vec4( RefractionColor, 1.0 );\n"
-		"	//gl_FragColor = textureRect( uFrameBuffer, gl_TexCoord[0].st );\n"
+    char water_distortion_fragment[] =
+        "// Based on Jon Kennedy's heat haze shader\n"
+        "// Copyright (c) 2002-2006 3Dlabs Inc. Ltd.\n"
+        "\n"
+        "uniform float osgOcean_Frequency;\n"
+        "uniform float osgOcean_Offset;\n"
+        "uniform float osgOcean_Speed;\n"
+        "uniform vec2  osgOcean_ScreenRes;\n"
+        "\n"
+        "uniform samplerRect osgOcean_FrameBuffer;\n"
+        "\n"
+        "varying vec4 vEyePos;\n"
+        "\n"
+        "void main (void)\n"
+        "{\n"
+        "    vec2 index;\n"
+        "\n"
+        "    // perform the div by w to put the texture into screen space\n"
+        "    float recipW = 1.0 / vEyePos.w;\n"
+        "    vec2 eye = vEyePos.xy * vec2(recipW);\n"
+        "\n"
+        "    float blend = max(1.0 - eye.y, 0.0);   \n"
+        "      \n"
+        "    // calc the wobble\n"
+        "    // index.s = eye.x ;\n"
+        "    index.s = eye.x + blend * sin( osgOcean_Frequency * 5.0 * eye.x + osgOcean_Offset * osgOcean_Speed ) * 0.004;\n"
+        "    index.t = eye.y + blend * sin( osgOcean_Frequency * 5.0 * eye.y + osgOcean_Offset * osgOcean_Speed ) * 0.004;\n"
+        "      \n"
+        "    // scale and shift so we're in the range 0-1\n"
+        "    index.s = index.s * 0.5 + 0.5;\n"
+        "    index.t = index.t * 0.5 + 0.5;\n"
+        "\n"
+        "    vec2 recipRes = vec2(1.0/osgOcean_ScreenRes.x, 1.0/osgOcean_ScreenRes.y);\n"
+        "\n"
+        "    index.s = clamp(index.s, 0.0, 1.0 - recipRes.x);\n"
+        "    index.t = clamp(index.t, 0.0, 1.0 - recipRes.y);\n"
+        "\n"
+        "    // scale the texture so we just see the rendered framebuffer\n"
+        "    index.s = index.s * osgOcean_ScreenRes.x;\n"
+        "    index.t = index.t * osgOcean_ScreenRes.y;\n"
+        "      \n"
+        "    vec3 RefractionColor = vec3( textureRect( osgOcean_FrameBuffer, index ) );\n"
+        "\n"
+        "    gl_FragColor = vec4( RefractionColor, 1.0 );\n"
+        "    //gl_FragColor = textureRect( osgOcean_FrameBuffer, gl_TexCoord[0].st );\n"
       "}\n";
 
-	vShader->setShaderSource(water_distortion_vertex);
-	fShader->setShaderSource(water_distortion_fragment);
-
 #else
-	if( !vShader->loadShaderSourceFromFile(water_distortion.vert") )
-		return NULL;
-
-	if( !fShader->loadShaderSourceFromFile(water_distortion.frag") )
-		return NULL;
+    static const char water_distortion_vertex[]   = "water_distortion.vert";
+    static const char water_distortion_fragment[] = "water_distortion.frag";
 #endif
 
-	osg::Program* program = new osg::Program;
-	program->addShader( vShader.get() );
-	program->addShader( fShader.get() );
-
-	return program;
+    return createProgram("distortion_surface", water_distortion_vertex, water_distortion_fragment, !USE_LOCAL_SHADERS );
 }
 
 void DistortionSurface::update( const double& dt )
 {
-	static float val = 0.f;
-	static float inc = 1.39624444f; //(2PI/4.5f;)
+    static float val = 0.f;
+    static float inc = 1.39624444f; //(2PI/4.5f;)
 
-	val += inc * dt; 
+    val += inc * dt; 
 
-	if(val >= 6.2831f) 
-		val = 0.f;
+    if(val >= 6.2831f) 
+        val = 0.f;
 
-	getOrCreateStateSet()->getOrCreateUniform("uOffset", osg::Uniform::FLOAT)->set(val);
+    getOrCreateStateSet()->getOrCreateUniform("osgOcean_Offset", osg::Uniform::FLOAT)->set(val);
+}
+
+void DistortionSurface::addResourcePaths(void)
+{
+    const std::string shaderPath = "resources/shaders/";
+    const std::string texturePath = "resources/textures/";
+
+    osgDB::FilePathList& pathList = osgDB::Registry::instance()->getDataFilePathList();
+
+    bool shaderPathPresent = false;
+    bool texturePathPresent = false;
+
+    for(unsigned int i = 0; i < pathList.size(); ++i )
+    {
+        if( pathList.at(i).compare(shaderPath) == 0 )
+            shaderPathPresent = true;
+
+        if( pathList.at(i).compare(texturePath) == 0 )
+            texturePathPresent = true;
+    }
+
+    if(!texturePathPresent)
+        pathList.push_back(texturePath);
+
+    if(!shaderPathPresent)
+        pathList.push_back(shaderPath);
 }
 
 // --------------------------------------------
@@ -177,24 +192,24 @@ _newTime(0.0)
 
 void DistortionSurface::DistortionDataType::update( const double& time )
 {
-	_oldTime = _newTime;
-	_newTime = time;
+    _oldTime = _newTime;
+    _newTime = time;
 
-	_surface.update(_newTime-_oldTime);
+    _surface.update(_newTime-_oldTime);
 }
 
 void DistortionSurface::DistortionCallback::operator()(osg::Node* node, osg::NodeVisitor* nv)
 {
-	osg::ref_ptr<DistortionSurface::DistortionDataType> data 
-		= dynamic_cast<DistortionSurface::DistortionDataType*> ( node->getUserData() );
+    osg::ref_ptr<DistortionSurface::DistortionDataType> data 
+        = dynamic_cast<DistortionSurface::DistortionDataType*> ( node->getUserData() );
 
-	if(data)
-	{
-		if(nv->getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR )
-		{
-			data->update( nv->getFrameStamp()->getSimulationTime() );
-		}
-	}
+    if(data)
+    {
+        if(nv->getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR )
+        {
+            data->update( nv->getFrameStamp()->getSimulationTime() );
+        }
+    }
 
-	traverse(node, nv); 
+    traverse(node, nv); 
 }

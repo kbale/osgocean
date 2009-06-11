@@ -1,5 +1,4 @@
 varying vec3 vRay;
-uniform vec3 uEye;
 
 void main( void )
 {

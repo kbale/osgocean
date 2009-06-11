@@ -152,16 +152,16 @@ void FFTOceanSurface::initStateSet( void )
     _stateset=new osg::StateSet;
 
     // Environment map    
-    _stateset->addUniform( new osg::Uniform("uEnableGlobalReflections", true ) );
-    _stateset->addUniform( new osg::Uniform("uEnvironmentMap", ENV_MAP ) );
+    _stateset->addUniform( new osg::Uniform("osgOcean_EnableGlobalReflections", true ) );
+    _stateset->addUniform( new osg::Uniform("osgOcean_EnvironmentMap", ENV_MAP ) );
     _stateset->setTextureAttributeAndModes( ENV_MAP, _environmentMap.get(), osg::StateAttribute::ON );
     
     // Foam
-    _stateset->addUniform( new osg::Uniform("uEnableCrestFoam", _useCrestFoam ) );
-    _stateset->addUniform( new osg::Uniform("uFoamCapBottom",   _foamCapBottom ) );
-    _stateset->addUniform( new osg::Uniform("uFoamCapTop",      _foamCapTop ) );
-    _stateset->addUniform( new osg::Uniform("uFoamMap",         FOAM_MAP ) );
-    _stateset->addUniform( new osg::Uniform("uFoamScale",       _tileResInv*30.f ) );
+    _stateset->addUniform( new osg::Uniform("osgOcean_EnableCrestFoam", _useCrestFoam ) );
+    _stateset->addUniform( new osg::Uniform("osgOcean_FoamCapBottom",   _foamCapBottom ) );
+    _stateset->addUniform( new osg::Uniform("osgOcean_FoamCapTop",      _foamCapTop ) );
+    _stateset->addUniform( new osg::Uniform("osgOcean_FoamMap",         FOAM_MAP ) );
+    _stateset->addUniform( new osg::Uniform("osgOcean_FoamScale",       _tileResInv*30.f ) );
 
     if( _useCrestFoam )
     {
@@ -170,9 +170,9 @@ void FFTOceanSurface::initStateSet( void )
     }
 
     // Noise
-    _stateset->addUniform( new osg::Uniform("uNoiseMap",     NORMAL_MAP ) );
-    _stateset->addUniform( new osg::Uniform("uNoiseCoords0", computeNoiseCoords( 32.f, osg::Vec2f( 2.f, 4.f), 2.f, 0.f ) ) );
-    _stateset->addUniform( new osg::Uniform("uNoiseCoords1", computeNoiseCoords( 8.f,  osg::Vec2f(-4.f, 2.f), 1.f, 0.f ) ) );
+    _stateset->addUniform( new osg::Uniform("osgOcean_NoiseMap",     NORMAL_MAP ) );
+    _stateset->addUniform( new osg::Uniform("osgOcean_NoiseCoords0", computeNoiseCoords( 32.f, osg::Vec2f( 2.f, 4.f), 2.f, 0.f ) ) );
+    _stateset->addUniform( new osg::Uniform("osgOcean_NoiseCoords1", computeNoiseCoords( 8.f,  osg::Vec2f(-4.f, 2.f), 1.f, 0.f ) ) );
 
     osg::ref_ptr<osg::Texture2D> noiseMap 
         = createNoiseMap( _noiseTileSize, _noiseWindDir, _noiseWindSpeed, _noiseWaveScale, _noiseTileRes ); 
@@ -183,10 +183,10 @@ void FFTOceanSurface::initStateSet( void )
     osg::Vec4f waveTop = colorLerp(_lightColor, osg::Vec4f(), osg::Vec4f(_waveTopColor,1.f) );
     osg::Vec4f waveBot = colorLerp(_lightColor, osg::Vec4f(), osg::Vec4f(_waveBottomColor,1.f) );
 
-    _stateset->addUniform( new osg::Uniform("uWaveTop", waveTop ) );
-    _stateset->addUniform( new osg::Uniform("uWaveBot", waveBot ) );
-    _stateset->addUniform( new osg::Uniform("uFresnelMul", _fresnelMul ) );    
-    _stateset->addUniform( new osg::Uniform("uEyePosition", osg::Vec3f() ) );
+    _stateset->addUniform( new osg::Uniform("osgOcean_WaveTop", waveTop ) );
+    _stateset->addUniform( new osg::Uniform("osgOcean_WaveBot", waveBot ) );
+    _stateset->addUniform( new osg::Uniform("osgOcean_FresnelMul", _fresnelMul ) );    
+    _stateset->addUniform( new osg::Uniform("osgOcean_EyePosition", osg::Vec3f() ) );
     
     osg::ref_ptr<osg::Program> program = createShader();
         
@@ -411,9 +411,9 @@ void FFTOceanSurface::update( unsigned int frame, const double& dt, const osg::V
     static double time = 0.0;
     time+=(dt*0.0008);
 
-    getStateSet()->getUniform("uEyePosition")->set(eye);
-    getStateSet()->getUniform("uNoiseCoords0")->set( computeNoiseCoords( 32.f, osg::Vec2f( 2.f, 4.f), 2.f, time ) );
-    getStateSet()->getUniform("uNoiseCoords1")->set( computeNoiseCoords( 8.f,  osg::Vec2f(-4.f, 2.f), 1.f, time ) );
+    getStateSet()->getUniform("osgOcean_EyePosition")->set(eye);
+    getStateSet()->getUniform("osgOcean_NoiseCoords0")->set( computeNoiseCoords( 32.f, osg::Vec2f( 2.f, 4.f), 2.f, time ) );
+    getStateSet()->getUniform("osgOcean_NoiseCoords1")->set( computeNoiseCoords( 8.f,  osg::Vec2f(-4.f, 2.f), 1.f, time ) );
     
     if( updateMipmaps( eye, frame ) )
     {

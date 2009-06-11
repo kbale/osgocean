@@ -4,24 +4,24 @@ uniform sampler2D uNormalMap;
 
 // osgOcean uniforms
 // -------------------
-uniform float uDOF_Near;
-uniform float uDOF_Focus;
-uniform float uDOF_Far;
-uniform float uDOF_Clamp;
+uniform float osgOcean_DOF_Near;
+uniform float osgOcean_DOF_Focus;
+uniform float osgOcean_DOF_Far;
+uniform float osgOcean_DOF_Clamp;
 
-uniform bool uEnableGlare;
-uniform bool uEnableDOF;
-uniform bool uEyeUnderwater;
+uniform bool osgOcean_EnableGlare;
+uniform bool osgOcean_EnableDOF;
+uniform bool osgOcean_EyeUnderwater;
 
-uniform float uUnderwaterFogDensity; 
-uniform float uAboveWaterFogDensity; 
-uniform float uWaterHeight;
+uniform float osgOcean_UnderwaterFogDensity;
+uniform float osgOcean_AboveWaterFogDensity;
+uniform float osgOcean_WaterHeight;
 
-uniform int uLightID;
+uniform int osgOcean_LightID;
 
-uniform vec4 uUnderwaterFogColor;
-uniform vec4 uAboveWaterFogColor;
-uniform vec4 uUnderwaterDiffuse;
+uniform vec4 osgOcean_UnderwaterFogColor;
+uniform vec4 osgOcean_AboveWaterFogColor;
+uniform vec4 osgOcean_UnderwaterDiffuse;
 // -------------------
 
 varying vec3 vLightDir;
@@ -45,22 +45,22 @@ float computeDepthBlur(float depth, float focus, float near, float far, float cl
 
 vec4 lighting( vec4 diffuse, vec4 colormap, vec3 N )
 {
-	vec4 final_color = gl_LightSource[uLightID].ambient * colormap;
-							
+	vec4 final_color = gl_LightSource[osgOcean_LightID].ambient * colormap;
+
 	vec3 L = normalize(vLightDir);
-	
+
 	float lambertTerm = dot(N,L);
-	
+
 	if(lambertTerm > 0.0)
 	{
-		final_color += diffuse * lambertTerm * colormap;	
-		
+		final_color += diffuse * lambertTerm * colormap;
+
 		vec3 E = normalize(vEyeVec);
 		vec3 R = reflect(-L, N);
-		
+
 		float specular = pow( max(dot(R, E), 0.0), 2.0 );
 
-		final_color += gl_LightSource[uLightID].specular * specular;	
+		final_color += gl_LightSource[osgOcean_LightID].specular * specular;
 	}
 
 	return final_color;
@@ -84,31 +84,31 @@ void main(void)
 
 	// +2 tweak here as waves peak above average wave height,
 	// and surface fog becomes visible.
-	if(uEyeUnderwater && vWorldHeight < uWaterHeight+2.0)
+	if(osgOcean_EyeUnderwater && vWorldHeight < osgOcean_WaterHeight+2.0)
 	{
-		final_color = lighting( uUnderwaterDiffuse, textureColor, bump );
-		
-		fogColor = uUnderwaterFogColor;
-		fogFactor = exp2(uUnderwaterFogDensity * gl_FogFragCoord * gl_FogFragCoord );
+		final_color = lighting( osgOcean_UnderwaterDiffuse, textureColor, bump );
 
-		if(uEnableDOF)
-			alpha = computeDepthBlur( gl_FogFragCoord, uDOF_Focus, uDOF_Near, uDOF_Far, uDOF_Clamp );
+		fogColor = osgOcean_UnderwaterFogColor;
+		fogFactor = exp2(osgOcean_UnderwaterFogDensity * gl_FogFragCoord * gl_FogFragCoord );
+
+		if(osgOcean_EnableDOF)
+			alpha = computeDepthBlur( gl_FogFragCoord, osgOcean_DOF_Focus, osgOcean_DOF_Near, osgOcean_DOF_Far, osgOcean_DOF_Clamp );
 		else
 			alpha = final_color.a;
 	}
 	else
 	{
-		final_color = lighting( gl_LightSource[uLightID].diffuse, textureColor, bump );
+		final_color = lighting( gl_LightSource[osgOcean_LightID].diffuse, textureColor, bump );
 
-		fogColor = uAboveWaterFogColor;
-		fogFactor = exp2(uAboveWaterFogDensity * gl_FogFragCoord * gl_FogFragCoord );
-		
-		if(uEnableGlare)
+		fogColor = osgOcean_AboveWaterFogColor;
+		fogFactor = exp2(osgOcean_AboveWaterFogDensity * gl_FogFragCoord * gl_FogFragCoord );
+
+		if(osgOcean_EnableGlare)
 			alpha = 0.0;
 		else
 			alpha = final_color.a;
 	}
-	
+
 	gl_FragColor = mix( fogColor, final_color, fogFactor );
 	gl_FragColor.a = alpha;
 }

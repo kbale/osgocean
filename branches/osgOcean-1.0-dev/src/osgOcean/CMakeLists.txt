@@ -56,6 +56,7 @@ SET( LIB_HEADERS
   ${HEADER_PATH}/OceanTechnique
   ${HEADER_PATH}/OceanTile
   ${HEADER_PATH}/ScreenAlignedQuad
+  ${HEADER_PATH}/ShaderUtils
   ${HEADER_PATH}/SiltEffect
   ${HEADER_PATH}/WaterTrochoids
   ${HEADER_PATH}/Export
@@ -84,6 +85,7 @@ ADD_LIBRARY(
   OceanTechnique.cpp
   OceanTile.cpp
   ScreenAlignedQuad.cpp
+  ShaderUtils.cpp
   SiltEffect.cpp
   WaterTrochoids.cpp
 )
