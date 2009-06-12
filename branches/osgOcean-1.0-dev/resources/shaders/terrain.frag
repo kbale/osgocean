@@ -28,7 +28,7 @@ varying vec3 vLightDir;
 varying vec3 vEyeVec;
 
 varying float vWorldHeight;
-varying float unitHeight;
+varying float vUnitHeight;
 
 float computeDepthBlur(float depth, float focus, float near, float far, float clampval )
 {
@@ -72,7 +72,7 @@ void main(void)
 	vec4 overlayColor = texture2D( uOverlayMap, gl_TexCoord[1].st );
 	vec4 bumpColor    = texture2D( uNormalMap,  gl_TexCoord[0].st );
 
-	unitHeight = clamp( unitHeight, 0.0, 1.0);
+	float unitHeight = clamp( vUnitHeight, 0.0, 1.0);
 	vec4 textureColor = mix(overlayColor, baseColor, unitHeight);
 
 	vec3 bump = (bumpColor.xyz*2.0)-1.0;

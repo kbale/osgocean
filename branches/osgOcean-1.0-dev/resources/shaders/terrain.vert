@@ -1,7 +1,7 @@
 varying vec3 vLightDir;
 varying vec3 vEyeVec;
 varying float vWorldHeight;
-varying float unitHeight;
+varying float vUnitHeight;
 
 attribute vec3 aTangent;
 
@@ -41,7 +41,7 @@ void main(void)
 	gl_FogFragCoord = gl_Position.z;
 
 	float inv = 1.0 / ( uHeightRange.y - (uHeightRange.x+65.0) );
-	unitHeight = inv * (gl_Vertex.z - (uHeightRange.x+65.0));
+	vUnitHeight = inv * (gl_Vertex.z - (uHeightRange.x+65.0));
 
 	vec4 worldVertex = (osg_ViewMatrixInverse*gl_ModelViewMatrix) * gl_Vertex;
 	vWorldHeight = worldVertex.z;
