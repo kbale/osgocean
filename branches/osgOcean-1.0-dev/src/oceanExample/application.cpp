@@ -392,7 +392,7 @@ public:
         }
     }
 
-    osg::Node* getOceanSurface( void )
+    osgOcean::OceanTechnique* getOceanSurface( void )
     {
         return _oceanSurface.get();
     }
@@ -616,6 +616,15 @@ public:
             return false;
         }
     }
+
+    void getUsage(osg::ApplicationUsage& usage) const
+    {
+        usage.addKeyboardMouseBinding("c","Camera type (cycle through Fixed, Flight, Trackball)");
+        usage.addKeyboardMouseBinding("1","Select scene \"Clear Blue Sky\"");
+        usage.addKeyboardMouseBinding("2","Select scene \"Dusk\"");
+        usage.addKeyboardMouseBinding("3","Select scene \"Pacific Cloudy\"");
+    }
+
 };
 
 int main(int argc, char *argv[])
@@ -688,6 +697,7 @@ int main(int argc, char *argv[])
 
     osg::ref_ptr<SceneModel> scene = new SceneModel(windDirection, windSpeed, depth, scale, isChoppy, choppyFactor, crestFoamHeight);
     viewer.addEventHandler(scene->getOceanSceneEventHandler());
+    viewer.addEventHandler(scene->getOceanSurface()->getEventHandler());
 
     viewer.addEventHandler( new SceneEventHandler(scene.get(), hud.get(), viewer ) );
 

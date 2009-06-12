@@ -110,17 +110,6 @@ namespace osgOcean
         float _glareAttenuation;
 
     public:
-        class EventHandler : public osgGA::GUIEventHandler
-        {
-        public:
-            EventHandler(OceanScene* oceanScene);
-            virtual bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object*, osg::NodeVisitor*);
-            virtual void getUsage(osg::ApplicationUsage& usage) const;
-        protected:
-            OceanScene* _oceanScene;
-        };
-
-
         OceanScene( void );
         OceanScene( OceanTechnique* technique );
         OceanScene( const OceanScene& copy, const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY );
@@ -411,10 +400,33 @@ namespace osgOcean
             osgDB::Registry::instance()->getDataFilePathList().push_back(path);
         }
 
-        /** Virtual constructor for OceanSceneEventHandler - override in 
+        /** Base class for the OceanScene event handler. Subclasses of 
+         *  OceanScene can subclass this to provide support for 
+         *  manipulating their particular properties, calling the base class
+         *  handle() to inherit the base class's events (or not as desired).
+         *  If subclasses subclass this handler, they need to override 
+         *  getEventHandler() in order for it to return the right concrete
+         *  event handler instance.
+         */
+        class EventHandler : public osgGA::GUIEventHandler
+        {
+        public:
+            EventHandler(OceanScene* oceanScene);
+            virtual bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object*, osg::NodeVisitor*);
+            virtual void getUsage(osg::ApplicationUsage& usage) const;
+        protected:
+            OceanScene* _oceanScene;
+        };
+
+        /** Virtual constructor for OceanScene::EventHandler - override in 
          * derived classes to return subclass-specific handler if needed.
          */
-        virtual EventHandler* getEventHandler() { return new EventHandler(this); }
+        virtual EventHandler* getEventHandler()
+        {
+            if (!_eventHandler.valid())
+                _eventHandler = new EventHandler(this);
+            return _eventHandler.get();
+        }
 
     private:
         osg::Texture2D* createTexture2D( const osg::Vec2s& size, GLint format );
@@ -483,6 +495,8 @@ namespace osgOcean
         void addResourcePaths(void);
 
     protected:
+        osg::ref_ptr<EventHandler> _eventHandler;
+
         ~OceanScene( void );
 
         class CameraCullCallback : public osg::NodeCallback

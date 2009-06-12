@@ -127,6 +127,20 @@ namespace osgOcean
 	protected:
 		~FFTOceanSurface(void);
 
+        /** This class overrides OceanTechnique::EventHandler to provide 
+         *  support for manipulating this particular subclass of 
+         *  OceanTechnique. Note that the method signatures are identical, 
+         *  and that the FFTOceanSurface will be accessed through the base 
+         *  class OceanTechnique pointer.
+         */
+        class EventHandler : public OceanTechnique::EventHandler
+        {
+        public:
+            EventHandler(OceanTechnique* oceanSurface);
+            virtual bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object* object, osg::NodeVisitor* nv);
+            virtual void getUsage(osg::ApplicationUsage& usage) const;
+        };
+
 	public:
 		/**
 		* Checks for mipmap or frame changes and updates the geometry accordingly.
@@ -290,6 +304,10 @@ namespace osgOcean
 			_isStateDirty = true;
 		}
 
+        inline bool isCrestFoamEnabled() const{
+            return _useCrestFoam;
+        }
+
 		inline void setFoamBottomHeight( float height ){
 			_foamCapBottom = height;
 			_isStateDirty = true;
@@ -332,6 +350,13 @@ namespace osgOcean
 			
 			_isStateDirty = true;
 		}
+
+        virtual OceanTechnique::EventHandler* getEventHandler()
+        {
+            if (!_eventHandler.valid())
+                _eventHandler = new FFTOceanSurface::EventHandler(this);
+            return _eventHandler.get();
+        }
 
 	// -------------------------------
 	//     Callback declarations

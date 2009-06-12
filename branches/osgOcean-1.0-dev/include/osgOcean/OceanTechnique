@@ -18,6 +18,7 @@
 #pragma once
 #include <osgOcean/Export>
 #include <osg/Geode>
+#include <osgGA/GUIEventHandler>
 
 namespace osgOcean
 {
@@ -45,11 +46,39 @@ namespace osgOcean
 			_isDirty=true;
 		}
 
+        /** Base class for the OceanTechnique event handler. Subclasses of 
+         *  OceanTechnique can subclass this to provide support for 
+         *  manipulating their particular properties, calling the base class
+         *  handle() to inherit the base class's events (or not as desired).
+         *  If subclasses subclass this handler, they need to override 
+         *  getEventHandler() in order for it to return the right concrete
+         *  event handler instance.
+         */
+        class EventHandler : public osgGA::GUIEventHandler
+        {
+        public:
+            EventHandler(OceanTechnique* oceanSurface);
+            virtual bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object*, osg::NodeVisitor*);
+            virtual void getUsage(osg::ApplicationUsage& usage) const;
+        protected:
+            OceanTechnique* _oceanSurface;
+        };
+
+        /** Virtual constructor for OceanTechnique::EventHandler - override in 
+         * derived classes to return subclass-specific handler if needed.
+         */
+        virtual EventHandler* getEventHandler()
+        {
+            if (!_eventHandler.valid())
+                _eventHandler = new EventHandler(this);
+            return _eventHandler.get();
+        }
 
 	protected:
 		virtual ~OceanTechnique(void){};
 
 	protected:
 		bool _isDirty;
+        osg::ref_ptr<EventHandler> _eventHandler;
 	};
 }

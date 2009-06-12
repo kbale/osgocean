@@ -52,3 +52,23 @@ float OceanTechnique::getSurfaceHeight(void)
 	osg::notify(osg::DEBUG_INFO) << "OceanTechnique::getSurfaceHeight() Not Implemented" << std::endl;
 	return 0.f;
 }
+
+
+OceanTechnique::EventHandler::EventHandler(OceanTechnique* oceanSurface):
+_oceanSurface(oceanSurface)
+{
+}
+
+bool OceanTechnique::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object*, osg::NodeVisitor*)
+{
+    if (ea.getHandled()) return false;
+
+    // Nothing to do
+
+    return false;
+}
+
+/** Get the keyboard and mouse usage of this manipulator.*/
+void OceanTechnique::EventHandler::getUsage(osg::ApplicationUsage& usage) const
+{
+}

@@ -1519,3 +1519,50 @@ void FFTOceanSurface::OceanAnimationCallback::operator()(osg::Node* node, osg::N
 
     traverse(node, nv); 
 }
+
+
+FFTOceanSurface::EventHandler::EventHandler(OceanTechnique* oceanSurface):
+    OceanTechnique::EventHandler(oceanSurface)
+{
+}
+
+bool FFTOceanSurface::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object* object, osg::NodeVisitor* nv)
+{
+    // Call parent class's handle().
+    OceanTechnique::EventHandler::handle(ea, aa, object, nv);
+
+    if (ea.getHandled()) return false;
+
+    // Now we can handle this class's events.
+    switch(ea.getEventType())
+    {
+        case(osgGA::GUIEventAdapter::KEYUP):
+        {
+            // Downcast to the concrete class we're interested in.
+            FFTOceanSurface* fftSurface = dynamic_cast<FFTOceanSurface*>(_oceanSurface);
+            if (!fftSurface) return false;
+
+            // Crest foam
+            if (ea.getKey() == 'f')
+            {
+                fftSurface->enableCrestFoam(!fftSurface->isCrestFoamEnabled());
+                return true;
+            }
+
+            break;
+        }
+    default:
+        break;
+    }
+
+    return false;
+}
+
+/** Get the keyboard and mouse usage of this manipulator.*/
+void FFTOceanSurface::EventHandler::getUsage(osg::ApplicationUsage& usage) const
+{
+    // Add parent class's keys too.
+    OceanTechnique::EventHandler::getUsage(usage);
+
+    usage.addKeyboardMouseBinding("f","Toggle crest foam");
+}
