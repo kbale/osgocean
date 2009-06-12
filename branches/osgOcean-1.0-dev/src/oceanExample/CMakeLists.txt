@@ -29,10 +29,7 @@ SET( SKYBOX_TEXTURES_3
 )
 
 SET( ISLAND_RESOURCES
-  ${osgOcean_SOURCE_DIR}/resources/island/islands.osg
-  ${osgOcean_SOURCE_DIR}/resources/island/sand.png
-  ${osgOcean_SOURCE_DIR}/resources/island/moss.png
-  ${osgOcean_SOURCE_DIR}/resources/island/detail.png
+  ${osgOcean_SOURCE_DIR}/resources/island/islands.ive
 )
 
 SET( EXAMPLE_SHADERS
