@@ -14,7 +14,7 @@
 * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
 * http://www.gnu.org/copyleft/lesser.txt.
 */
-
+#include <stdlib.h> // Need to include this for linux compatibility
 #include <osgOcean/FFTSimulation>
 
 #include <complex>
