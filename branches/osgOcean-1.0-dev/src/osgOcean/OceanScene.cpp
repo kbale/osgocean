@@ -212,8 +212,6 @@ void OceanScene::init( void )
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_AboveWaterFogDensity", _aboveWaterFogDensity ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterDiffuse", _underwaterDiffuse ) );
 
-        // HACK
-        _enableDefaultShader = true;
         if(_enableDefaultShader)
         {
             _globalStateSet->setAttributeAndModes( _defaultSceneShader, osg::StateAttribute::ON );
