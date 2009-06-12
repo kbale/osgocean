@@ -12,7 +12,7 @@
 */
 
 #include <osgOcean/SiltEffect>
-#include <osgOcean/ShaderUtils>
+#include <osgOcean/ShaderManager>
 
 #include <stdlib.h>
 #include <OpenThreads/ScopedLock>
@@ -507,7 +507,7 @@ void SiltEffect::setUpGeometries(unsigned int numParticles)
 	    static const char silt_quads_fragment[] = "silt_quads.frag";
 #endif
 
-        osg::Program* program = createProgram("silt_quads", silt_quads_vertex, silt_quads_fragment, !USE_LOCAL_SHADERS );
+        osg::Program* program = ShaderManager::instance().createProgram("silt_quads", silt_quads_vertex, silt_quads_fragment, !USE_LOCAL_SHADERS );
         _quadStateSet->setAttribute(program);
     }
 
@@ -564,7 +564,7 @@ void SiltEffect::setUpGeometries(unsigned int numParticles)
 	    static const char silt_point_vertex[]   = "silt_points.vert";
 	    static const char silt_point_fragment[] = "silt_points.frag";
 #endif
-        osg::Program* program = createProgram("silt_point", silt_point_vertex, silt_point_fragment, !USE_LOCAL_SHADERS );
+        osg::Program* program = ShaderManager::instance().createProgram("silt_point", silt_point_vertex, silt_point_fragment, !USE_LOCAL_SHADERS );
         _pointStateSet->setAttribute(program);
 
         /// Setup the point sprites

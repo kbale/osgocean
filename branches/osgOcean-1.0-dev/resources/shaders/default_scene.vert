@@ -1,6 +1,5 @@
 // osgOcean Uniforms
 // -----------------
-uniform int osgOcean_LightID;
 uniform mat4 osg_ViewMatrixInverse;
 // -----------------
 

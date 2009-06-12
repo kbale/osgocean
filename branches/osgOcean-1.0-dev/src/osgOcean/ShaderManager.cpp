@@ -15,17 +15,53 @@
 * http://www.gnu.org/copyleft/lesser.txt.
 */
 
-#include <osgOcean/ShaderUtils>
+#include <osgOcean/ShaderManager>
 #include <osgDB/ReadFile>
+#include <sstream>
+
+using namespace osgOcean;
+
+ShaderManager::ShaderManager()
+{
+}
+
+ShaderManager& ShaderManager::instance()
+{
+    static ShaderManager s_instance;
+    return s_instance;
+}
+
+/** Set a definition that will be added as a #define to the top of every 
+ *  shader loaded through subsequent calls to createProgram() .
+ */
+//template<typename T>
+void ShaderManager::setGlobalDefinition(const std::string& name, unsigned int value)
+{
+    std::ostringstream valStr;
+    valStr << value;
+    _globalDefinitions[name] = valStr.str();
+}
+
+/** Get the value of a global definition that was previously set using
+ *  setGlobalDefinition().
+ */
+std::string ShaderManager::getGlobalDefiniton(const std::string& name)
+{
+    GlobalDefinitions::const_iterator it = _globalDefinitions.find(name);
+    if (it != _globalDefinitions.end())
+        return it->second;
+
+    return "";
+}
 
 /** Creates a shader program using either the given strings as shader 
  *  source directly, or as filenames to load the shaders from disk, 
  *  depending on the value of the \c loadFromFiles parameter.
  */
-osg::Program* osgOcean::createProgram( const std::string& name, 
-                             const std::string& vertexSrc, 
-                             const std::string& fragmentSrc, 
-                             bool loadFromFiles )
+osg::Program* ShaderManager::createProgram( const std::string& name, 
+                                            const std::string& vertexSrc, 
+                                            const std::string& fragmentSrc, 
+                                            bool loadFromFiles )
 {
     osg::ref_ptr<osg::Shader> vShader = 0;
     osg::ref_ptr<osg::Shader> fShader = 0;
@@ -51,6 +87,10 @@ osg::Program* osgOcean::createProgram( const std::string& name,
         fShader = new osg::Shader( osg::Shader::FRAGMENT, fragmentSrc );
     }
 
+    std::string globalDefinitionsList = buildGlobalDefinitionsList();
+    vShader->setShaderSource(globalDefinitionsList + vShader->getShaderSource());
+    fShader->setShaderSource(globalDefinitionsList + fShader->getShaderSource());
+
     vShader->setName(name+"_vertex_shader");
     fShader->setName(name+"_fragment_shader");
 
@@ -61,3 +101,14 @@ osg::Program* osgOcean::createProgram( const std::string& name,
     return program;
 }
 
+std::string ShaderManager::buildGlobalDefinitionsList()
+{
+    std::string list;
+    for (GlobalDefinitions::const_iterator it = _globalDefinitions.begin();
+         it != _globalDefinitions.end(); ++it)
+    {
+        list += "#define " + it->first + " " + it->second + "\n";
+    }
+
+    return list;
+}

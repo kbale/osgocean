@@ -16,7 +16,7 @@
 */
 
 #include <osgOcean/GodRayBlendSurface>
-#include <osgOcean/ShaderUtils>
+#include <osgOcean/ShaderManager>
 
 using namespace osgOcean;
 
@@ -166,7 +166,7 @@ osg::Program* GodRayBlendSurface::createShader(void)
     static const char god_ray_screen_blend_fragment[] = "godray_screen_blend.frag";
 #endif
 
-    return createProgram("godray_blend", god_ray_screen_blend_vertex, god_ray_screen_blend_fragment, !USE_LOCAL_SHADERS );
+    return ShaderManager::instance().createProgram("godray_blend", god_ray_screen_blend_vertex, god_ray_screen_blend_fragment, !USE_LOCAL_SHADERS );
 }
 
 void GodRayBlendSurface::update( const osg::Matrixd& view, const osg::Matrixd& proj )

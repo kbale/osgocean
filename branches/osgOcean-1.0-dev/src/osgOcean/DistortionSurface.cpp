@@ -18,7 +18,7 @@
 
 #include <osgOcean/DistortionSurface>
 #include <osgDB/Registry>
-#include <osgOcean/ShaderUtils>
+#include <osgOcean/ShaderManager>
 
 using namespace osgOcean;
 
@@ -138,7 +138,7 @@ osg::Program* DistortionSurface::createShader(void)
     static const char water_distortion_fragment[] = "water_distortion.frag";
 #endif
 
-    return createProgram("distortion_surface", water_distortion_vertex, water_distortion_fragment, !USE_LOCAL_SHADERS );
+    return ShaderManager::instance().createProgram("distortion_surface", water_distortion_vertex, water_distortion_fragment, !USE_LOCAL_SHADERS );
 }
 
 void DistortionSurface::update( const double& dt )

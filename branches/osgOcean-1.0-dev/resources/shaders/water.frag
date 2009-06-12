@@ -12,8 +12,6 @@ uniform float osgOcean_DOF_Far;
 uniform float osgOcean_DOF_Clamp;
 uniform float osgOcean_FresnelMul;
 
-uniform int osgOcean_LightID;
-
 uniform samplerCube osgOcean_EnvironmentMap;
 uniform sampler2D   osgOcean_ReflectionMap;
 uniform sampler2D   osgOcean_RefractionMap;

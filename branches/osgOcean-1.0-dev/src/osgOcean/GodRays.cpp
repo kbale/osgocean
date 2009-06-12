@@ -16,7 +16,7 @@
 */
 
 #include <osgOcean/GodRays>
-#include <osgOcean/ShaderUtils>
+#include <osgOcean/ShaderManager>
 
 using namespace osgOcean;
 
@@ -427,7 +427,7 @@ osg::Program* GodRays::createGodRayProgram( void )
 	static const char godrays_fragment[] = "godrays.frag";
 #endif
 
-	return createProgram("godrays_shader", godrays_vertex, godrays_fragment, !USE_LOCAL_SHADERS );
+	return ShaderManager::instance().createProgram("godrays_shader", godrays_vertex, godrays_fragment, !USE_LOCAL_SHADERS );
 }
 
 osg::Program* GodRays::createGodRayGlareProgram( void )
@@ -475,7 +475,7 @@ osg::Program* GodRays::createGodRayGlareProgram( void )
 	static const char glare_fragment[] = "godray_glare.frag";
 #endif
 
-	return createProgram("godray_glare", glare_vertex, glare_fragment, !USE_LOCAL_SHADERS );
+	return ShaderManager::instance().createProgram("godray_glare", glare_vertex, glare_fragment, !USE_LOCAL_SHADERS );
 }
 
 // --------------------------------------------

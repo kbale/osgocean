@@ -1,7 +1,5 @@
 // osgOcean Uniforms
 // -----------------
-uniform int osgOcean_LightID;
-
 uniform float osgOcean_DOF_Near;
 uniform float osgOcean_DOF_Focus;
 uniform float osgOcean_DOF_Far;

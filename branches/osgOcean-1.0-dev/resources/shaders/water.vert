@@ -1,7 +1,5 @@
 uniform mat4 osg_ViewMatrixInverse;
 
-uniform int osgOcean_LightID;
-
 uniform vec3 osgOcean_EyePosition;
 
 uniform vec3 osgOcean_NoiseCoords0;

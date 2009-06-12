@@ -31,6 +31,7 @@
 #include <osg/MatrixTransform>
 #include <osg/ClipNode>
 #include <osg/ClipPlane>
+#include <osgGA/GUIEventHandler>
 
 namespace osgOcean
 {
@@ -109,6 +110,17 @@ namespace osgOcean
         float _glareAttenuation;
 
     public:
+        class EventHandler : public osgGA::GUIEventHandler
+        {
+        public:
+            EventHandler(OceanScene* oceanScene);
+            virtual bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object*, osg::NodeVisitor*);
+            virtual void getUsage(osg::ApplicationUsage& usage) const;
+        protected:
+            OceanScene* _oceanScene;
+        };
+
+
         OceanScene( void );
         OceanScene( OceanTechnique* technique );
         OceanScene( const OceanScene& copy, const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY );
@@ -127,9 +139,17 @@ namespace osgOcean
             _isDirty = true;
         }
 
+        inline bool areReflectionsEnabled() const{
+            return _enableReflections;
+        }
+
         inline void enableRefractions( bool enable ){
             _enableRefractions = enable;
             _isDirty = true;
+        }
+
+        inline bool areRefractionsEnabled() const{
+            return _enableRefractions;
         }
 
         inline void enableGodRays( bool enable ){
@@ -137,9 +157,17 @@ namespace osgOcean
             _isDirty = true;
         }
 
+        inline bool areGodRaysEnabled() const{
+            return _enableGodRays;
+        }
+
         inline void enableSilt( bool enable ){
             _enableSilt = enable;
             _isDirty = true;
+        }
+
+        inline bool isSiltEnabled() const{
+            return _enableSilt;
         }
 
         /** Sets the current screen size, needed to initialise the God Ray and DOF frame buffers.
@@ -182,6 +210,10 @@ namespace osgOcean
                 _enableDefaultShader = true;
 
             _isDirty = true;
+        }
+
+        inline bool isUnderwaterDOFEnabled() const{
+            return _enableDOF;
         }
 
         /** Set near DOF blur distance.
@@ -235,6 +267,10 @@ namespace osgOcean
                 _enableDefaultShader = true;
 
             _isDirty = true;
+        }
+
+        inline bool isGlareEnabled() const{
+            return _enableGlare;
         }
 
         /** Set the luminance threshold for glare.
@@ -374,6 +410,11 @@ namespace osgOcean
         {
             osgDB::Registry::instance()->getDataFilePathList().push_back(path);
         }
+
+        /** Virtual constructor for OceanSceneEventHandler - override in 
+         * derived classes to return subclass-specific handler if needed.
+         */
+        virtual EventHandler* getEventHandler() { return new EventHandler(this); }
 
     private:
         osg::Texture2D* createTexture2D( const osg::Vec2s& size, GLint format );

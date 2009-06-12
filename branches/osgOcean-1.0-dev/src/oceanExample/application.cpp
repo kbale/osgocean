@@ -42,6 +42,7 @@
 #include <osgOcean/OceanScene>
 #include <osgOcean/FFTOceanSurface>
 #include <osgOcean/SiltEffect>
+#include <osgOcean/ShaderManager>
 
 #include "SkyDome.h"
 #include "Cylinder.h"
@@ -447,29 +448,10 @@ public:
         }
 
 #ifdef USE_CUSTOM_SHADER
-        osg::ref_ptr<osg::Shader> vertex = new osg::Shader(osg::Shader::VERTEX);
-        osg::ref_ptr<osg::Shader> fragment = new osg::Shader(osg::Shader::FRAGMENT);
+        static const char terrain_vertex[]   = "terrain.vert";
+        static const char terrain_fragment[] = "terrain.frag";
 
-		  std::string vertexPath = osgDB::findDataFile("terrain.vert");
-		  std::string fragmentPath = osgDB::findDataFile("terrain.frag");
-
-		  if( vertexPath.empty() || fragmentPath.empty() )
-		  {
-			  osg::notify(osg::WARN) << "Could not find terrain shader" << std::endl;
-			  return NULL;
-		  }
-
-        if(!vertex->loadShaderSourceFromFile(vertexPath))
-            return NULL;
-        if(!fragment->loadShaderSourceFromFile(fragmentPath))
-            return NULL;
-
-        vertex->setName("terrain_vertex");
-        fragment->setName("terrain_fragment");
-
-        osg::Program* program = new osg::Program;
-        program->addShader( vertex );
-        program->addShader( fragment );
+        osg::Program* program = osgOcean::ShaderManager::instance().createProgram("terrain", terrain_vertex, terrain_fragment, true);
         program->addBindAttribLocation("aTangent", 6);
 #endif
         island->setNodeMask( _oceanScene->getNormalSceneMask() | _oceanScene->getReflectedSceneMask() | _oceanScene->getRefractedSceneMask() );
@@ -534,6 +516,11 @@ public:
     {
         float div = 1.f/255.f;
         return osg::Vec4f( div*(float)r, div*(float)g, div*float(b), div*(float)a );
+    }
+
+    osgOcean::OceanScene::EventHandler* getOceanSceneEventHandler()
+    {
+        return _oceanScene->getEventHandler();
     }
 };
 
@@ -698,8 +685,13 @@ int main(int argc, char *argv[])
     viewer.setUpViewInWindow( 150,150,1024,768, 0 );
     viewer.addEventHandler( new osgViewer::StatsHandler );
     osg::ref_ptr<TextHUD> hud = new TextHUD;
+
     osg::ref_ptr<SceneModel> scene = new SceneModel(windDirection, windSpeed, depth, scale, isChoppy, choppyFactor, crestFoamHeight);
+    viewer.addEventHandler(scene->getOceanSceneEventHandler());
+
     viewer.addEventHandler( new SceneEventHandler(scene.get(), hud.get(), viewer ) );
+
+    viewer.addEventHandler( new osgViewer::HelpHandler );
 
     osg::Group* root = new osg::Group;
     root->addChild( scene->getScene() );

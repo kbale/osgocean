@@ -17,8 +17,6 @@ uniform float osgOcean_UnderwaterFogDensity;
 uniform float osgOcean_AboveWaterFogDensity;
 uniform float osgOcean_WaterHeight;
 
-uniform int osgOcean_LightID;
-
 uniform vec4 osgOcean_UnderwaterFogColor;
 uniform vec4 osgOcean_AboveWaterFogColor;
 uniform vec4 osgOcean_UnderwaterDiffuse;

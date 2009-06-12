@@ -56,7 +56,7 @@ SET( LIB_HEADERS
   ${HEADER_PATH}/OceanTechnique
   ${HEADER_PATH}/OceanTile
   ${HEADER_PATH}/ScreenAlignedQuad
-  ${HEADER_PATH}/ShaderUtils
+  ${HEADER_PATH}/ShaderManager
   ${HEADER_PATH}/SiltEffect
   ${HEADER_PATH}/WaterTrochoids
   ${HEADER_PATH}/Export
@@ -85,7 +85,7 @@ ADD_LIBRARY(
   OceanTechnique.cpp
   OceanTile.cpp
   ScreenAlignedQuad.cpp
-  ShaderUtils.cpp
+  ShaderManager.cpp
   SiltEffect.cpp
   WaterTrochoids.cpp
 )
@@ -105,6 +105,8 @@ TARGET_LINK_LIBRARIES(
   debug ${OSGUTIL_LIBRARY_DEBUG}
   optimized ${OSGDB_LIBRARY}
   debug ${OSGDB_LIBRARY_DEBUG}
+  optimized ${OSGGA_LIBRARY}
+  debug ${OSGGA_LIBRARY_DEBUG}
   optimized ${OPENTHREADS_LIBRARY}
   debug ${OPENTHREADS_LIBRARY_DEBUG}
 
