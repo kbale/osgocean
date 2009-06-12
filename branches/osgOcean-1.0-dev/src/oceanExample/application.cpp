@@ -252,8 +252,6 @@ public:
         _fogColors.push_back( intColor( 244,228,179 ) );
         _fogColors.push_back( intColor( 172,224,251 ) );
 
-        //_waterFogColors.push_back( intColor(70,113,174 ) );
-        //_waterFogColors.push_back( intColor(28,48,108) );
         _waterFogColors.push_back( intColor(27,57,109) );
         _waterFogColors.push_back( intColor(44,69,106 ) );
         _waterFogColors.push_back( intColor(84,135,172 ) );
@@ -435,11 +433,12 @@ public:
 
     // Load the islands model
     // Here we attach a custom shader to the model.
-    // This shader overrides the default shader applied by OceanScene, but uses uniforms applied by OceanScene.
-    // The custom shader is needed to add multitexturing and bump mapping to the terrain.
+    // This shader overrides the default shader applied by OceanScene but uses uniforms applied by OceanScene.
+    // The custom shader is needed to add multi-texturing and bump mapping to the terrain.
     osg::Node* loadIslands(void)
     {
-        const std::string filename = "resources/island/islands.ive";
+		  osgDB::Registry::instance()->getDataFilePathList().push_back("resources/island");
+        const std::string filename = "islands.ive";
         osg::ref_ptr<osg::Node> island = osgDB::readNodeFile(filename);
 
         if(!island){
@@ -450,10 +449,19 @@ public:
 #ifdef USE_CUSTOM_SHADER
         osg::ref_ptr<osg::Shader> vertex = new osg::Shader(osg::Shader::VERTEX);
         osg::ref_ptr<osg::Shader> fragment = new osg::Shader(osg::Shader::FRAGMENT);
-        
-        if(!vertex->loadShaderSourceFromFile("resources/shaders/terrain.vert"))
+
+		  std::string vertexPath = osgDB::findDataFile("terrain.vert");
+		  std::string fragmentPath = osgDB::findDataFile("terrain.frag");
+
+		  if( vertexPath.empty() || fragmentPath.empty() )
+		  {
+			  osg::notify(osg::WARN) << "Could not find terrain shader" << std::endl;
+			  return NULL;
+		  }
+
+        if(!vertex->loadShaderSourceFromFile(vertexPath))
             return NULL;
-        if(!fragment->loadShaderSourceFromFile("resources/shaders/terrain.frag"))
+        if(!fragment->loadShaderSourceFromFile(fragmentPath))
             return NULL;
 
         vertex->setName("terrain_vertex");
