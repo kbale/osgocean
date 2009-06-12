@@ -108,7 +108,7 @@ namespace osgOcean
         /**
         * Loads the shaders and returns program.
         */ 
-        osg::Program* GodRayBlendSurface::createShader(void);
+        osg::Program* createShader(void);
 
     // ---------------------------------------------
     //            Callback declarations
