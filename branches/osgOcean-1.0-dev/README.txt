@@ -1,24 +1,51 @@
 osgOcean v1.0
 -------------
 
-In order to run the oceanExample, you will need the resources which
-can be found here:
+DEPENDANCIES
+------------
+
+Resources
+---------
+
+Both the library and the example require a set of resource
+files (models/textures) which can be downloaded from here:
 http://code.google.com/p/osgocean/downloads/list
 
-The library looks for shaders in the following directory:
+osgOcean uses the osgDB registry to find the resource files.
+By default it adds the following paths to the registry:
+
+Shader path:
 resources/shaders/
 
-Likewise with textures it will look for them in
+Texture path:
 resources/textures/
 
-You should therefore make sure that resource directory is either
-setup as a path variable or in the same path as the DLL or example
-executable.
+If you wish to move these resources you must update the data file path 
+list within the registry yourself. This can be down from outside the 
+library with the following code:
 
-osgOcean also requires an FFT generator library. It can work with either
-FFTW or FFTSS. FFTW is GPL, so compiling osgOcean with it will make that build of
-osgOcean GPL as well, whereas FFTSS is LGPL which will allow osgOcean to
-remain LGPL.
+osgDB::FilePathList& pathList = osgDB::Registry::instance()->getDataFilePathList();
+pathList.push_back( new_path );
+
+Libraries
+---------
+
+osgOcean also requires a Fast Fourier Transform library. It can work 
+with either FFTW or FFTSS. 
+
+**IMPORTANT LICENSE ISSUE**
+FFTW is released under a General Public License, by selecting this 
+option in CMAKE the resulting build of osgOcean will also be covered under 
+the GPL license.
+
+GPL License details: http://www.gnu.org/copyleft/gpl.html
+
+FFTSS is covered under a Lesser General Public License which allows 
+the osgOcean library to remain LGPL. 
+
+LGPL License details: http://www.gnu.org/licenses/lgpl.html or see LICENSE.txt
+
+FFTW and FFTSS can be downloaded from:
 
 FFTW:  http://www.fftw.org/
 FFTSS: http://www.ssisc.org/fftss/
