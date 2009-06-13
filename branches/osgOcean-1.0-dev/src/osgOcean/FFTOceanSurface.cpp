@@ -226,6 +226,8 @@ void FFTOceanSurface::computeSea( unsigned int totalFrames )
 
     FFTSimulation FFTSim( _tileSize, _windDirection, _windSpeed, _waveScale, _tileResolution, _cycleTime );
 
+	 // clear previous mipmaps (if any)
+	 _mipmapData.clear();
     _mipmapData.resize( totalFrames );
 
     _averageHeight = 0.f;
@@ -234,6 +236,7 @@ void FFTOceanSurface::computeSea( unsigned int totalFrames )
     {
         osg::ref_ptr<osg::FloatArray> heights = new osg::FloatArray;
         osg::ref_ptr<osg::Vec2Array> displacements = NULL;
+
         if (_isChoppy)
             displacements = new osg::Vec2Array;
 
@@ -249,8 +252,6 @@ void FFTOceanSurface::computeSea( unsigned int totalFrames )
 
         // Level 0
         _mipmapData[frame][0] = OceanTile( heights, _tileSize, _pointSpacing, displacements );
-
-        _mipmapData[frame][0].createNormalMap();
 
         _averageHeight += _mipmapData[frame][0].getAverageHeight();
 
@@ -286,7 +287,16 @@ void FFTOceanSurface::createOceanTiles( void )
 
     MipmapGeometry::BORDER_TYPE border = MipmapGeometry::BORDER_NONE;
 
-    _numVertices = 0;
+	 // Clear previous data if it exists
+	 _numVertices = 0;
+	 _newNumVertices = 0;
+	 _oceanGeom.clear();
+	 _activeVertices->clear();
+	 _activeNormals->clear();
+	 _minDist.clear();
+
+	 if(getNumDrawables()>0)
+		removeDrawables(0,getNumDrawables());
 
     _oceanGeom.resize( _numTiles );
 
@@ -1543,11 +1553,26 @@ bool FFTOceanSurface::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osg
             if (!fftSurface) return false;
 
             // Crest foam
-            if (ea.getKey() == 'f')
+            if (ea.getKey() == 'f' )
             {
                 fftSurface->enableCrestFoam(!fftSurface->isCrestFoamEnabled());
                 return true;
             }
+				else if( ea.getKey() == 'w' )
+				{
+					fftSurface->setIsChoppy(!fftSurface->isChoppy());
+					return true;
+				}
+				else if(ea.getKey() == 'k' )
+				{
+					float waveScale = fftSurface->getWaveScaleFactor();
+					fftSurface->setWaveScaleFactor(waveScale-(1e-9));
+				}
+				else if(ea.getKey() == 'l' )
+				{
+					float waveScale = fftSurface->getWaveScaleFactor();
+					fftSurface->setWaveScaleFactor(waveScale+(1e-9));
+				}
 
             break;
         }
@@ -1565,4 +1590,7 @@ void FFTOceanSurface::EventHandler::getUsage(osg::ApplicationUsage& usage) const
     OceanTechnique::EventHandler::getUsage(usage);
 
     usage.addKeyboardMouseBinding("f","Toggle crest foam");
+	 usage.addKeyboardMouseBinding("w","Toggle choppy waves");
+	 usage.addKeyboardMouseBinding("k","Decrease wave scale factor by 1e-9");
+	 usage.addKeyboardMouseBinding("l","Increase wave scale factor by 1e-9");
 }
