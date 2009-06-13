@@ -65,16 +65,17 @@ osg::Program* ShaderManager::createProgram( const std::string& name,
 {
     osg::ref_ptr<osg::Shader> vShader = 0;
     osg::ref_ptr<osg::Shader> fShader = 0;
-    if (loadFromFiles)
+    
+	 if (loadFromFiles)
     {
-        vShader = osgDB::readShaderFile(vertexSrc);
+		  vShader = osgDB::readShaderFile(osg::Shader::VERTEX, vertexSrc);
         if (!vShader)
         {
             osg::notify(osg::WARN) << "Could not read shader from file " << vertexSrc << std::endl;
             return NULL;
         }
 
-    	fShader = osgDB::readShaderFile(fragmentSrc);
+    	  fShader = osgDB::readShaderFile(osg::Shader::FRAGMENT, fragmentSrc);
         if (!fShader)
         {
             osg::notify(osg::WARN) << "Could not read shader from file " << fragmentSrc << std::endl;
