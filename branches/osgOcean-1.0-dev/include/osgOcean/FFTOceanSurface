@@ -304,9 +304,9 @@ namespace osgOcean
 			_isStateDirty = true;
 		}
 
-        inline bool isCrestFoamEnabled() const{
-            return _useCrestFoam;
-        }
+		inline bool isCrestFoamEnabled() const{
+			return _useCrestFoam;
+		}
 
 		inline void setFoamBottomHeight( float height ){
 			_foamCapBottom = height;
@@ -332,6 +332,33 @@ namespace osgOcean
 		}
 
 		/**
+		* Enable/Disable choppy wave geometry.
+		* Dirties geometry.
+		*/
+		inline void setIsChoppy(bool isChoppy){
+			_isChoppy = isChoppy;
+			_isDirty = true;
+		}
+
+		inline bool isChoppy(void) const{
+			return _isChoppy;
+		}
+
+		/**
+		* Tweak the wave scale factor.
+		* Typically a very small value: ~1e-8.
+		* Dirties geometry.
+		*/
+		inline void setWaveScaleFactor( float scale ){
+			_waveScale = scale;
+			_isDirty = true;
+		}
+
+		inline float getWaveScaleFactor( void ) const {
+			return _waveScale;
+		}
+
+		/**
 		* Sets the parameters for a custom noise map for use in the fragment shader.
 		* @param FFTSize is the size of the FFT grid that will be used and thus the size of the resulting texture. Values must be 2^n.
 		* Dirties the stateset.
@@ -351,12 +378,12 @@ namespace osgOcean
 			_isStateDirty = true;
 		}
 
-        virtual OceanTechnique::EventHandler* getEventHandler()
-        {
-            if (!_eventHandler.valid())
-                _eventHandler = new FFTOceanSurface::EventHandler(this);
-            return _eventHandler.get();
-        }
+		virtual OceanTechnique::EventHandler* getEventHandler()
+		{
+			if (!_eventHandler.valid())
+				 _eventHandler = new FFTOceanSurface::EventHandler(this);
+			return _eventHandler.get();
+		}
 
 	// -------------------------------
 	//     Callback declarations
