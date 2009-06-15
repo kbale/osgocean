@@ -1532,7 +1532,8 @@ void FFTOceanSurface::OceanAnimationCallback::operator()(osg::Node* node, osg::N
 
 
 FFTOceanSurface::EventHandler::EventHandler(OceanTechnique* oceanSurface):
-    OceanTechnique::EventHandler(oceanSurface)
+    OceanTechnique::EventHandler(oceanSurface),
+    _autoDirty(true)
 {
 }
 
@@ -1558,26 +1559,56 @@ bool FFTOceanSurface::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osg
                 fftSurface->enableCrestFoam(!fftSurface->isCrestFoamEnabled());
                 return true;
             }
-				else if( ea.getKey() == 'w' )
-				{
-					fftSurface->setIsChoppy(!fftSurface->isChoppy());
-					return true;
-				}
-				else if(ea.getKey() == 'k' )
-				{
-					float waveScale = fftSurface->getWaveScaleFactor();
-					fftSurface->setWaveScaleFactor(waveScale-(1e-9));
-				}
-				else if(ea.getKey() == 'l' )
-				{
-					float waveScale = fftSurface->getWaveScaleFactor();
-					fftSurface->setWaveScaleFactor(waveScale+(1e-9));
-				}
-
+            // isChoppy
+            if( ea.getKey() == 'p' )
+            {
+                fftSurface->setIsChoppy(!fftSurface->isChoppy(), _autoDirty);
+                return true;
+            }
+            // Wind speed + 0.5
+            if (ea.getKey() == 'W')
+            {
+                fftSurface->setWindSpeed(fftSurface->getWindSpeed() + 0.5, _autoDirty);
+                return true;
+            }
+            // Wind speed - 0.5
+            if (ea.getKey() == 'w')
+            {
+                fftSurface->setWindSpeed(fftSurface->getWindSpeed() - 0.5, _autoDirty);
+                return true;
+            }
+            // Scale factor + 1e-9
+            if(ea.getKey() == 'K' )
+            {
+                float waveScale = fftSurface->getWaveScaleFactor();
+                fftSurface->setWaveScaleFactor(waveScale+(1e-9), _autoDirty);
+                return true;
+            }
+            // Scale factor - 1e-9
+            if(ea.getKey() == 'k' )
+            {
+                float waveScale = fftSurface->getWaveScaleFactor();
+                fftSurface->setWaveScaleFactor(waveScale-(1e-9), _autoDirty);
+                return true;
+            }
+            // Dirty geometry
+            if (ea.getKey() == 'd')
+            {
+                fftSurface->dirty();
+                return true;
+            }
+            // Toggle autoDirty, if off then individual changes will be 
+            // instantaneous but the user will get no feedback until they 
+            // dirty manually, if on each change will dirty automatically.
+            if (ea.getKey() == 'D')
+            {
+                _autoDirty = !_autoDirty;
+                return true;
+            }
             break;
         }
-    default:
-        break;
+        default:
+            break;
     }
 
     return false;
@@ -1590,7 +1621,11 @@ void FFTOceanSurface::EventHandler::getUsage(osg::ApplicationUsage& usage) const
     OceanTechnique::EventHandler::getUsage(usage);
 
     usage.addKeyboardMouseBinding("f","Toggle crest foam");
-	 usage.addKeyboardMouseBinding("w","Toggle choppy waves");
-	 usage.addKeyboardMouseBinding("k","Decrease wave scale factor by 1e-9");
-	 usage.addKeyboardMouseBinding("l","Increase wave scale factor by 1e-9");
+    usage.addKeyboardMouseBinding("p","Toggle choppy waves (dirties geometry if autoDirty is active)");
+    usage.addKeyboardMouseBinding("k","Decrease wave scale factor by 1e-9 (dirties geometry if autoDirty is active)");
+    usage.addKeyboardMouseBinding("K","Increase wave scale factor by 1e-9 (dirties geometry if autoDirty is active)");
+    usage.addKeyboardMouseBinding("w","Decrease wind speed by 0.5 (dirties geometry if autoDirty is active)");
+    usage.addKeyboardMouseBinding("W","Increase wind speed by 0.5 (dirties geometry if autoDirty is active)");
+    usage.addKeyboardMouseBinding("d","Dirty geometry manually");
+    usage.addKeyboardMouseBinding("D","Toggle autoDirty (if off, changes will require manual dirty");
 }

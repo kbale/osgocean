@@ -401,6 +401,11 @@ public:
         return _scene.get();
     }
 
+    osgOcean::OceanScene* getOceanScene()
+    {
+        return _oceanScene.get();
+    }
+
     void changeScene( SCENE_TYPE type )
     {
         _sceneType = type;
@@ -679,6 +684,8 @@ int main(int argc, char *argv[])
     float crestFoamHeight = 2.2f;
     while (arguments.read("--crestFoamHeight", crestFoamHeight));
 
+    osg::ref_ptr<osg::Node> loadedModel = osgDB::readNodeFiles(arguments);
+
     // any option left unread are converted into errors to write out later.
     arguments.reportRemainingOptionsAsUnrecognized();
 
@@ -706,6 +713,14 @@ int main(int argc, char *argv[])
     osg::Group* root = new osg::Group;
     root->addChild( scene->getScene() );
     root->addChild( hud->getHudCamera() );
+
+    if (loadedModel.valid())
+    {
+        loadedModel->setNodeMask( scene->getOceanScene()->getNormalSceneMask() | 
+                                  scene->getOceanScene()->getReflectedSceneMask() | 
+                                  scene->getOceanScene()->getRefractedSceneMask() );
+        scene->getOceanScene()->addChild(loadedModel.get());
+    }
 
     viewer.setSceneData( root );
 
