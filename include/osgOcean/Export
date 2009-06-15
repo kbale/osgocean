@@ -1,14 +1,18 @@
-/* -*-c++-*- OpenSceneGraph - Copyright (C) 1998-2008 Robert Osfield 
-*
-* This library is open source and may be redistributed and/or modified under  
-* the terms of the OpenSceneGraph Public License (OSGPL) version 0.0 or 
-* (at your option) any later version.  The full license is in LICENSE file
-* included with this distribution, and on the openscenegraph.org website.
+/*
+* This source file is part of the osgOcean library
 * 
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
-* OpenSceneGraph Public License for more details.
+* Copyright (C) 2009 Kim Bale
+* Copyright (C) 2009 The University of Hull, UK
+* 
+* This program is free software; you can redistribute it and/or modify it under
+* the terms of the GNU Lesser General Public License as published by the Free Software
+* Foundation; either version 3 of the License, or (at your option) any later
+* version.
+
+* This program is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+* FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+* http://www.gnu.org/copyleft/lesser.txt.
 */
 
 #ifndef OSGOCEAN_EXPORT_
@@ -37,8 +41,6 @@
 #else
 #  define OSGOCEAN_EXPORT
 #endif  
-
-//# define OSGOCEAN_EXPORT 
 
 /**
 
