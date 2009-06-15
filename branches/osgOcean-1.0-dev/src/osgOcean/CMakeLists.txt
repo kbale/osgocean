@@ -45,7 +45,6 @@ SET( TEXTURE_FILES
 )
 
 SET( LIB_HEADERS
-  ${HEADER_PATH}/DynamicShader
   ${HEADER_PATH}/DistortionSurface
   ${HEADER_PATH}/FFTOceanSurface
   ${HEADER_PATH}/FFTSimulation
@@ -75,7 +74,6 @@ ADD_LIBRARY(
   SHARED
   ${LIB_HEADERS}
   DistortionSurface.cpp
-  DynamicShader.cpp
   FFTOceanSurface.cpp
   FFTSimulation.cpp
   GodRays.cpp
