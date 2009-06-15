@@ -64,12 +64,13 @@ namespace osgOcean
         int _reflectionUnit;
         int _refractionUnit;
 
-        float _underwaterFogDensity;
         float _aboveWaterFogDensity;
-        osg::Vec4f _underwaterFogColor;
         osg::Vec4f _aboveWaterFogColor;
 
+		  float _underwaterFogDensity;
+		  osg::Vec4f _underwaterFogColor;
         osg::Vec4f _underwaterDiffuse;
+		  osg::Vec3f _underwaterAttenuation;
 
         osg::Vec3f _sunDirection;
 
@@ -228,7 +229,7 @@ namespace osgOcean
         /** Set far clamp value.
           * Updates the uniform is DOF state is valid.
           */
-        inline void setDOFFarClamp( float farClamp )    {
+        inline void setDOFFarClamp( float farClamp ){
             _dofFarClamp = farClamp;
 
             if( _dofStateSet.valid() )
@@ -357,11 +358,23 @@ namespace osgOcean
         }
 
         /** Changes the color of diffuse light used underwater.
-        * Typically a bluish hue.
+		  * @note Should be computing this from physical calculations. For the moment this is tweaked by hand.
+		  * see: http://citeseer.ist.psu.edu/cache/papers/cs/26265/http:zSzzSzwww.cs.sunysb.eduzSz~ashzSzwaterCGF.pdf/
         */
         void setUnderwaterDiffuse( const osg::Vec4f& diffuse )
         {
             _underwaterDiffuse = diffuse;
+            _isDirty = true;
+        }
+
+        /** Change the attenuation of light underwater.
+        * @note Should be computing this from physical calculations. For the moment this is tweaked by hand.
+        * see: http://citeseer.ist.psu.edu/cache/papers/cs/26265/http:zSzzSzwww.cs.sunysb.eduzSz~ashzSzwaterCGF.pdf/
+        */
+        void setUnderwaterAttenuation( const osg::Vec3f& attenuation )
+        {
+	        _underwaterAttenuation = attenuation;
+            _isDirty = true;
         }
 
         /** Override the default scene shader for custom shaders. 
