@@ -36,7 +36,7 @@ namespace osgOcean
 		virtual void stopAnimation( void );
 		virtual void startAnimation( void );
 
-		virtual float getSurfaceHeight(void);
+		virtual float getSurfaceHeight(void) const;
 
 		inline bool isDirty(void) const{
 			return _isDirty;

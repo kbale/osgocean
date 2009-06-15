@@ -47,7 +47,7 @@ void OceanTechnique::startAnimation(void)
 	osg::notify(osg::DEBUG_INFO) << "OceanTechnique::startAnimation() Not Implemented" << std::endl;
 }
 
-float OceanTechnique::getSurfaceHeight(void)
+float OceanTechnique::getSurfaceHeight(void) const
 {
 	osg::notify(osg::DEBUG_INFO) << "OceanTechnique::getSurfaceHeight() Not Implemented" << std::endl;
 	return 0.f;
