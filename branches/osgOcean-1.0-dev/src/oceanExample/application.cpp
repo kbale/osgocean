@@ -88,25 +88,25 @@ public:
         title->setFont("fonts/arial.ttf");
         title->setCharacterSize(14);
         title->setLineSpacing(0.4f);
-        title->setText("osgOcean\nPress 1-3 to change presets\nPress 'C' to change camera");
+        title->setText("osgOcean 1.0\nPress 'h' for options");
         textGeode->addDrawable( title );
 
         _modeText = new osgText::Text;
         _modeText->setFont("fonts/arial.ttf");
         _modeText->setCharacterSize(14);
-        _modeText->setPosition( osg::Vec3f(0.f, -60.f, 0.f ) );
+        _modeText->setPosition( osg::Vec3f(0.f, -40.f, 0.f ) );
         _modeText->setDataVariance(osg::Object::DYNAMIC);
         textGeode->addDrawable( _modeText );
 
         _cameraModeText = new osgText::Text;
         _cameraModeText->setFont("fonts/arial.ttf");
         _cameraModeText->setCharacterSize(14);
-        _cameraModeText->setPosition( osg::Vec3f(0.f, -80.f, 0.f ) );
+        _cameraModeText->setPosition( osg::Vec3f(0.f, -60.f, 0.f ) );
         _cameraModeText->setDataVariance(osg::Object::DYNAMIC);
         textGeode->addDrawable( _cameraModeText );
 
         osg::PositionAttitudeTransform* titlePAT = new osg::PositionAttitudeTransform;
-        titlePAT->setPosition( osg::Vec3f( 10, 90, 0.f ) );
+        titlePAT->setPosition( osg::Vec3f( 10, 70, 0.f ) );
         titlePAT->addChild(textGeode);
 
         return titlePAT;
@@ -226,6 +226,8 @@ private:
     std::vector<std::string> _cubemapDirs;
     std::vector<osg::Vec4f>  _lightColors;
     std::vector<osg::Vec4f>  _fogColors;
+    std::vector<osg::Vec3f>  _underwaterAttenuations;
+    std::vector<osg::Vec4f>  _underwaterDiffuse;
         
     osg::ref_ptr<osg::Light> _light;
 
@@ -256,6 +258,14 @@ public:
         _waterFogColors.push_back( intColor(27,57,109) );
         _waterFogColors.push_back( intColor(44,69,106 ) );
         _waterFogColors.push_back( intColor(84,135,172 ) );
+
+        _underwaterAttenuations.push_back( osg::Vec3f(0.015f, 0.0075f, 0.005f) );
+        _underwaterAttenuations.push_back( osg::Vec3f(0.015f, 0.0075f, 0.005f) );
+        _underwaterAttenuations.push_back( osg::Vec3f(0.008f, 0.003f, 0.002f) );
+
+        _underwaterDiffuse.push_back( intColor(27,57,109) );
+        _underwaterDiffuse.push_back( intColor(44,69,106) );
+        _underwaterDiffuse.push_back( intColor(84,135,172) );
 
         _lightColors.push_back( intColor( 105,138,174 ) );
         _lightColors.push_back( intColor( 105,138,174 ) );
@@ -316,9 +326,10 @@ public:
                 _oceanScene->enableRefractions(true);
                 
                 _oceanScene->setAboveWaterFog(0.0012f, _fogColors[_sceneType] );
-                _oceanScene->setUnderwaterFog(0.006f,  _waterFogColors[_sceneType] );
-                _oceanScene->setUnderwaterDiffuse( osg::Vec4f( 0.12549019f,0.30980392f,0.5f,1.0f ) );
-                
+                _oceanScene->setUnderwaterFog(0.002f,  _waterFogColors[_sceneType] );
+                _oceanScene->setUnderwaterDiffuse( _underwaterDiffuse[_sceneType] );
+                _oceanScene->setUnderwaterAttenuation( _underwaterAttenuations[_sceneType] );
+
                 _oceanScene->setSunDirection( sunDir );
                 _oceanScene->enableGodRays(true);
                 _oceanScene->enableSilt(true);
@@ -381,7 +392,7 @@ public:
                 _light->setAmbient( osg::Vec4d(0.3f, 0.3f, 0.3f, 1.0f ));
                 _light->setDiffuse( _sunDiffuse[_sceneType] );
                 _light->setSpecular(osg::Vec4d( 0.1f, 0.1f, 0.1f, 1.0f ) );
-                _light->setPosition( osg::Vec4f(_sunPositions[_sceneType],1.f) ); // point light
+                _light->setPosition( osg::Vec4f(_sunPositions[_sceneType], 1.f) ); // point light
 
                 _scene->addChild( lightSource );
                 _scene->addChild( _oceanScene.get() );
@@ -416,7 +427,9 @@ public:
         _oceanSurface->setLightColor( _lightColors[type] );
 
         _oceanScene->setAboveWaterFog(0.0012f, _fogColors[_sceneType] );
-        _oceanScene->setUnderwaterFog(0.006f,  _waterFogColors[_sceneType] );
+        _oceanScene->setUnderwaterFog(0.002f,  _waterFogColors[_sceneType] );
+        _oceanScene->setUnderwaterDiffuse( _underwaterDiffuse[_sceneType] );
+        _oceanScene->setUnderwaterAttenuation( _underwaterAttenuations[_sceneType] );
         
         osg::Vec3f sunDir = -_sunPositions[_sceneType];
         sunDir.normalize();
@@ -443,7 +456,7 @@ public:
     // The custom shader is needed to add multi-texturing and bump mapping to the terrain.
     osg::Node* loadIslands(void)
     {
-		  osgDB::Registry::instance()->getDataFilePathList().push_back("resources/island");
+        osgDB::Registry::instance()->getDataFilePathList().push_back("resources/island");
         const std::string filename = "islands.ive";
         osg::ref_ptr<osg::Node> island = osgDB::readNodeFile(filename);
 
@@ -707,7 +720,6 @@ int main(int argc, char *argv[])
     viewer.addEventHandler(scene->getOceanSurface()->getEventHandler());
 
     viewer.addEventHandler( new SceneEventHandler(scene.get(), hud.get(), viewer ) );
-
     viewer.addEventHandler( new osgViewer::HelpHandler );
 
     osg::Group* root = new osg::Group;
