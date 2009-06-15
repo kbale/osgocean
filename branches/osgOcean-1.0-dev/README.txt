@@ -9,7 +9,14 @@ Resources
 
 Both the library and the example require a set of resource
 files (models/textures) which can be downloaded from here:
-http://code.google.com/p/osgocean/downloads/list
+http://osgocean.googlecode.com/files/osgOcean-Resources-1.0.rar
+
+Once you downloaded them, extract the 'Island' and 'Textures' 
+folders into the resources directory found in the root of the
+source code tree. The install project will copy the relevant
+data files to the bin path like so:
+
+*install_path*/bin/resources/
 
 osgOcean uses the osgDB registry to find the resource files.
 By default it adds the following paths to the registry:
