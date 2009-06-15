@@ -1,6 +1,5 @@
 uniform bool osgOcean_EnableReflections;
 uniform bool osgOcean_EnableRefractions;
-//uniform bool osgOcean_EnableGlobalReflections;  // Unused?
 uniform bool osgOcean_EnableCrestFoam;
 
 uniform bool osgOcean_EnableDOF;
@@ -18,9 +17,6 @@ uniform sampler2D   osgOcean_RefractionMap;
 uniform sampler2D   osgOcean_FoamMap;
 uniform sampler2D   osgOcean_NoiseMap;
 
-//uniform vec3 osgOcean_EyePosition;      // Unused?
-
-// HACK: use the 2D fogging texture here
 uniform float osgOcean_UnderwaterFogDensity;
 uniform float osgOcean_AboveWaterFogDensity;
 uniform vec4  osgOcean_UnderwaterFogColor;
@@ -150,6 +146,11 @@ float luminance( vec4 color )
 	return (0.3*color.r) + (0.59*color.g) + (0.11*color.b);
 }
 
+float computeFogFactor( float density, float fogCoord )
+{
+	return exp2(density * fogCoord * fogCoord );
+}
+
 // -------------------------------
 //          Main Program
 // -------------------------------
@@ -170,24 +171,18 @@ void main( void )
 		vec3 E = normalize( vViewerDir );
 		vec3 R = reflect( -L, N );
 
-		vec4 diffuse_color;
 		vec4 specular_color;
 
 		float lambertTerm = dot(N,L);
 
 		if( lambertTerm > 0.0 )
 		{
-			diffuse_color =  gl_LightSource[osgOcean_LightID].diffuse * lambertTerm;
-
 			float specCoeff = pow( max( dot(R, E), 0.0 ), shininess );
-
 			specular_color = gl_LightSource[osgOcean_LightID].diffuse * specCoeff * 6.0;
 		}
 
 		float dotEN = dot(E, N);
 		float dotLN = dot(L, N);
-
-		float dl = max( dotLN * abs(1.0 - max(dotEN, 0.2) ), 0.0);
 
 		vec4 refraction_color = vec4( gl_Color.rgb, 1.0 );
 
@@ -196,31 +191,24 @@ void main( void )
 		// cubemap looks wrong with fixed skydome
 		//vec4 env_color = computeCubeMapColor(N, vWorldVertex, osgOcean_EyePosition);
 
-		vec4 env_color = texture2DProj( osgOcean_ReflectionMap, distortGen(vVertex, N) );
-
-		//env_color = vec4(1.0,0.0,0.0,1.0);
-
-		//vec4 env_color = texture2DProj( osgOcean_ReflectionMap, distortGen(vVertex, N) );
-
-		env_color.a = 1.0;
-
 		float fresnel = calcFresnel(dotEN, osgOcean_FresnelMul );
-		vec4 water_color = mix(refraction_color, env_color, fresnel) + specular_color;
-
-		final_color = water_color;
+		
+        vec4 env_color;
 
 		if(osgOcean_EnableReflections)
 		{
-		//	vec4 reflect_color = texture2DProj( osgOcean_ReflectionMap, distortGen(vVertex, N) );
-
-		//	if(reflect_color.a != 0.0)
-		//	{
-		//		final_color = vec4( mix( reflect_color.rgb, final_color.rgb, 0.9 ), 1.0 );
-		//	}
+			env_color = texture2DProj( osgOcean_ReflectionMap, distortGen(vVertex, N) );	
 		}
+		else
+		{
+            env_color = gl_LightSource[osgOcean_LightID].diffuse;            
+		}
+		
+		final_color = mix(refraction_color, env_color, fresnel) + specular_color;
 
-		// Calculate luminance before foam and fog.
-		float lum = luminance(final_color);
+		// Store the color here to compute luminance later, we don't want 
+        // foam or fog to be taken into account for this calculation.
+        vec4 lumColor = final_color;
 
 		if(osgOcean_EnableCrestFoam)
 		{
@@ -235,15 +223,16 @@ void main( void )
 		}
 
 		// exp2 fog
-		float fogFactor = exp2(osgOcean_AboveWaterFogDensity * gl_FogFragCoord * gl_FogFragCoord );
-		final_color = mix( osgOcean_AboveWaterFogColor, final_color, fogFactor );
-
-		if(osgOcean_EnableGlare)
-		{
-			final_color.a = lum;
-		}
+		float fogFactor = computeFogFactor( osgOcean_AboveWaterFogDensity, gl_FogFragCoord );
+		
+        final_color = mix( osgOcean_AboveWaterFogColor, final_color, fogFactor );
 
 		gl_FragColor = final_color;
+        		
+        if(osgOcean_EnableGlare)
+		{
+            gl_FragColor.a = luminance(lumColor);
+		}
 	}
 	else
 	{
@@ -278,7 +267,6 @@ void main( void )
 		}
 
 		// if it's not refracting in, add a bit of highlighting with fresnel
-		// FIXME: should be using the fog map
 		if( refractColor.a == 0.0 )
 		{
 			float fresnel = calcFresnel( dot(E, N), 0.7 );
