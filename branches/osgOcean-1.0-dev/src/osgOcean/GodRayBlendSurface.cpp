@@ -43,7 +43,7 @@ GodRayBlendSurface::GodRayBlendSurface( const GodRayBlendSurface &copy, const os
     _HGg              (copy._HGg),
     _intensity        (copy._intensity),
     _sunDir           (copy._sunDir),
-    _stateset            (copy._stateset),
+    _stateset         (copy._stateset),
     _normalArray      (copy._normalArray )
 {
 
