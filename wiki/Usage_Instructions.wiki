@@ -2,35 +2,58 @@
 
 = Using the library =
 
+== Compiling ==
+
+osgOcean 1.0 is a cross platform library. 
+
+Use CMake version 2.6.3 or greater to generate native makefiles or workspaces for your chosen compiler environment.
+
+<a href="http://www.cmake.org/">http://www.cmake.org/</a>
+
 == Dependencies ==
 
-=== OpenSceneGraph ===
+=== OpenSceneGraph 2.8 ===
 
-The main dependancy is of course the OpenSceneGraph libraries. osgOcean was built with with OSG2.8 in mind. The libraries can be downloaded here: 
+The main dependancy is of course the OpenSceneGraph libraries. osgOcean 1.0 was built with with OSG2.8 in mind. The libraries can be downloaded here: 
 
 <a href="http://www.openscenegraph.org/projects/osg/wiki/Downloads"> http://www.openscenegraph.org/projects/osg/wiki/Downloads </a>
 
-=== FFT Calculation Library ===
+=== Fast Fourier Transform Library ===
 
-osgOcean needs to be linked against an FFT library. You can choose either the FFTW or FFTSS library.
+osgOcean needs to be linked against a Fast Fourier Transform library. You can choose either the FFTW or FFTSS library.
 
-[http://www.fftw.org/ FFTW] is GPL, so linking osgOcean to it will make osgOcean GPL (and your application too if you link it to this version of osgOcean).
+<a href="http://www.fftw.org/">FFTW</a> is GPL, so linking osgOcean to it will make osgOcean GPL (and your application too if you link it to this version of osgOcean).
 
-[http://www.ssisc.org/fftss/ FFTSS] is LGPL, so linking osgOcean to it means that osgOcean retains its LGPL license, and thus it can be used in conformance with the LGPL license.
+<a href="http://www.ssisc.org/fftss/">FFTSS</a> is LGPL, so linking osgOcean to it means that osgOcean retains its LGPL license, and thus it can be used in conformance with the LGPL license.
 
-You will need to specify the include directory and library file of your installed and compiled FFT library when building the project. Both offer precompiled binaries for Windows, though FFTW requires that you generate the import libraries before being able to use it (see [http://www.fftw.org/install/windows.html]).
+You will need to specify the include directory and library file of your installed and compiled FFT library when building the project. Both offer precompiled binaries for Windows, though FFTW requires that you generate the import libraries before being able to use it (see <a href="http://www.fftw.org/install/windows.html">http://www.fftw.org/install/windows.html</a>).
 
 == Resources ==
 
-The library requires access to the 'resource' directory to load the textures and shaders that decorate the ocean surface.
+Both the library and the example require a set of resource
+files (models/textures) which can be downloaded from here:
 
-You can download the texture resources from the 'Downloads' tab or by clicking <a href="http://osgocean.googlecode.com/files/resources_textures.rar">here</a>
+<a href="http://osgocean.googlecode.com/files/osgOcean-Resources-1.0.rar">http://osgocean.googlecode.com/files/osgOcean-Resources-1.0.rar</a>
 
-The path that is used within the library and example program is:
+Once you've downloaded them, extract the 'Island' and 'Textures' 
+folders into the resources directory found in the root of the
+source code tree. The install project will copy the relevant
+data files to the bin path like so:
 
-resources/textures/..<br>
-resources/shader/..
+%install_path%/bin/resources/
 
-You should make sure that the resource directory is either in the same directory as the DLL/EXE or setup a path variable.
+osgOcean uses the osgDB registry to find the resource files.
+By default it adds the following paths to the registry:
 
-They should also be placed in the resource directory before running the "INSTALL" project.
+Shader path:
+resources/shaders/
+
+Texture path:
+resources/textures/
+
+If you wish to move these resources you must update the data file path 
+list within the registry yourself. This can be down from outside the 
+library with the following code:
+
+osgDB::FilePathList& pathList = osgDB::Registry::instance()->getDataFilePathList();
+pathList.push_back( new_path );
