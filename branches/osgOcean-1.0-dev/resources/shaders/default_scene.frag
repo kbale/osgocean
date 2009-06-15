@@ -77,6 +77,7 @@ void main(void)
 
 	float alpha;
 
+    // Underwater
 	// +2 tweak here as waves peak above average wave height,
 	// and surface fog becomes visible.
 	if(osgOcean_EyeUnderwater && vWorldHeight < osgOcean_WaterHeight+2.0 )
@@ -91,8 +92,11 @@ void main(void)
 		final_color = mix( osgOcean_UnderwaterFogColor, final_color, fogFactor );
 
 		if(osgOcean_EnableDOF)
+        {
 			final_color.a = computeDepthBlur(gl_FogFragCoord, osgOcean_DOF_Focus, osgOcean_DOF_Near, osgOcean_DOF_Far, osgOcean_DOF_Clamp);
+        }
 	}
+    // Above water
 	else
 	{
         final_color = lighting( textureColor );
@@ -101,7 +105,9 @@ void main(void)
 		final_color = mix( osgOcean_AboveWaterFogColor, final_color, fogFactor );
 
 		if(osgOcean_EnableGlare)
+        {
 			final_color.a = 0.0;
+        }
 	}
 
 	gl_FragColor = final_color;
