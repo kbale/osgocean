@@ -17,7 +17,6 @@
 
 #include <osgOcean/ShaderManager>
 #include <osgDB/ReadFile>
-#include <sstream>
 
 using namespace osgOcean;
 
@@ -29,17 +28,6 @@ ShaderManager& ShaderManager::instance()
 {
     static ShaderManager s_instance;
     return s_instance;
-}
-
-/** Set a definition that will be added as a #define to the top of every 
- *  shader loaded through subsequent calls to createProgram() .
- */
-//template<typename T>
-void ShaderManager::setGlobalDefinition(const std::string& name, unsigned int value)
-{
-    std::ostringstream valStr;
-    valStr << value;
-    _globalDefinitions[name] = valStr.str();
 }
 
 /** Get the value of a global definition that was previously set using

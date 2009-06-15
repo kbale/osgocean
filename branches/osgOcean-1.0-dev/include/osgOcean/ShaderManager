@@ -20,6 +20,7 @@
 #include <osg/Program>
 
 #include <map>
+#include <sstream>
 
 namespace osgOcean
 {
@@ -36,8 +37,13 @@ namespace osgOcean
         /** Set a definition that will be added as a #define to the top of every 
          *  shader loaded through subsequent calls to createProgram() .
          */
-        //template<typename T>
-        void setGlobalDefinition(const std::string& name, unsigned int value);
+        template<typename T>
+        void setGlobalDefinition(const std::string& name, const T& value)
+        {
+            std::ostringstream valStr;
+            valStr << value;
+            _globalDefinitions[name] = valStr.str();
+        }
 
         /** Get the value of a global definition that was previously set using
          *  setGlobalDefinition().
