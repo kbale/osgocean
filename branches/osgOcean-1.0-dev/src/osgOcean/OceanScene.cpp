@@ -50,7 +50,7 @@ OceanScene::OceanScene( void ):
     _glareThreshold        ( 0.9 ),
     _glareAttenuation      ( 0.75 ),
     _underwaterFogColor    ( 0.2274509f, 0.4352941f, 0.7294117f, 1.f ),
-	_underwaterAttenuation ( 0.015f, 0.0075f, 0.005f),
+    _underwaterAttenuation ( 0.015f, 0.0075f, 0.005f),
     _underwaterFogDensity  ( 0.01f*0.01*1.442695f ),
     _aboveWaterFogDensity  ( 0.0012f*0.0012f*1.442695f),
     _surfaceStateSet       ( new osg::StateSet ),
@@ -95,7 +95,7 @@ OceanScene::OceanScene( OceanTechnique* technique ):
     _glareThreshold        ( 0.9f ),
     _glareAttenuation      ( 0.75f ),
     _underwaterFogColor    ( 0.2274509f, 0.4352941f, 0.7294117f, 1.f ),
-	_underwaterAttenuation ( 0.015f, 0.0075f, 0.005f),
+    _underwaterAttenuation ( 0.015f, 0.0075f, 0.005f),
     _underwaterFogDensity  ( -0.01f*0.01*1.442695f ),
     _aboveWaterFogDensity  ( -0.0012f*0.0012f*1.442695f),
     _surfaceStateSet       ( new osg::StateSet ),
@@ -151,7 +151,7 @@ OceanScene::OceanScene( const OceanScene& copy, const osg::CopyOp& copyop ):
     _underwaterFogColor    ( copy._underwaterFogColor ),
     _aboveWaterFogColor    ( copy._aboveWaterFogColor ),
     _underwaterDiffuse     ( copy._underwaterDiffuse ),
-	_underwaterAttenuation ( copy._underwaterAttenuation ),
+    _underwaterAttenuation ( copy._underwaterAttenuation ),
     _sunDirection          ( copy._sunDirection ),
     _dofNear               ( copy._dofNear ),
     _dofFar                ( copy._dofFar ),
@@ -418,11 +418,11 @@ void OceanScene::traverse( osg::NodeVisitor& nv )
     }
     else if (nv.getVisitorType() == osg::NodeVisitor::CULL_VISITOR)
     {
-		 osgUtil::CullVisitor* cv = dynamic_cast<osgUtil::CullVisitor*>(&nv);
+        osgUtil::CullVisitor* cv = dynamic_cast<osgUtil::CullVisitor*>(&nv);
 
-		  if (cv) 
+        if (cv) 
         {
-			   preRenderCull(*cv);     // reflections/refractions
+            preRenderCull(*cv);     // reflections/refractions
             
             // Above water
             if( cv->getEyePoint().z() > _oceanSurface->getSurfaceHeight() ) {
@@ -431,7 +431,7 @@ void OceanScene::traverse( osg::NodeVisitor& nv )
             }
             // Below water passes
             else {
-					if(!_enableDOF)
+                    if(!_enableDOF)
                     cull(*cv);        // normal scene render
             }
 
@@ -452,7 +452,7 @@ void OceanScene::update( osg::NodeVisitor& nv )
     if( _godRayBlendSurface.valid() )
         _godRayBlendSurface->accept(nv);
 
-    if(_distortionSurface.valid())
+    if( _distortionSurface.valid() )
         _distortionSurface->accept(nv);
 }
 
@@ -505,7 +505,7 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv )
             _godrayPreRender->accept( cv );
         }
 
-        if(_enableDOF)
+        if( _enableDOF )
         {
             // set view and projection to match main camera
             _dofPasses.at(0)->setViewMatrix( cv.getCurrentCamera()->getViewMatrix() );
@@ -525,19 +525,19 @@ void OceanScene::postRenderCull( osgUtil::CullVisitor& cv )
     if( cv.getEyePoint().z() < _oceanSurface->getSurfaceHeight() )
     {
         // dof screen first
-        if(_enableDOF)
+        if( _enableDOF )
         {
             _dofPasses.back()->accept(cv);
         }
         // blend godrays ontop
-        if(_enableGodRays)
+        if( _enableGodRays )
         {
             _godrayPostRender->accept(cv);
         }
     }
     else
     {
-        if(_enableGlare)
+        if( _enableGlare )
         {
             _glarePasses.back()->accept(cv);
         }
@@ -546,13 +546,13 @@ void OceanScene::postRenderCull( osgUtil::CullVisitor& cv )
 
 void OceanScene::cull(osgUtil::CullVisitor& cv)
 {
-    if(_oceanSurface.valid() )
+    if( _oceanSurface.valid() )
     {
-		  if(cv.getEyePoint().z() < _oceanSurface->getSurfaceHeight() )
-		  {
+          if(cv.getEyePoint().z() < _oceanSurface->getSurfaceHeight() )
+          {
             _globalStateSet->getUniform("osgOcean_Eye")->set( cv.getEyePoint() );
             _globalStateSet->getUniform("osgOcean_EyeUnderwater")->set(true);
-		  }
+          }
         else
             _globalStateSet->getUniform("osgOcean_EyeUnderwater")->set(false);
 
@@ -1333,36 +1333,42 @@ bool OceanScene::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::G
             if (ea.getKey() == 'r')
             {
                 _oceanScene->enableReflections(!_oceanScene->areReflectionsEnabled());
+                osg::notify(osg::NOTICE) << "Reflections " << (_oceanScene->areReflectionsEnabled()? "enabled" : "disabled") << std::endl;
                 return true;
             }
             // Refractions
             if (ea.getKey() == 'R')
             {
                 _oceanScene->enableRefractions(!_oceanScene->areRefractionsEnabled());
+                osg::notify(osg::NOTICE) << "Refractions " << (_oceanScene->areRefractionsEnabled()? "enabled" : "disabled") << std::endl;
                 return true;
             }
             // DOF
-            if (ea.getKey() == 'd')
+            if (ea.getKey() == 'o')
             {
                 _oceanScene->enableUnderwaterDOF(!_oceanScene->isUnderwaterDOFEnabled());
+                osg::notify(osg::NOTICE) << "Depth of field " << (_oceanScene->isUnderwaterDOFEnabled()? "enabled" : "disabled") << std::endl;
                 return true;
             }
             // Glare
             if (ea.getKey() == 'g')
             {
                 _oceanScene->enableGlare(!_oceanScene->isGlareEnabled());
+                osg::notify(osg::NOTICE) << "Glare " << (_oceanScene->isGlareEnabled()? "enabled" : "disabled") << std::endl;
                 return true;
             }
             // God rays
             if (ea.getKey() == 'G')
             {
                 _oceanScene->enableGodRays(!_oceanScene->areGodRaysEnabled());
+                osg::notify(osg::NOTICE) << "God rays " << (_oceanScene->areGodRaysEnabled()? "enabled" : "disabled") << std::endl;
                 return true;
             }
             // Silt
             if (ea.getKey() == 't')
             {
                 _oceanScene->enableSilt(!_oceanScene->isSiltEnabled());
+                osg::notify(osg::NOTICE) << "Silt " << (_oceanScene->isSiltEnabled()? "enabled" : "disabled") << std::endl;
                 return true;
             }
 
@@ -1380,7 +1386,7 @@ void OceanScene::EventHandler::getUsage(osg::ApplicationUsage& usage) const
 {
     usage.addKeyboardMouseBinding("r","Toggle reflections (above water)");
     usage.addKeyboardMouseBinding("R","Toggle refractions (underwater)");
-    usage.addKeyboardMouseBinding("d","Toggle Depth of Field (DOF) (underwater)");
+    usage.addKeyboardMouseBinding("o","Toggle Depth of Field (DOF) (underwater)");
     usage.addKeyboardMouseBinding("g","Toggle glare (above water)");
     usage.addKeyboardMouseBinding("G","Toggle God rays (underwater)");
     usage.addKeyboardMouseBinding("t","Toggle silt (underwater)");

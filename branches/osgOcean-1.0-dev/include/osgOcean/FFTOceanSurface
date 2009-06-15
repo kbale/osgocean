@@ -334,6 +334,10 @@ namespace osgOcean
             if (dirty) _isDirty = true;
         }
 
+        inline bool isEndlessOceanEnabled() const{
+            return _isEndless;
+        }
+
         inline float getSurfaceHeight( void ) const {
             return _averageHeight;
         }

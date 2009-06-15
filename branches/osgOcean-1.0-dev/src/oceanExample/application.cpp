@@ -367,6 +367,28 @@ public:
                 pat->addChild( cylinderPat );
 
                 _oceanScene->addChild( pat );
+
+                {
+                    // Create and add fake texture for use with nodes without any texture
+                    // since the OceanScene default scene shader assumes that texture unit 
+                    // 0 is used as a base texture map.
+                    osg::Image * image = new osg::Image;
+                    image->allocateImage( 1, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE );
+                    *(osg::Vec4ub*)image->data() = osg::Vec4ub( 0xFF, 0xFF, 0xFF, 0xFF );
+                    
+                    osg::Texture2D* fakeTex = new osg::Texture2D( image );
+                    fakeTex->setWrap(osg::Texture2D::WRAP_S,osg::Texture2D::REPEAT);
+                    fakeTex->setWrap(osg::Texture2D::WRAP_T,osg::Texture2D::REPEAT);
+                    fakeTex->setFilter(osg::Texture2D::MIN_FILTER,osg::Texture2D::NEAREST);
+                    fakeTex->setFilter(osg::Texture2D::MAG_FILTER,osg::Texture2D::NEAREST);
+                    
+                    osg::StateSet* stateset = _oceanScene->getOrCreateStateSet();
+                    stateset->setTextureAttribute(0,fakeTex,osg::StateAttribute::ON);
+                    stateset->setTextureMode(0,GL_TEXTURE_1D,osg::StateAttribute::OFF);
+                    stateset->setTextureMode(0,GL_TEXTURE_2D,osg::StateAttribute::ON);
+                    stateset->setTextureMode(0,GL_TEXTURE_3D,osg::StateAttribute::OFF);
+                }
+
             }
 
             {
@@ -729,16 +751,14 @@ int main(int argc, char *argv[])
     if (loadedModel.valid())
     {
         loadedModel->setNodeMask( scene->getOceanScene()->getNormalSceneMask() | 
-                                  scene->getOceanScene()->getReflectedSceneMask() | 
-                                  scene->getOceanScene()->getRefractedSceneMask() );
+                                scene->getOceanScene()->getReflectedSceneMask() | 
+                                scene->getOceanScene()->getRefractedSceneMask() );
         scene->getOceanScene()->addChild(loadedModel.get());
     }
 
     viewer.setSceneData( root );
 
     viewer.realize();
-
-    osg::Vec3f eye,centre,up;
 
     while(!viewer.done())
     {

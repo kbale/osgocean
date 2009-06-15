@@ -17,6 +17,7 @@
 
 #include <osgOcean/FFTOceanSurface>
 #include <osgOcean/ShaderManager>
+#include <osg/io_utils>
 
 using namespace osgOcean;
 
@@ -1557,24 +1558,28 @@ bool FFTOceanSurface::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osg
             if (ea.getKey() == 'f' )
             {
                 fftSurface->enableCrestFoam(!fftSurface->isCrestFoamEnabled());
+                osg::notify(osg::NOTICE) << "Crest foam " << (fftSurface->isCrestFoamEnabled()? "enabled" : "disabled") << std::endl;
                 return true;
             }
             // isChoppy
             if( ea.getKey() == 'p' )
             {
                 fftSurface->setIsChoppy(!fftSurface->isChoppy(), _autoDirty);
+                osg::notify(osg::NOTICE) << "Choppy waves " << (fftSurface->isChoppy()? "enabled" : "disabled") << std::endl;
                 return true;
             }
             // Wind speed + 0.5
             if (ea.getKey() == 'W')
             {
                 fftSurface->setWindSpeed(fftSurface->getWindSpeed() + 0.5, _autoDirty);
+                osg::notify(osg::NOTICE) << "Wind speed now " << fftSurface->getWindSpeed() << std::endl;
                 return true;
             }
             // Wind speed - 0.5
             if (ea.getKey() == 'w')
             {
                 fftSurface->setWindSpeed(fftSurface->getWindSpeed() - 0.5, _autoDirty);
+                osg::notify(osg::NOTICE) << "Wind speed now " << fftSurface->getWindSpeed() << std::endl;
                 return true;
             }
             // Scale factor + 1e-9
@@ -1582,6 +1587,7 @@ bool FFTOceanSurface::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osg
             {
                 float waveScale = fftSurface->getWaveScaleFactor();
                 fftSurface->setWaveScaleFactor(waveScale+(1e-9), _autoDirty);
+                osg::notify(osg::NOTICE) << "Wave scale factor now " << fftSurface->getWaveScaleFactor() << std::endl;
                 return true;
             }
             // Scale factor - 1e-9
@@ -1589,11 +1595,13 @@ bool FFTOceanSurface::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osg
             {
                 float waveScale = fftSurface->getWaveScaleFactor();
                 fftSurface->setWaveScaleFactor(waveScale-(1e-9), _autoDirty);
+                osg::notify(osg::NOTICE) << "Wave scale factor now " << fftSurface->getWaveScaleFactor() << std::endl;
                 return true;
             }
             // Dirty geometry
             if (ea.getKey() == 'd')
             {
+                osg::notify(osg::NOTICE) << "Dirtying ocean geometry" << std::endl;
                 fftSurface->dirty();
                 return true;
             }
@@ -1603,6 +1611,20 @@ bool FFTOceanSurface::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osg
             if (ea.getKey() == 'D')
             {
                 _autoDirty = !_autoDirty;
+                osg::notify(osg::NOTICE) << "AutoDirty " << (_autoDirty? "enabled" : "disabled") << std::endl;
+                return true;
+            }
+            // Print out all current settings to the console.
+            if (ea.getKey() == 'P')
+            {
+                osg::notify(osg::NOTICE) << "Current FFTOceanSurface settings are:" << std::endl;
+                osg::notify(osg::NOTICE) << "  Endless ocean " << (fftSurface->isEndlessOceanEnabled()? "enabled" : "disabled") << std::endl;
+                osg::notify(osg::NOTICE) << "  Crest foam " << (fftSurface->isCrestFoamEnabled()? "enabled" : "disabled") << std::endl;
+                osg::notify(osg::NOTICE) << "  Choppy waves " << (fftSurface->isChoppy()? "enabled" : "disabled") << std::endl;
+                osg::notify(osg::NOTICE) << "  Choppy factor " << fftSurface->getChoppyFactor() << std::endl;
+                osg::notify(osg::NOTICE) << "  Wind direction " << fftSurface->getWindDirection() << std::endl;
+                osg::notify(osg::NOTICE) << "  Wind speed " << fftSurface->getWindSpeed() << std::endl;
+                osg::notify(osg::NOTICE) << "  Wave scale factor " << fftSurface->getWaveScaleFactor() << std::endl;
                 return true;
             }
             break;
@@ -1628,4 +1650,5 @@ void FFTOceanSurface::EventHandler::getUsage(osg::ApplicationUsage& usage) const
     usage.addKeyboardMouseBinding("W","Increase wind speed by 0.5 (dirties geometry if autoDirty is active)");
     usage.addKeyboardMouseBinding("d","Dirty geometry manually");
     usage.addKeyboardMouseBinding("D","Toggle autoDirty (if off, changes will require manual dirty");
+    usage.addKeyboardMouseBinding("P","Print out current ocean surface settings");
 }
