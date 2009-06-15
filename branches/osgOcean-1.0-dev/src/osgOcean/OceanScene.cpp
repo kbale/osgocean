@@ -50,6 +50,7 @@ OceanScene::OceanScene( void ):
     _glareThreshold        ( 0.9 ),
     _glareAttenuation      ( 0.75 ),
     _underwaterFogColor    ( 0.2274509f, 0.4352941f, 0.7294117f, 1.f ),
+	_underwaterAttenuation ( 0.015f, 0.0075f, 0.005f),
     _underwaterFogDensity  ( 0.01f*0.01*1.442695f ),
     _aboveWaterFogDensity  ( 0.0012f*0.0012f*1.442695f),
     _surfaceStateSet       ( new osg::StateSet ),
@@ -94,6 +95,7 @@ OceanScene::OceanScene( OceanTechnique* technique ):
     _glareThreshold        ( 0.9f ),
     _glareAttenuation      ( 0.75f ),
     _underwaterFogColor    ( 0.2274509f, 0.4352941f, 0.7294117f, 1.f ),
+	_underwaterAttenuation ( 0.015f, 0.0075f, 0.005f),
     _underwaterFogDensity  ( -0.01f*0.01*1.442695f ),
     _aboveWaterFogDensity  ( -0.0012f*0.0012f*1.442695f),
     _surfaceStateSet       ( new osg::StateSet ),
@@ -149,6 +151,7 @@ OceanScene::OceanScene( const OceanScene& copy, const osg::CopyOp& copyop ):
     _underwaterFogColor    ( copy._underwaterFogColor ),
     _aboveWaterFogColor    ( copy._aboveWaterFogColor ),
     _underwaterDiffuse     ( copy._underwaterDiffuse ),
+	_underwaterAttenuation ( copy._underwaterAttenuation ),
     _sunDirection          ( copy._sunDirection ),
     _dofNear               ( copy._dofNear ),
     _dofFar                ( copy._dofFar ),
@@ -214,12 +217,14 @@ void OceanScene::init( void )
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_EnableDOF", _enableDOF ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_EnableGlare", _enableGlare ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_EyeUnderwater", false ) );
+        _globalStateSet->addUniform( new osg::Uniform("osgOcean_Eye", osg::Vec3f() ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_WaterHeight", _oceanSurface->getSurfaceHeight() ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterFogColor", _underwaterFogColor ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_AboveWaterFogColor", _aboveWaterFogColor ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterFogDensity", _underwaterFogDensity ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_AboveWaterFogDensity", _aboveWaterFogDensity ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterDiffuse", _underwaterDiffuse ) );
+        _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterAttenuation", _underwaterAttenuation ) );
 
         if(_enableDefaultShader)
         {
@@ -413,11 +418,11 @@ void OceanScene::traverse( osg::NodeVisitor& nv )
     }
     else if (nv.getVisitorType() == osg::NodeVisitor::CULL_VISITOR)
     {
-        osgUtil::CullVisitor* cv = dynamic_cast<osgUtil::CullVisitor*>(&nv);
-        
-        if (cv) 
+		 osgUtil::CullVisitor* cv = dynamic_cast<osgUtil::CullVisitor*>(&nv);
+
+		  if (cv) 
         {
-            preRenderCull(*cv);     // reflections/refractions
+			   preRenderCull(*cv);     // reflections/refractions
             
             // Above water
             if( cv->getEyePoint().z() > _oceanSurface->getSurfaceHeight() ) {
@@ -426,7 +431,7 @@ void OceanScene::traverse( osg::NodeVisitor& nv )
             }
             // Below water passes
             else {
-                if(!_enableDOF)
+					if(!_enableDOF)
                     cull(*cv);        // normal scene render
             }
 
@@ -543,8 +548,11 @@ void OceanScene::cull(osgUtil::CullVisitor& cv)
 {
     if(_oceanSurface.valid() )
     {
-        if(cv.getEyePoint().z() < _oceanSurface->getSurfaceHeight() )
+		  if(cv.getEyePoint().z() < _oceanSurface->getSurfaceHeight() )
+		  {
+            _globalStateSet->getUniform("osgOcean_Eye")->set( cv.getEyePoint() );
             _globalStateSet->getUniform("osgOcean_EyeUnderwater")->set(true);
+		  }
         else
             _globalStateSet->getUniform("osgOcean_EyeUnderwater")->set(false);
 
