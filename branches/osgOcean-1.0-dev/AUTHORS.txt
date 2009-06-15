@@ -6,6 +6,10 @@ project VENUS (Contract IST-034924) of the
 "Information Society Technologies (IST) programme of the 6th
 FP for RTD".
 
-Contributors:
+For information about the library or if you're interested in
+collaborating I can be reached at: kcbale@googlemail.com
 
+Contributors:
+-------------
 Jean-Sébastien Guay - CM-Labs Simulations Inc. - http://www.vxsim.com/
+
