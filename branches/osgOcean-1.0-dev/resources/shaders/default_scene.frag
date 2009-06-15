@@ -10,8 +10,6 @@ uniform float osgOcean_AboveWaterFogDensity;
 uniform vec4  osgOcean_UnderwaterFogColor;
 uniform vec4  osgOcean_AboveWaterFogColor;
 
-uniform vec4 osgOcean_UnderwaterDiffuse;
-
 uniform float osgOcean_WaterHeight;
 
 uniform bool osgOcean_EnableGlare;
@@ -42,7 +40,7 @@ float computeDepthBlur(float depth, float focus, float near, float far, float cl
    return f * 0.5 + 0.5;
 }
 
-vec4 lighting( vec4 diffuse, vec4 colormap )
+vec4 lighting( vec4 colormap )
 {
 	vec4 final_color = gl_LightSource[osgOcean_LightID].ambient * colormap;
 
@@ -53,7 +51,7 @@ vec4 lighting( vec4 diffuse, vec4 colormap )
 
 	if(lambertTerm > 0.0)
 	{
-		final_color += diffuse * lambertTerm * colormap;
+		final_color += gl_LightSource[osgOcean_LightID].diffuse * lambertTerm * colormap;
 
 		vec3 E = normalize(vEyeVec);
 		vec3 R = reflect(-L, N);
@@ -83,7 +81,7 @@ void main(void)
 	// and surface fog becomes visible.
 	if(osgOcean_EyeUnderwater && vWorldHeight < osgOcean_WaterHeight+2.0 )
 	{
-		final_color = lighting( osgOcean_UnderwaterDiffuse, textureColor );
+		final_color = lighting( textureColor );
 
         // mix in underwater light
 		final_color.rgb = final_color.rgb * vExtinction + vInScattering;
@@ -97,7 +95,7 @@ void main(void)
 	}
 	else
 	{
-        final_color = lighting( gl_LightSource[0].diffuse, textureColor );
+        final_color = lighting( textureColor );
 
 		float fogFactor = computeFogFactor( osgOcean_AboveWaterFogDensity, gl_FogFragCoord );
 		final_color = mix( osgOcean_AboveWaterFogColor, final_color, fogFactor );
