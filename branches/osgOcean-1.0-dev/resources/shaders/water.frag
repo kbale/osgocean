@@ -272,8 +272,8 @@ void main( void )
 			float fresnel = calcFresnel( dot(E, N), 0.7 );
 			refractColor.rgb = osgOcean_UnderwaterFogColor.rgb*fresnel + (1.0-fresnel)* refractColor.rgb;
 		}
-
-		float fogFactor = exp2(osgOcean_UnderwaterFogDensity * gl_FogFragCoord * gl_FogFragCoord );
+            
+        float fogFactor = computeFogFactor( osgOcean_UnderwaterFogDensity, gl_FogFragCoord );
 		final_color = mix( osgOcean_UnderwaterFogColor, refractColor, fogFactor );
 
 		if(osgOcean_EnableDOF)
