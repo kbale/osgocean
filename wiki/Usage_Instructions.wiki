@@ -26,7 +26,7 @@ osgOcean needs to be linked against a Fast Fourier Transform library. You can ch
 
 <a href="http://www.ssisc.org/fftss/">FFTSS</a> is LGPL, so linking osgOcean to it means that osgOcean retains its LGPL license, and thus it can be used in conformance with the LGPL license.
 
-You will need to specify the include directory and library file of your installed and compiled FFT library when building the project. Both offer precompiled binaries for Windows, though FFTW requires that you generate the import libraries before being able to use it (see <a href="http://www.fftw.org/install/windows.html">http://www.fftw.org/install/windows.html</a>).
+You will need to specify the include directory and library file of your installed and compiled FFT library when building the project. FFTW offers precompiled binaries for Windows, though it requires that you generate the import libraries before being able to use it (see <a href="http://www.fftw.org/install/windows.html">http://www.fftw.org/install/windows.html</a>). FFTSS needs to be compiled, but it is painless as VC7 project files are provided in the win32 subdirectory of the source archive. You only need to compile the release version.
 
 == Resources ==
 
