@@ -197,12 +197,12 @@ void OceanScene::init( void )
     _distortionSurface = NULL;
 
     if( _siltClipNode.valid() ){
-        removeChild( _siltClipNode );
+        removeChild( _siltClipNode.get() );
         _siltClipNode = NULL;
     }
 
     if( _siltClipNode.valid() ){
-        removeChild( _siltClipNode );
+        removeChild( _siltClipNode.get() );
         _siltClipNode = NULL;
     }
 
@@ -231,7 +231,7 @@ void OceanScene::init( void )
 
         if(_enableDefaultShader)
         {
-            _globalStateSet->setAttributeAndModes( _defaultSceneShader, osg::StateAttribute::ON );
+            _globalStateSet->setAttributeAndModes( _defaultSceneShader.get(), osg::StateAttribute::ON );
         }
 
         _surfaceStateSet = new osg::StateSet;
@@ -245,21 +245,21 @@ void OceanScene::init( void )
             osg::ref_ptr<osg::Texture2D> reflectionTexture = createTexture2D( _reflectionTexSize, GL_RGBA );
             
             // clip everything below water line
-            _reflectionCamera=renderToTexturePass( reflectionTexture );
+            _reflectionCamera=renderToTexturePass( reflectionTexture.get() );
             _reflectionCamera->setClearColor( osg::Vec4( 0.0, 0.0, 0.0, 0.0 ) );
             _reflectionCamera->setCullMask( _reflectionSceneMask );
             _reflectionCamera->setCullCallback( new CameraCullCallback(this) );
             _reflectionCamera->getOrCreateStateSet()->setMode( GL_CLIP_PLANE0+0, osg::StateAttribute::ON );
             _reflectionCamera->getOrCreateStateSet()->setMode( GL_CULL_FACE, osg::StateAttribute::OFF );
 
-            _surfaceStateSet->setTextureAttributeAndModes( _reflectionUnit, reflectionTexture, osg::StateAttribute::ON );
+            _surfaceStateSet->setTextureAttributeAndModes( _reflectionUnit, reflectionTexture.get(), osg::StateAttribute::ON );
 
             osg::ClipPlane* reflClipPlane = new osg::ClipPlane(0);
             reflClipPlane->setClipPlane( 0.0, 0.0, 1.0, _oceanSurface->getSurfaceHeight() );
             _reflectionClipNode = new osg::ClipNode;
             _reflectionClipNode->addClipPlane( reflClipPlane );
 
-            addChild( _reflectionClipNode );
+            addChild( _reflectionClipNode.get() );
         }
 
         if( _enableRefractions )
@@ -282,7 +282,7 @@ void OceanScene::init( void )
             
             _godrayPreRender=renderToTexturePass( godRayTexture );
             _godrayPreRender->setClearColor( osg::Vec4(0.0745098, 0.10588235, 0.1529411, 1.0) );
-            _godrayPreRender->addChild( _godrays );
+            _godrayPreRender->addChild( _godrays.get() );
         
             _godRayBlendSurface = new GodRayBlendSurface( osg::Vec3f(-1.f,-1.f,-1.f), osg::Vec2f(2.f,2.f), godRayTexture );
 
@@ -291,7 +291,7 @@ void OceanScene::init( void )
             _godRayBlendSurface->setIntensity(0.1f);
 
             _godrayPostRender=godrayFinalPass();
-            _godrayPostRender->addChild( _godRayBlendSurface );
+            _godrayPostRender->addChild( _godRayBlendSurface.get() );
         }
 
         if( _enableDOF )
@@ -310,7 +310,7 @@ void OceanScene::init( void )
             osg::TextureRectangle* fullScreenTexture = createTextureRectangle( _screenDims, GL_RGBA );
             osg::Camera* fullPass = renderToTexturePass( fullScreenTexture );
             fullPass->setCullCallback( new PrerenderCameraCullCallback(this) );
-            fullPass->setStateSet(_dofStateSet);
+            fullPass->setStateSet(_dofStateSet.get());
             _dofPasses.push_back( fullPass );
 
             // Downsize image
@@ -346,7 +346,7 @@ void OceanScene::init( void )
             osg::TextureRectangle* fullScreenTexture = createTextureRectangle( _screenDims, GL_RGBA );
             osg::Camera* fullPass = renderToTexturePass( fullScreenTexture );
             fullPass->setCullCallback( new PrerenderCameraCullCallback(this) );
-            fullPass->setStateSet(_glareStateSet);
+            fullPass->setStateSet(_glareStateSet.get());
             _glarePasses.push_back( fullPass );
 
             // Downsize image
@@ -401,7 +401,7 @@ void OceanScene::init( void )
             _siltClipNode->addClipPlane( siltClipPlane );
             _siltClipNode->addChild( silt );
 
-            addChild( _siltClipNode );
+            addChild( _siltClipNode.get() );
         }
     }
     
@@ -470,7 +470,7 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv )
             _reflectionCamera->setViewMatrix( _reflectionMatrix * cv.getCurrentCamera()->getViewMatrix() );
             _reflectionCamera->setProjectionMatrix( cv.getCurrentCamera()->getProjectionMatrix() );
             
-            cv.pushStateSet(_globalStateSet);
+            cv.pushStateSet(_globalStateSet.get());
             _reflectionCamera->accept( cv );
             cv.popStateSet();
         }
@@ -495,7 +495,7 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv )
             // update refraction camera and render refracted scene
             _refractionCamera->setViewMatrix( cv.getCurrentCamera()->getViewMatrix() );
             _refractionCamera->setProjectionMatrix( cv.getCurrentCamera()->getProjectionMatrix() );
-            cv.pushStateSet(_globalStateSet);
+            cv.pushStateSet(_globalStateSet.get());
             _refractionCamera->accept( cv );
             cv.popStateSet();
         }
@@ -561,10 +561,10 @@ void OceanScene::cull(osgUtil::CullVisitor& cv)
 
         unsigned int mask = cv.getTraversalMask();
 
-        cv.pushStateSet(_globalStateSet);
+        cv.pushStateSet(_globalStateSet.get());
 
         // render ocean surface with reflection / refraction stateset
-        cv.pushStateSet( _surfaceStateSet );
+        cv.pushStateSet( _surfaceStateSet.get() );
         cv.setTraversalMask( mask & _surfaceMask );
         osg::Group::traverse(cv);
         
@@ -937,7 +937,7 @@ osg::Camera* OceanScene::dofFinalPass( osg::TextureRectangle* combinedTexture )
     camera->setProjectionMatrixAsOrtho( 0, _screenDims.x(), 0.f, _screenDims.y(), 1.0, 500.f );
     camera->setViewMatrix(osg::Matrix::identity());
     camera->setViewport( 0, 0, _screenDims.x(), _screenDims.y() );
-    camera->addChild(_distortionSurface);
+    camera->addChild(_distortionSurface.get());
 
     return camera;
 }
