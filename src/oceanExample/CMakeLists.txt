@@ -2,51 +2,63 @@ SET(HEADER_PATH ${osgOcean_SOURCE_DIR}/include/OceanExample )
 SET(LIB_HEADER_PATH ${osgOcean_SOURCE_DIR}/include )
 
 SET( SKYBOX_TEXTURES_1
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/down.bmp
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/east.bmp
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/north.bmp
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/south.bmp
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/up.bmp
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/west.bmp
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/down.png
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/east.png
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/north.png
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/south.png
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/up.png
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/west.png
 )
 
 SET( SKYBOX_TEXTURES_2
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/down.bmp
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/east.bmp
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/north.bmp
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/south.bmp
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/up.bmp
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/west.bmp
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/down.png
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/east.png
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/north.png
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/south.png
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/up.png
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/west.png
 )
 
 SET( SKYBOX_TEXTURES_3
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/down.bmp
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/east.bmp
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/north.bmp
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/south.bmp
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/up.bmp
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/west.bmp
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/down.png
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/east.png
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/north.png
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/south.png
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/up.png
+  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/west.png
 )
 
-include_directories( 
-   ${LIB_HEADER_PATH} 
+SET( ISLAND_RESOURCES
+  ${osgOcean_SOURCE_DIR}/resources/island/islands.ive
+)
+
+SET( EXAMPLE_SHADERS
+  ${osgOcean_SOURCE_DIR}/resources/shaders/terrain.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/terrain.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/skydome.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/skydome.frag
+)
+
+INCLUDE_DIRECTORIES(
+   ${LIB_HEADER_PATH}
    ${HEADER_PATH}
-   ${LIBFFTW3F-3_INCLUDE_DIR}
 )
 
-add_executable(
+ADD_EXECUTABLE(
 
   oceanExample
 
   application.cpp
+  Cylinder.cpp
   SkyDome.cpp
   SphereSegment.cpp
 
+  ${HEADER_PATH}/Cylinder.h
   ${HEADER_PATH}/SkyDome.h
   ${HEADER_PATH}/SphereSegment.h
 )
 
-target_link_libraries(
+TARGET_LINK_LIBRARIES(
   oceanExample
 
   osgOcean
@@ -62,29 +74,41 @@ target_link_libraries(
 
   debug ${OSGDB_LIBRARY_DEBUG}
   optimized ${OSGDB_LIBRARY}
-  
+
   debug ${OSGTEXT_LIBRARY_DEBUG}
   optimized ${OSGTEXT_LIBRARY}
 )
 
-install(
+INSTALL(
    TARGETS oceanExample
    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 )
 
-install(
+INSTALL(
   FILES ${SKYBOX_TEXTURES_1}
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/resources/textures/sky_clear
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/resources/textures/sky_clear
 )
 
-install(
+INSTALL(
   FILES ${SKYBOX_TEXTURES_2}
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/resources/textures/sky_dusk
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/resources/textures/sky_dusk
 )
 
-install(
+INSTALL(
   FILES ${SKYBOX_TEXTURES_3}
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/resources/textures/sky_fair_cloudy
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/resources/textures/sky_fair_cloudy
 )
+
+INSTALL(
+  FILES ${EXAMPLE_SHADERS}
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/resources/shaders
+)
+
+INSTALL(
+  FILES ${ISLAND_RESOURCES}
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/resources/island
+)
+
+
 
 

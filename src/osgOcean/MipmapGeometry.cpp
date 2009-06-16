@@ -1,3 +1,20 @@
+/*
+* This source file is part of the osgOcean library
+* 
+* Copyright (C) 2009 Kim Bale
+* Copyright (C) 2009 The University of Hull, UK
+* 
+* This program is free software; you can redistribute it and/or modify it under
+* the terms of the GNU Lesser General Public License as published by the Free Software
+* Foundation; either version 3 of the License, or (at your option) any later
+* version.
+
+* This program is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+* FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+* http://www.gnu.org/copyleft/lesser.txt.
+*/
+
 #include <osgOcean/MipmapGeometry>
 
 namespace osgOcean
@@ -20,7 +37,7 @@ namespace osgOcean
 												BORDER_TYPE border ):
 		_level			( level ),
 		_numLevels		( numLevels ),
-		_resolution		( 2 << (numLevels-(level+1)) ),
+		_resolution		( level != (numLevels-1) ? 2 << (numLevels-(level+2) ) : 1 ),
 		_rowLen			( border==BORDER_X || border==BORDER_XY ? _resolution+1 : _resolution),
 		_colLen			( border==BORDER_Y || border==BORDER_XY ? _resolution+1 : _resolution),
 		_startIdx		( startIdx ),
@@ -45,25 +62,4 @@ namespace osgOcean
 	{
 		
 	}
-
-	//void MipmapGeometry::apply(osg::State& state )
-	//{
-	//	if( state.setActiveTextureUnit(3) )
-	//	{
-	//		glMatrixMode(GL_TEXTURE);
-	//		glLoadIdentity();
-	//		float noisetilescale = 32.0f;//meters (128/16=8, 8tex/m).
-	//		// fixme 32m wide noise is a good compromise, that would be a noise
-	//		// sample every 12.5cm. But it works only if the noise map
-	//		// has high frequencies in it... this noise map has to few details
-	//		glScalef(4,4,1);	// fixme adjust scale
-	//		//glTranslatef(transl.x, transl.y, 0);
-	//		glMatrixMode(GL_MODELVIEW);
-	//	}
-	//	else
-	//	{
-	//		osg::notify(osg::NOTICE) << "fail" << std::endl;
-	//	}
-
-	//}
 }
