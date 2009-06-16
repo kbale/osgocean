@@ -25,6 +25,7 @@
 #include <osg/Notify>
 #include <osg/io_utils>
 #include <osg/Timer>
+#include <osg/Version>
 
 using namespace osgOcean;
 
@@ -699,8 +700,23 @@ bool SiltEffect::build(const osg::Vec3 eyeLocal, int i, int j, int k, float star
     }
 
     *mymodelview = *(cv->getModelViewMatrix());
+
+#if OPENSCENEGRAPH_MAJOR_VERSION > 2 || \
+    (OPENSCENEGRAPH_MAJOR_VERSION == 2 && OPENSCENEGRAPH_MINOR_VERSION > 7) || \
+    (OPENSCENEGRAPH_MAJOR_VERSION == 2 && OPENSCENEGRAPH_MINOR_VERSION == 7 && OPENSCENEGRAPH_PATCH_VERSION >= 3)
+
+    // preMultTranslate and preMultScale introduced in rev 8868, which was 
+    // before OSG 2.7.3.
     mymodelview->preMultTranslate(position);
     mymodelview->preMultScale(scale);
+
+#else
+
+    // Otherwise use unoptimized versions
+    mymodelview->preMult(osg::Matrix::translate(position));
+    mymodelview->preMult(osg::Matrix::scale(scale));
+
+#endif
 
     cv->updateCalculatedNearFar(*(cv->getModelViewMatrix()),bb);
 

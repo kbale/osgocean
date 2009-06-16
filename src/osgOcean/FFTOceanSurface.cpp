@@ -180,7 +180,7 @@ void FFTOceanSurface::initStateSet( void )
     osg::ref_ptr<osg::Texture2D> noiseMap 
         = createNoiseMap( _noiseTileSize, _noiseWindDir, _noiseWindSpeed, _noiseWaveScale, _noiseTileRes ); 
 
-    _stateset->setTextureAttributeAndModes( NORMAL_MAP, noiseMap, osg::StateAttribute::ON );
+    _stateset->setTextureAttributeAndModes( NORMAL_MAP, noiseMap.get(), osg::StateAttribute::ON );
 
     // Colouring
     osg::Vec4f waveTop = colorLerp(_lightColor, osg::Vec4f(), osg::Vec4f(_waveTopColor,1.f) );
@@ -211,9 +211,9 @@ osg::ref_ptr<osg::Texture2D> FFTOceanSurface::createNoiseMap(unsigned int size,
 
     FFTSimulation noiseFFT(size, windDir, windSpeed, waveScale, tileResolution,10.f);
     noiseFFT.setTime(0.f);
-    noiseFFT.computeHeights(heights);
+    noiseFFT.computeHeights(heights.get());
         
-    OceanTile oceanTile(heights,size,tileResolution/size);
+    OceanTile oceanTile(heights.get(),size,tileResolution/size);
 
     return oceanTile.createNormalMap();
 }
@@ -243,15 +243,15 @@ void FFTOceanSurface::computeSea( unsigned int totalFrames )
         float time = _cycleTime * ( float(frame) / float(totalFrames) );
 
         FFTSim.setTime( time );
-        FFTSim.computeHeights( heights );
+        FFTSim.computeHeights( heights.get() );
 
         if(_isChoppy)
-            FFTSim.computeDisplacements( _choppyFactor, displacements );
+            FFTSim.computeDisplacements( _choppyFactor, displacements.get() );
 
         _mipmapData[frame].resize( _numLevels );
 
         // Level 0
-        _mipmapData[frame][0] = OceanTile( heights, _tileSize, _pointSpacing, displacements );
+        _mipmapData[frame][0] = OceanTile( heights.get(), _tileSize, _pointSpacing, displacements.get() );
 
         _averageHeight += _mipmapData[frame][0].getAverageHeight();
 
@@ -270,7 +270,7 @@ void FFTOceanSurface::computeSea( unsigned int totalFrames )
         zeroHeights->at(2) = 0.f;
         zeroHeights->at(3) = 0.f;
 
-        _mipmapData[frame][_numLevels-1] = OceanTile( zeroHeights, 1, _tileSize/(_tileSize>>(_numLevels-1))*_pointSpacing );
+        _mipmapData[frame][_numLevels-1] = OceanTile( zeroHeights.get(), 1, _tileSize/(_tileSize>>(_numLevels-1))*_pointSpacing );
     }
 
     _averageHeight /= (float)totalFrames;
@@ -319,9 +319,9 @@ void FFTOceanSurface::createOceanTiles( void )
             MipmapGeometry* patch = new MipmapGeometry( _numLevels-2, _numLevels, 0, border );
 
             patch->setUseDisplayList( false );
-            patch->setVertexArray( _activeVertices );
-            patch->setNormalArray( _activeNormals );
-            patch->setColorArray    ( colours );
+            patch->setVertexArray( _activeVertices.get() );
+            patch->setNormalArray( _activeNormals.get() );
+            patch->setColorArray    ( colours.get() );
             patch->setNormalBinding( osg::Geometry::BIND_PER_VERTEX );
             patch->setColorBinding( osg::Geometry::BIND_OVERALL );
             patch->setDataVariance( osg::Object::DYNAMIC );
@@ -1501,7 +1501,7 @@ void FFTOceanSurface::OceanAnimationCallback::operator()(osg::Node* node, osg::N
 {
     osg::ref_ptr<OceanDataType> oceanData = dynamic_cast<OceanDataType*> ( node->getUserData() );
 
-    if( oceanData )
+    if( oceanData.valid() )
     {
         // If cull visitor update the current eye position
         if( nv->getVisitorType() == osg::NodeVisitor::CULL_VISITOR )

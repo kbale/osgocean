@@ -54,7 +54,7 @@ void DistortionSurface::build( const osg::Vec3f& corner, const osg::Vec2f& dims,
     osg::ref_ptr<osg::Program> program = createShader();
 
     if(program.valid())
-        ss->setAttributeAndModes( program, osg::StateAttribute::ON );
+        ss->setAttributeAndModes( program.get(), osg::StateAttribute::ON );
     else
         osg::notify(osg::WARN) << "DistortionSurface::build() Invalid Shader"<< std::endl;
     
@@ -203,7 +203,7 @@ void DistortionSurface::DistortionCallback::operator()(osg::Node* node, osg::Nod
     osg::ref_ptr<DistortionSurface::DistortionDataType> data 
         = dynamic_cast<DistortionSurface::DistortionDataType*> ( node->getUserData() );
 
-    if(data)
+    if(data.valid())
     {
         if(nv->getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR )
         {

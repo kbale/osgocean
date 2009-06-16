@@ -85,7 +85,7 @@ void GodRayBlendSurface::build( const osg::Vec3f& corner, const osg::Vec2f& dims
     _stateset->addUniform( new osg::Uniform("osgOcean_HGg",           _HGg ) );
     _stateset->addUniform( new osg::Uniform("osgOcean_Intensity",     _intensity ) );
 
-    setStateSet( _stateset );
+    setStateSet( _stateset.get() );
 
     setUserData( new GodRayBlendDataType(*this) );
     setCullCallback( new GodRayBlendCallback );
@@ -215,7 +215,7 @@ void GodRayBlendSurface::GodRayBlendCallback::operator()(osg::Node* node, osg::N
 {
     osg::ref_ptr<GodRayBlendDataType> data = dynamic_cast<GodRayBlendDataType*> ( node->getUserData() );
 
-    if(data)
+    if(data.valid())
     {
         if( nv->getVisitorType() == osg::NodeVisitor::CULL_VISITOR )
         {

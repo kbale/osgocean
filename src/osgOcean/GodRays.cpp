@@ -88,7 +88,7 @@ void GodRays::buildStateSet(void)
     // reset, create and pack trochoids
     _trochoids = WaterTrochoids(0.05f, 0.25f, 18.f, 1.2f, 1.f, 0.2f );
     _trochoids.createWaves();
-    _trochoids.packWaves( _constants );
+    _trochoids.packWaves( _constants.get() );
 
     _stateSet = new osg::StateSet;
 
@@ -96,7 +96,7 @@ void GodRays::buildStateSet(void)
     blend->setFunction(osg::BlendFunc::SRC_ALPHA, osg::BlendFunc::ONE);
 
     osg::Uniform* waveUniform = new osg::Uniform( osg::Uniform::FLOAT, "osgOcean_Waves", (int)_constants->size() );
-    waveUniform->setArray( _constants );
+    waveUniform->setArray( _constants.get() );
 
     _stateSet->addUniform( new osg::Uniform( "osgOcean_Origin",            osg::Vec3() ) );
     _stateSet->addUniform( new osg::Uniform( "osgOcean_Extinction_c",    _extinction ) );
@@ -110,7 +110,7 @@ void GodRays::buildStateSet(void)
     _stateSet->setMode( GL_DEPTH_TEST, osg::StateAttribute::OFF );
     _stateSet->setMode( GL_LIGHTING, osg::StateAttribute::OFF );
 
-    setStateSet( _stateSet );
+    setStateSet( _stateSet.get() );
 
     _isStateDirty=false;
 }
@@ -204,7 +204,7 @@ osg::Geometry* GodRays::createGlareQuad(void)
     if( !glareImage.valid() )
         return NULL;
 
-    osg::Texture2D* glareTexture = new osg::Texture2D(glareImage);
+    osg::Texture2D* glareTexture = new osg::Texture2D(glareImage.get());
     glareTexture->setInternalFormat(GL_RGB);
     glareTexture->setFilter(osg::Texture2D::MIN_FILTER,osg::Texture2D::LINEAR);
     glareTexture->setFilter(osg::Texture2D::MAG_FILTER,osg::Texture2D::LINEAR);
@@ -502,7 +502,7 @@ void GodRays::GodRayAnimationCallback::operator()(osg::Node* node, osg::NodeVisi
 {
     osg::ref_ptr<GodRayDataType> data = dynamic_cast<GodRayDataType*> ( node->getUserData() );
 
-    if(data)
+    if(data.valid())
     {
         // If cull visitor update the current eye position
         if( nv->getVisitorType() == osg::NodeVisitor::CULL_VISITOR )

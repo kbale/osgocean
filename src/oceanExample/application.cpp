@@ -96,14 +96,14 @@ public:
         _modeText->setCharacterSize(14);
         _modeText->setPosition( osg::Vec3f(0.f, -40.f, 0.f ) );
         _modeText->setDataVariance(osg::Object::DYNAMIC);
-        textGeode->addDrawable( _modeText );
+        textGeode->addDrawable( _modeText.get() );
 
         _cameraModeText = new osgText::Text;
         _cameraModeText->setFont("fonts/arial.ttf");
         _cameraModeText->setCharacterSize(14);
         _cameraModeText->setPosition( osg::Vec3f(0.f, -60.f, 0.f ) );
         _cameraModeText->setDataVariance(osg::Object::DYNAMIC);
-        textGeode->addDrawable( _cameraModeText );
+        textGeode->addDrawable( _cameraModeText.get() );
 
         osg::PositionAttitudeTransform* titlePAT = new osg::PositionAttitudeTransform;
         titlePAT->setPosition( osg::Vec3f( 10, 70, 0.f ) );
@@ -320,7 +320,7 @@ public:
                 osg::Vec3f sunDir = -_sunPositions[_sceneType];
                 sunDir.normalize();
                 
-                _oceanScene = new osgOcean::OceanScene( _oceanSurface );
+                _oceanScene = new osgOcean::OceanScene( _oceanSurface.get() );
                 _oceanScene->setLightID(0);
                 _oceanScene->enableReflections(true);
                 _oceanScene->enableRefractions(true);
@@ -398,9 +398,9 @@ public:
                 if( islandModel.valid() )
                 {
                     _islandSwitch = new osg::Switch;
-                    _islandSwitch->addChild( islandModel, true );
+                    _islandSwitch->addChild( islandModel.get(), true );
                     _islandSwitch->setNodeMask( _oceanScene->getNormalSceneMask() | _oceanScene->getReflectedSceneMask() | _oceanScene->getRefractedSceneMask() );
-                    _oceanScene->addChild( _islandSwitch );
+                    _oceanScene->addChild( _islandSwitch.get() );
                 }
             }
 
@@ -444,8 +444,8 @@ public:
         _sceneType = type;
 
         _cubemap = loadCubeMapTextures( _cubemapDirs[_sceneType] );
-        _skyDome->setCubeMap( _cubemap );
-        _oceanSurface->setEnvironmentMap( _cubemap );
+        _skyDome->setCubeMap( _cubemap.get() );
+        _oceanSurface->setEnvironmentMap( _cubemap.get() );
         _oceanSurface->setLightColor( _lightColors[type] );
 
         _oceanScene->setAboveWaterFog(0.0012f, _fogColors[_sceneType] );
@@ -505,7 +505,7 @@ public:
         osg::PositionAttitudeTransform* islandpat = new osg::PositionAttitudeTransform;
         islandpat->setPosition(osg::Vec3f( -island->getBound().center()+osg::Vec3f(0.0, 0.0, -15.f) ) );
         islandpat->setScale( osg::Vec3f(4.f, 4.f, 3.f ) );
-        islandpat->addChild(island);
+        islandpat->addChild(island.get());
 
         return islandpat;
     }
