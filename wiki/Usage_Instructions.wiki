@@ -57,3 +57,7 @@ library with the following code:
 
 osgDB::FilePathList& pathList = osgDB::Registry::instance()->getDataFilePathList();
 pathList.push_back( new_path );
+
+== Bugs / Suggestions ==
+
+Please add any bugs or suggestions you have to the <a href=http://code.google.com/p/osgocean/issues/list>issue tracker.</a> and I'll try to address them.
