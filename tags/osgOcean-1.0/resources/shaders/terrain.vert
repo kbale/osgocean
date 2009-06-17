@@ -30,7 +30,7 @@ void computeScattering( in vec3 eye, in vec3 worldVertex, out vec3 extinction, o
 
 	// Need to compute accurate kd constant.
 	// const vec3 kd = vec3(0.001, 0.001, 0.001);
-	inScattering = osgOcean_UnderwaterDiffuse * (1.0-extinction*exp(-depth*vec3(0.001)));
+	inScattering = osgOcean_UnderwaterDiffuse.rgb * (1.0-extinction*exp(-depth*vec3(0.001)));
 }
 
 void main(void)
