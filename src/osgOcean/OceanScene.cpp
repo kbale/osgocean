@@ -1157,7 +1157,7 @@ osg::Program* OceanScene::createDefaultSceneShader(void)
         "\n"
         "	// Need to compute accurate kd constant.\n"
         "	// const vec3 kd = vec3(0.001, 0.001, 0.001);\n"
-        "	inScattering = osgOcean_UnderwaterDiffuse * (1.0-extinction*exp(-depth*vec3(0.001)));\n"
+        "	inScattering = osgOcean_UnderwaterDiffuse.rgb * (1.0-extinction*exp(-depth*vec3(0.001)));\n"
         "}\n"
         "\n"
         "void main(void)\n"
