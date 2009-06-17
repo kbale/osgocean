@@ -1176,7 +1176,7 @@ osg::Program* OceanScene::createDefaultSceneShader(void)
         "\n"
         "	vec4 worldVertex = (osg_ViewMatrixInverse*gl_ModelViewMatrix) * gl_Vertex;\n"
         "\n"
-        "	computeScattering( osgOcean_Eye, worldVertex, vExtinction, vInScattering);\n"
+        "	computeScattering( osgOcean_Eye, worldVertex.xyz, vExtinction, vInScattering);\n"
         "\n"
         "	vWorldHeight = worldVertex.z;\n"
         "}\n";
