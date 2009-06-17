@@ -1,6 +1,6 @@
 #define NUM_SAMPLES 4
 
-uniform samplerRect osgOcean_Buffer;
+uniform sampler2DRect osgOcean_Buffer;
 uniform vec2        osgOcean_Direction;
 uniform float       osgOcean_Attenuation;
 uniform float       osgOcean_Pass;
@@ -25,7 +25,7 @@ void main(void)
 		sf = float(s);
 		float weight = pow(osgOcean_Attenuation, b * sf);
 		sampleCoord = gl_TexCoord[0].st + (osgOcean_Direction * b * vec2(sf) * pxSize);
-		cOut += clamp(weight,0.0,1.0) * textureRect(osgOcean_Buffer, sampleCoord).rgb;
+		cOut += clamp(weight,0.0,1.0) * texture2DRect(osgOcean_Buffer, sampleCoord).rgb;
 	}
 
 	vec3 streak = clamp(cOut, 0.0, 1.0);
