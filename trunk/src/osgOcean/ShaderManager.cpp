@@ -84,7 +84,6 @@ osg::Program* ShaderManager::createProgram( const std::string& name,
     fShader->setName(name+"_fragment_shader");
 
     osg::Program* program = new osg::Program;
-    program->setName(name);
     program->addShader( vShader.get() );
     program->addShader( fShader.get() );
 
