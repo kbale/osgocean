@@ -8,7 +8,7 @@
 #include <osg/Drawable>
 #include <osgUtil/CullVisitor>
 
-#include <GL/gl.h>
+#include <osg/GL>
 
 namespace osgOcean
 {
