@@ -1,4 +1,4 @@
-uniform samplerRect osgOcean_GlareTexture;
+uniform sampler2DRect osgOcean_GlareTexture;
 uniform float osgOcean_GlareThreshold;
 
 void main( void )
@@ -7,19 +7,19 @@ void main( void )
 
 	texCoordSample.x = gl_TexCoord[0].x - 1;
 	texCoordSample.y = gl_TexCoord[0].y + 1;
-	vec4 color = textureRect(osgOcean_GlareTexture, texCoordSample);
+	vec4 color = texture2DRect(osgOcean_GlareTexture, texCoordSample);
 
 	texCoordSample.x = gl_TexCoord[0].x + 1;
 	texCoordSample.y = gl_TexCoord[0].y + 1;
-	color += textureRect(osgOcean_GlareTexture, texCoordSample);
+	color += texture2DRect(osgOcean_GlareTexture, texCoordSample);
 
 	texCoordSample.x = gl_TexCoord[0].x + 1;
 	texCoordSample.y = gl_TexCoord[0].y - 1;
-	color += textureRect(osgOcean_GlareTexture, texCoordSample);
+	color += texture2DRect(osgOcean_GlareTexture, texCoordSample);
 
 	texCoordSample.x = gl_TexCoord[0].x - 1;
 	texCoordSample.y = gl_TexCoord[0].y - 1;
-	color += textureRect(osgOcean_GlareTexture, texCoordSample);
+	color += texture2DRect(osgOcean_GlareTexture, texCoordSample);
 
 	color = color*0.25;
 

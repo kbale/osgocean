@@ -6,7 +6,7 @@ uniform float osgOcean_Offset;
 uniform float osgOcean_Speed;
 uniform vec2  osgOcean_ScreenRes;
 
-uniform samplerRect osgOcean_FrameBuffer;
+uniform sampler2DRect osgOcean_FrameBuffer;
 
 varying vec4 vEyePos;
 
@@ -38,8 +38,8 @@ void main (void)
 	index.s = index.s * osgOcean_ScreenRes.x;
 	index.t = index.t * osgOcean_ScreenRes.y;
 
-	vec3 RefractionColor = vec3( textureRect( osgOcean_FrameBuffer, index ) );
+	vec3 RefractionColor = vec3( texture2DRect( osgOcean_FrameBuffer, index ) );
 
 	gl_FragColor = vec4( RefractionColor, 1.0 );
-	//gl_FragColor = textureRect( osgOcean_FrameBuffer, gl_TexCoord[0].st );
+	//gl_FragColor = texture2DRect( osgOcean_FrameBuffer, gl_TexCoord[0].st );
 }
