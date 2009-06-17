@@ -1,4 +1,4 @@
-uniform samplerRect osgOcean_GodRayTexture;
+uniform sampler2DRect osgOcean_GodRayTexture;
 
 uniform vec3  osgOcean_SunDir;
 uniform vec3  osgOcean_HGg;				// Eccentricity constants controls power of forward scattering
@@ -31,10 +31,10 @@ void main( void )
 
 	// average the pixels out a little to hide aliasing
 	// TODO: Maybe try a weak blur filter
-	shafts += textureRect(osgOcean_GodRayTexture, gl_TexCoord[1].xy);
-	shafts += textureRect(osgOcean_GodRayTexture, gl_TexCoord[1].zw);
-	shafts += textureRect(osgOcean_GodRayTexture, gl_TexCoord[2].xy);
-	shafts += textureRect(osgOcean_GodRayTexture, gl_TexCoord[2].zw);
+	shafts += texture2DRect(osgOcean_GodRayTexture, gl_TexCoord[1].xy);
+	shafts += texture2DRect(osgOcean_GodRayTexture, gl_TexCoord[1].zw);
+	shafts += texture2DRect(osgOcean_GodRayTexture, gl_TexCoord[2].xy);
+	shafts += texture2DRect(osgOcean_GodRayTexture, gl_TexCoord[2].zw);
 
 	shafts /= 4.0;
 
