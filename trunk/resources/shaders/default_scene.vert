@@ -41,7 +41,7 @@ void main(void)
 
 	vec4 worldVertex = (osg_ViewMatrixInverse*gl_ModelViewMatrix) * gl_Vertex;
 
-	computeScattering( osgOcean_Eye, worldVertex, vExtinction, vInScattering);
+	computeScattering( osgOcean_Eye, worldVertex.xyz, vExtinction, vInScattering);
 
 	vWorldHeight = worldVertex.z;
 }
