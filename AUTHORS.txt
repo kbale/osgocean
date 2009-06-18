@@ -12,4 +12,4 @@ collaborating I can be reached at: kcbale@googlemail.com
 Contributors:
 -------------
 Jean-Sébastien Guay - CM-Labs Simulations Inc. - http://www.vxsim.com/
-
+Ulrich Hertlein
