@@ -110,7 +110,7 @@ std::string ShaderManager::buildGlobalDefinitionsList(const std::string& name)
     {
         list += "// " + name + "\n";
     }
-    list += "#version 120\n";
+   // list += "#version 120\n";
 
     for (GlobalDefinitions::const_iterator it = _globalDefinitions.begin();
          it != _globalDefinitions.end(); ++it)
