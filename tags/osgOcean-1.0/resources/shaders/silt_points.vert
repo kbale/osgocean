@@ -31,4 +31,4 @@ void main(void)
 	colour.a = 0.05+(pointSize*pointSize)/(gl_PointSize*gl_PointSize);
 
 	gl_ClipVertex = v_current;
-};
+}
