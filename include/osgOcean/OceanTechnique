@@ -22,29 +22,39 @@
 
 namespace osgOcean
 {
-	class OSGOCEAN_EXPORT OceanTechnique : public osg::Geode
-	{
-	public:
-		OceanTechnique( void );
-		OceanTechnique( const OceanTechnique& copy, const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY );
+    class OSGOCEAN_EXPORT OceanTechnique : public osg::Geode
+    {
+    public:
+        OceanTechnique( void );
+        OceanTechnique( const OceanTechnique& copy, const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY );
 
-		virtual const char* libraryName() const { return "osgOcean"; }
-		virtual const char* className() const { return "OceanTechnique"; }
-		virtual bool isSameKindAs(const osg::Object* obj) const { return dynamic_cast<const OceanTechnique*>(obj) != 0; }
+        virtual const char* libraryName() const { return "osgOcean"; }
+        virtual const char* className() const { return "OceanTechnique"; }
+        virtual bool isSameKindAs(const osg::Object* obj) const { return dynamic_cast<const OceanTechnique*>(obj) != 0; }
 
-		virtual void build( void );
-		virtual void stopAnimation( void );
-		virtual void startAnimation( void );
+        virtual void build( void );
 
-		virtual float getSurfaceHeight(void) const;
+        virtual void stopAnimation( void ){
+            _isAnimating = false;
+        }
 
-		inline bool isDirty(void) const{
-			return _isDirty;
-		}
+        virtual void startAnimation( void ){
+            _isAnimating = true;
+        }
 
-		inline void dirty(void){
-			_isDirty=true;
-		}
+        bool isAnimating( void ) const{
+            return _isAnimating;
+        }
+
+        virtual float getSurfaceHeight(void) const;
+
+        inline bool isDirty(void) const{
+            return _isDirty;
+        }
+
+        inline void dirty(void){
+            _isDirty=true;
+        }
 
         /** Base class for the OceanTechnique event handler. Subclasses of 
          *  OceanTechnique can subclass this to provide support for 
@@ -74,11 +84,12 @@ namespace osgOcean
             return _eventHandler.get();
         }
 
-	protected:
-		virtual ~OceanTechnique(void){};
+    protected:
+        virtual ~OceanTechnique(void){};
 
-	protected:
-		bool _isDirty;
+    protected:
+        bool _isDirty;
+        bool _isAnimating;
         osg::ref_ptr<EventHandler> _eventHandler;
-	};
+    };
 }

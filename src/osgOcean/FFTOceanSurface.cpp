@@ -421,21 +421,25 @@ void FFTOceanSurface::update( unsigned int frame, const double& dt, const osg::V
     else if(_isStateDirty)
         initStateSet();
 
-    static double time = 0.0;
-    time+=(dt*0.0008);
-
     getStateSet()->getUniform("osgOcean_EyePosition")->set(eye);
-    getStateSet()->getUniform("osgOcean_NoiseCoords0")->set( computeNoiseCoords( 32.f, osg::Vec2f( 2.f, 4.f), 2.f, time ) );
-    getStateSet()->getUniform("osgOcean_NoiseCoords1")->set( computeNoiseCoords( 8.f,  osg::Vec2f(-4.f, 2.f), 1.f, time ) );
-    
-    if( updateMipmaps( eye, frame ) )
+
+    if (_isAnimating)
     {
-        computeVertices( frame );
-        computePrimitives();
-    }
-    else if( frame != _oldFrame )
-    {
-        computeVertices( frame );
+        static double time = 0.0;
+        time+=(dt*0.0008);
+
+        getStateSet()->getUniform("osgOcean_NoiseCoords0")->set( computeNoiseCoords( 32.f, osg::Vec2f( 2.f, 4.f), 2.f, time ) );
+        getStateSet()->getUniform("osgOcean_NoiseCoords1")->set( computeNoiseCoords( 8.f,  osg::Vec2f(-4.f, 2.f), 1.f, time ) );
+        
+        if( updateMipmaps( eye, frame ) )
+        {
+            computeVertices( frame );
+            computePrimitives();
+        }
+        else if( frame != _oldFrame )
+        {
+            computeVertices( frame );
+        }
     }
 
     _oldFrame = frame;
