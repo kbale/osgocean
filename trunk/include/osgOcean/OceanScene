@@ -289,9 +289,13 @@ namespace osgOcean
                 removeChild( _oceanSurface.get() );
 
             _oceanSurface = surface;
-            _oceanSurface->setNodeMask( _surfaceMask );
 
-            addChild( _oceanSurface.get() );
+            if ( _oceanSurface.valid() )
+            {
+                _oceanSurface->setNodeMask( _surfaceMask );
+
+                addChild( _oceanSurface.get() );
+            }
 
             _isDirty = true;
         }
