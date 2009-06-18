@@ -30,7 +30,13 @@ vec3 calculateWaterNormal(float x0, float y0)
         vec4 wt    = vec4( osgOcean_Waves[j+16], osgOcean_Waves[j+17], osgOcean_Waves[j+18], osgOcean_Waves[j+19] );
         vec4 phase = (kx*x0 + ky*y0 - wt);
         vec4 sinp, cosp;
+
+#if 1
+        sinp = sin(phase);
+        cosp = cos(phase);
+#else
         sincos(phase, sinp, cosp);
+#endif
 
         // Update tangent vector along x0
         t1.x -= dot(Ainvk, kx*cosp*kx);

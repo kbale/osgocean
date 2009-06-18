@@ -61,7 +61,7 @@ void main(void)
 		float tapBlur = abs(tapHigh.a * 2.0 - 1.0);
 
 		// mix low- and hi-res taps based on tap blurriness
-		vec4 tap = lerp(tapHigh, tapLow, tapBlur);
+		vec4 tap = mix(tapHigh, tapLow, tapBlur);
 
 		// apply leaking reduction: lower weight for taps that are
 		// closer than the center tap and in focus
