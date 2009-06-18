@@ -81,7 +81,7 @@ osg::Program* DistortionSurface::createShader(void)
         "\n"
         "void main(void)\n"
         "{\n"
-        "  gl_TexCoord[0] = gl_MultiTexCoord0;"
+        "    gl_TexCoord[0] = gl_MultiTexCoord0;\n"
         "    vEyePos = gl_ModelViewProjectionMatrix * gl_Vertex;\n"
         "    gl_Position = ftransform();\n"
         "}\n";
@@ -95,7 +95,7 @@ osg::Program* DistortionSurface::createShader(void)
         "uniform float osgOcean_Speed;\n"
         "uniform vec2  osgOcean_ScreenRes;\n"
         "\n"
-        "uniform samplerRect osgOcean_FrameBuffer;\n"
+        "uniform sampler2DRect osgOcean_FrameBuffer;\n"
         "\n"
         "varying vec4 vEyePos;\n"
         "\n"
@@ -127,10 +127,10 @@ osg::Program* DistortionSurface::createShader(void)
         "    index.s = index.s * osgOcean_ScreenRes.x;\n"
         "    index.t = index.t * osgOcean_ScreenRes.y;\n"
         "      \n"
-        "    vec3 RefractionColor = vec3( textureRect( osgOcean_FrameBuffer, index ) );\n"
+        "    vec3 RefractionColor = vec3( texture2DRect( osgOcean_FrameBuffer, index ) );\n"
         "\n"
         "    gl_FragColor = vec4( RefractionColor, 1.0 );\n"
-        "    //gl_FragColor = textureRect( osgOcean_FrameBuffer, gl_TexCoord[0].st );\n"
+        "    //gl_FragColor = texture2DRect( osgOcean_FrameBuffer, gl_TexCoord[0].st );\n"
       "}\n";
 
 #else

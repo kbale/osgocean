@@ -491,7 +491,7 @@ void SiltEffect::setUpGeometries(unsigned int numParticles)
             "    gl_Position = gl_ProjectionMatrix * v1;\n"
 	        "     gl_Position.z = 0.01;\n"
             "    gl_ClipVertex = v1;\n"
-            "};\n";
+            "}\n";
 
         char silt_quads_fragment[] = 
             "uniform sampler2D osgOcean_BaseTexture;\n"
@@ -501,7 +501,7 @@ void SiltEffect::setUpGeometries(unsigned int numParticles)
             "void main (void)\n"
             "{\n"
             "    gl_FragColor = colour * texture2D( osgOcean_BaseTexture, texCoord);\n"
-            "};\n";
+            "}\n";
 #else
 	    static const char silt_quads_vertex[]   = "silt_quads.vert";
 	    static const char silt_quads_fragment[] = "silt_quads.frag";
@@ -550,7 +550,7 @@ void SiltEffect::setUpGeometries(unsigned int numParticles)
 	        "    colour.a = 0.05+(pointSize*pointSize)/(gl_PointSize*gl_PointSize);\n"
             "\n"
 	        "    gl_ClipVertex = v_current;\n"
-            "};\n";
+            "}\n";
 
         char silt_point_fragment[] = 
             "uniform sampler2D osgOcean_BaseTexture;\n"
@@ -559,7 +559,7 @@ void SiltEffect::setUpGeometries(unsigned int numParticles)
             "void main (void)\n"
             "{\n"
             "    gl_FragColor = colour * texture2D( osgOcean_BaseTexture, gl_TexCoord[0].xy);\n"
-            "};\n";
+            "}\n";
 #else
 	    static const char silt_point_vertex[]   = "silt_points.vert";
 	    static const char silt_point_fragment[] = "silt_points.frag";

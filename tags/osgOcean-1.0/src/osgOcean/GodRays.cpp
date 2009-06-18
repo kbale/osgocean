@@ -363,7 +363,12 @@ osg::Program* GodRays::createGodRayProgram( void )
         "        vec4 wt    = vec4( osgOcean_Waves[j+16], osgOcean_Waves[j+17], osgOcean_Waves[j+18], osgOcean_Waves[j+19] );\n"
         "        vec4 phase = (kx*x0 + ky*y0 - wt);\n"
         "        vec4 sinp, cosp;\n"
+#if 1
+        "        sinp = sin(phase);\n"
+        "        cosp = cos(phase);\n"
+#else
         "        sincos(phase, sinp, cosp);\n"
+#endif
         "\n"
         "        // Update tangent vector along x0\n"
         "        t1.x -= dot(Ainvk, kx*cosp*kx);\n"
