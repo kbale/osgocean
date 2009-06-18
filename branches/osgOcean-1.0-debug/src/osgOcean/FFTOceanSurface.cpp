@@ -641,7 +641,9 @@ bool FFTOceanSurface::updateMipmaps( const osg::Vec3f& eye, unsigned int frame )
                 {
                     getTile(x,y)->computeBound();
                     const osg::Vec3f& b = getTile(x,y)->getBound().center();
-                    _debugOut << b.x() << " " << b.y() << " " << b.z() << std::endl;
+                    _debugOut << std::setw(12) << std::setfill(' ') << b.x() << " ";
+                    _debugOut << std::setw(12) << std::setfill(' ') << b.y() << " ";
+                    _debugOut << std::setw(12) << std::setfill(' ') << b.z() << std::endl;
                 }
             }
 
