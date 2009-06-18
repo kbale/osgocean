@@ -23,6 +23,15 @@
 #include <osg/Texture2D>
 #include <osg/Image>
 
+#define LINUX_DEBUG_DATA
+
+#ifdef LINUX_DEBUG_DATA
+#include <osgDB/WriteFile>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#endif
+
 namespace osgOcean
 {
     /** 
@@ -148,5 +157,9 @@ namespace osgOcean
         {
             return x + y * rowLen;
         }
+#ifdef LINUX_DEBUG_DATA
+    public:
+        void dumpData( std::fstream& fout );
+#endif
     };
 }
