@@ -115,7 +115,7 @@ osg::Program* GodRayBlendSurface::createShader(void)
         "}\n";
 
     static const char god_ray_screen_blend_fragment[] =
-        "uniform samplerRect osgOcean_GodRayTexture;\n"
+        "uniform sampler2DRect osgOcean_GodRayTexture;\n"
         "\n"
         "uniform vec3    osgOcean_SunDir;\n"
         "uniform vec3    osgOcean_HGg;\n"
@@ -141,10 +141,10 @@ osg::Program* GodRayBlendSurface::createShader(void)
         "{\n"
         "    vec4 shafts;\n"
         "\n"
-        "    shafts += textureRect(osgOcean_GodRayTexture, gl_TexCoord[1].xy);\n"
-        "    shafts += textureRect(osgOcean_GodRayTexture, gl_TexCoord[1].zw);\n"
-        "    shafts += textureRect(osgOcean_GodRayTexture, gl_TexCoord[2].xy);\n"
-        "    shafts += textureRect(osgOcean_GodRayTexture, gl_TexCoord[2].zw);\n"
+        "    shafts += texture2DRect(osgOcean_GodRayTexture, gl_TexCoord[1].xy);\n"
+        "    shafts += texture2DRect(osgOcean_GodRayTexture, gl_TexCoord[1].zw);\n"
+        "    shafts += texture2DRect(osgOcean_GodRayTexture, gl_TexCoord[2].xy);\n"
+        "    shafts += texture2DRect(osgOcean_GodRayTexture, gl_TexCoord[2].zw);\n"
         "\n"
         "    shafts /= 4.0;\n"
         "\n"
