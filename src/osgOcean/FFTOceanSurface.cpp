@@ -81,6 +81,15 @@ FFTOceanSurface::FFTOceanSurface( unsigned int FFTGridSize,
     setUserData( new OceanDataType(*this, _NUMFRAMES, 25) );
     addCullCallback( new OceanAnimationCallback );
     addUpdateCallback( new OceanAnimationCallback );
+
+#ifdef LINUX_DEBUG_DATA
+    osg::notify(osg::NOTICE) << "Created debug file [osgOcean_debug.txt]"<<std::endl;
+    _debugOut.open("osgOcean_debug.txt", std::ios_base::out);
+    _debugOut << "FFTOceanSurface()" << std::endl;
+    _debugOut << "-----------------" << std::endl;
+    _debugOut << "_numLevels: " << _numLevels << std::endl;
+    _debugOut << "_startPos: " << _startPos.x() << " " << _startPos.y() << std::endl << std::endl;
+#endif
 }
 
 FFTOceanSurface::FFTOceanSurface( const FFTOceanSurface& copy, const osg::CopyOp& copyop ):
@@ -131,11 +140,19 @@ FFTOceanSurface::FFTOceanSurface( const FFTOceanSurface& copy, const osg::CopyOp
 
 FFTOceanSurface::~FFTOceanSurface(void)
 {
+#ifdef LINUX_DEBUG_DATA
+    _debugOut.close();
+#endif
 }
 
 void FFTOceanSurface::build( void )
 {
     osg::notify(osg::INFO) << "FFTOceanSurface::build()" << std::endl;
+
+#ifdef LINUX_DEBUG_DATA
+    _debugOut << "\nvoid FFTOceanSurface::build( void )"<< std::endl;
+    _debugOut << "--------------------------------------\n"<< std::endl;                
+#endif
 
     computeSea( _NUMFRAMES );
     createOceanTiles();
@@ -148,6 +165,11 @@ void FFTOceanSurface::build( void )
     _isStateDirty = false;
 
     osg::notify(osg::INFO) << "FFTOceanSurface::build() Complete." << std::endl;
+
+#ifdef LINUX_DEBUG_DATA
+    _debugOut << "-----------------------------------------------"<< std::endl;  
+    _debugOut << "\nvoid FFTOceanSurface::build( void ) Complete.\n"<< std::endl;
+#endif
 }
 
 void FFTOceanSurface::initStateSet( void )
@@ -220,14 +242,22 @@ osg::ref_ptr<osg::Texture2D> FFTOceanSurface::createNoiseMap(unsigned int size,
 
 void FFTOceanSurface::computeSea( unsigned int totalFrames )
 {
+#ifdef LINUX_DEBUG_DATA
+    _debugOut << "FFTOceanSurface::computeSea("<<totalFrames<<")" << std::endl;
+    _debugOut << "----------------------------------------------" << std::endl;
+    _debugOut << "Mipmap Levels: " << _numLevels << std::endl;
+    _debugOut << "Highest Resolution: " << _tileSize << std::endl;
+#endif
+
     osg::notify(osg::INFO) << "FFTOceanSurface::computeSea("<<totalFrames<<")" << std::endl;
     osg::notify(osg::INFO) << "Mipmap Levels: " << _numLevels << std::endl;
     osg::notify(osg::INFO) << "Highest Resolution: " << _tileSize << std::endl;
+    osg::notify(osg::INFO) << "Wave scale: " << _waveScale << std::endl;
 
     FFTSimulation FFTSim( _tileSize, _windDirection, _windSpeed, _waveScale, _tileResolution, _cycleTime );
 
 	 // clear previous mipmaps (if any)
-	 _mipmapData.clear();
+	_mipmapData.clear();
     _mipmapData.resize( totalFrames );
 
     _averageHeight = 0.f;
@@ -253,6 +283,15 @@ void FFTOceanSurface::computeSea( unsigned int totalFrames )
         // Level 0
         _mipmapData[frame][0] = OceanTile( heights.get(), _tileSize, _pointSpacing, displacements.get() );
 
+#ifdef LINUX_DEBUG_DATA
+        if(frame < 6){
+            _debugOut << "\n\nOceanTile Data" << std::endl;
+            _debugOut << "--------------------------------------------" << std::endl;
+            _debugOut << "Level: " << 0 << std::endl;
+            _debugOut << "frame: " << frame << std::endl;
+            _mipmapData[frame][0].dumpData( _debugOut );
+        }
+#endif
         _averageHeight += _mipmapData[frame][0].getAverageHeight();
 
         // Levels 1 -> Max Level
@@ -261,6 +300,18 @@ void FFTOceanSurface::computeSea( unsigned int totalFrames )
             OceanTile& lastTile = _mipmapData[frame][level-1];
 
             _mipmapData[frame][level] = OceanTile( lastTile, _tileSize >> level, _tileSize/(_tileSize>>level)*_pointSpacing );
+
+#ifdef LINUX_DEBUG_DATA
+            if(level < _numLevels-1 && frame < 6){
+                _debugOut << "\n\nOceanTile Data" << std::endl;
+                _debugOut << "-------------------------------------------- "<< std::endl;
+                _debugOut << "Level: " << level << std::endl;
+                _debugOut << "frame: " << frame << std::endl;
+                _debugOut << "ShiftRes: " << (_tileSize >> level) << std::endl;
+                _debugOut << "ShiftSpacing: " << (_tileSize/(_tileSize>>level)*_pointSpacing) << std::endl;
+                _mipmapData[frame][level].dumpData( _debugOut );
+            }
+#endif
         }
 
         // Used for lowest resolution tile
@@ -277,10 +328,23 @@ void FFTOceanSurface::computeSea( unsigned int totalFrames )
 
     osg::notify(osg::INFO) << "Average Height: " << _averageHeight << std::endl;
     osg::notify(osg::INFO) << "FFTOceanSurface::computeSea() Complete." << std::endl;
+
+#ifdef LINUX_DEBUG_DATA
+   _debugOut << "\nAverage Height: " << _averageHeight << std::endl;
+   _debugOut << "---------------------------------------" << std::endl;
+   _debugOut << "FFTOceanSurface::computeSea() Complete." << std::endl;
+#endif
 }
 
 void FFTOceanSurface::createOceanTiles( void )
 {
+#ifdef LINUX_DEBUG_DATA
+    _debugOut << "\nvoid FFTOceanSurface::createOceanTiles( void ) - MipmapGeometry Setup" << std::endl;
+    _debugOut << "-----------------------------------------------------------------------" << std::endl;
+    _debugOut << "Total tiles: " << _numTiles*_numTiles << std::endl;
+    _debugOut << "Init level: " << _numLevels-2 << std::endl;
+#endif
+
     osg::notify(osg::INFO) << "FFTOceanSurface::createOceanTiles()" << std::endl;
     osg::notify(osg::INFO) << "Total tiles: " << _numTiles*_numTiles << std::endl;
     osg::notify(osg::INFO) << "Init level: " << _numLevels-2 << std::endl;
@@ -307,11 +371,11 @@ void FFTOceanSurface::createOceanTiles( void )
     {
         for(int x = 0; x < (int)_numTiles; ++x )
         {
-            if(x == _numTiles-1 && y == _numTiles-1)
+            if(x == (int)_numTiles-1 && y == (int)_numTiles-1)
                 border = MipmapGeometry::BORDER_XY;
-            else if(x == _numTiles-1)        
+            else if(x == (int)_numTiles-1)        
                 border = MipmapGeometry::BORDER_X;
-            else if(y==_numTiles-1)
+            else if(y==(int)_numTiles-1)
                 border = MipmapGeometry::BORDER_Y;
             else 
                 border = MipmapGeometry::BORDER_NONE;
@@ -336,17 +400,20 @@ void FFTOceanSurface::createOceanTiles( void )
 
             verts = s * s;
 
-            if(x == _numTiles-1 )                       // If on right border add extra column
+            if(x == (int)_numTiles-1 )                       // If on right border add extra column
                 verts += s;
-            if(y == _numTiles-1 )                       // If on bottom border add extra row
+            if(y == (int)_numTiles-1 )                       // If on bottom border add extra row
                 verts += s;
-            if(x == _numTiles-1 && y == _numTiles-1)    // If corner piece add corner vertex
+            if(x == (int)_numTiles-1 && y == (int)_numTiles-1)    // If corner piece add corner vertex
                 verts += 1;
 
             _numVertices += verts;
         }
     }
 
+#ifdef LINUX_DEBUG_DATA
+    _debugOut << "Vertices needed: " << _numVertices << std::endl;
+#endif
     osg::notify(osg::INFO) << "Vertices needed: " << _numVertices << std::endl;
 
     _activeVertices->resize( _numVertices );
@@ -359,14 +426,27 @@ void FFTOceanSurface::createOceanTiles( void )
 
     osg::notify(osg::INFO) << "Minimum Distances: " << std::endl;
 
+#ifdef LINUX_DEBUG_DATA
+    _debugOut << "\nMinimum Distances: " << std::endl;
+#endif
+
     for(unsigned int d = 0; d < _numLevels; ++d)
     {
         _minDist.push_back( d * (float(_tileResolution+1)) + ( float(_tileResolution+1.f)*0.5f ) );
         _minDist.back() *= _minDist.back();
         osg::notify(osg::INFO) << d << ": " << sqrt(_minDist.back()) << std::endl;
+
+#ifdef LINUX_DEBUG_DATA
+        _debugOut << "minDist " << d << ": " << sqrt(_minDist.back()) << std::endl;
+#endif
     }
 
-    osg::notify(osg::INFO) << "FFTOceanSurface::createOceanTiles() Complete." << std::endl;
+    osg::notify(osg::INFO) << "\nFFTOceanSurface::createOceanTiles() Complete." << std::endl;
+
+#ifdef LINUX_DEBUG_DATA
+    _debugOut << "-----------------------------------------------------------------------" << std::endl;
+    _debugOut << "FFTOceanSurface::createOceanTiles() Complete." << std::endl;
+#endif
 }
 
 void FFTOceanSurface::computeVertices( unsigned int frame )
@@ -375,6 +455,14 @@ void FFTOceanSurface::computeVertices( unsigned int frame )
     if(_newNumVertices > _numVertices )
     {
         osg::notify(osg::INFO) << "Resizing vertex array from " << _numVertices << "to " << _newNumVertices << std::endl;
+
+#ifdef LINUX_DEBUG_DATA
+        _debugOut << "\nvoid FFTOceanSurface::computeVertices("<<frame<<")"<< std::endl;
+        _debugOut << "--------------------------------------------------"<< std::endl;
+        _debugOut << "Resizing vertex array from [" << _numVertices << "] to [" << _newNumVertices << "]" << std::endl;
+        _debugOut << "--------------------------------------------------\n"<< std::endl;
+#endif
+
         _numVertices = _newNumVertices;
         _activeVertices->resize(_numVertices);
         _activeNormals->resize(_numVertices);
@@ -508,6 +596,61 @@ bool FFTOceanSurface::updateMipmaps( const osg::Vec3f& eye, unsigned int frame )
             _newNumVertices += verts;
         }
     }
+
+#ifdef LINUX_DEBUG_DATA
+    if(updated)
+    {
+        static int counter = 0;
+
+        if(counter < 20)
+        {
+            _debugOut << "\nbool FFTOceanSurface::updateMipmaps( const osg::Vec3f& eye, unsigned int frame )" << std::endl;
+            _debugOut << "--------------------------------------------------------------------------------" << std::endl;;
+            _debugOut << "updated: TRUE" << std::endl;
+            _debugOut << "Eye: " << eye.x() << " " << eye.y() << " " << eye.z() << std::endl;
+            _debugOut << "Frame: " << frame << std::endl << std::endl;
+
+            for(unsigned int y = 0; y < _numTiles; ++y)
+            {
+                for(unsigned int x = 0; x < _numTiles; ++x )
+                {
+                    _debugOut << getTile(x,y)->getLevel() << " ";
+                }
+                _debugOut << std::endl;
+            }
+
+            _debugOut << std::endl;
+
+            for(unsigned int y = 0; y < _numTiles; ++y)
+            {
+                for(unsigned int x = 0; x < _numTiles; ++x )
+                {
+                    _debugOut << std::setw(5) << getTile(x,y)->getIdx() << " ";
+                }
+                _debugOut << std::endl;
+            }
+
+            _debugOut << std::endl;
+            _debugOut << "Bounds\n\n";
+
+            for(unsigned int y = 0; y < _numTiles; ++y)
+            {
+                _debugOut << "\n" << y << "---------------\n\n";
+
+                for(unsigned int x = 0; x < _numTiles; ++x )
+                {
+                    getTile(x,y)->computeBound();
+                    const osg::Vec3f& b = getTile(x,y)->getBound().center();
+                    _debugOut << b.x() << " " << b.y() << " " << b.z() << std::endl;
+                }
+            }
+
+            ++counter;
+            _debugOut << "\n--------------------------------------------------------------------------------"<< std::endl;;
+            _debugOut << "updateMipmaps() Complete" << std::endl;
+        }
+    }
+#endif
 
     return updated;    
 }

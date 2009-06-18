@@ -17,12 +17,6 @@
 #include <stdlib.h> // Need to include this for linux compatibility not sure why.
 #include <osgOcean/OceanTile>
 
-#ifdef DEBUG_DATA
-#include <osgDB/WriteFile>
-#include <fstream>
-#include <sstream>
-#endif
-
 using namespace osgOcean;
 
 OceanTile::OceanTile( void ):
@@ -49,15 +43,6 @@ OceanTile::OceanTile( osg::FloatArray* heights,
 {
     _vertices->reserve( _numVertices );
 
-#ifdef DEBUG_DATA
-    static int count = 0;
-    std::stringstream ss;
-    ss << "Tile_" << count << ".txt";
-    std::ofstream outFile( ss.str().c_str() );
-    outFile << _rowLength << std::endl;
-    ++count;
-#endif
-
     float x1,y1;
     float sumHeights = 0.f;
     osg::Vec3f v;
@@ -79,20 +64,11 @@ OceanTile::OceanTile( osg::FloatArray* heights,
             }
             v.z() = heights->at( ptr );
 
-#ifdef DEBUG_DATA
-            outFile << v.x() << std::endl;
-            outFile << v.y() << std::endl;
-            outFile << v.z() << std::endl;
-#endif
             sumHeights += v.z();
 
             _vertices->push_back( v );
         }
     }
-
-#ifdef DEBUG_DATA
-    outFile.close();
-#endif
 
     _averageHeight = sumHeights / (float)_vertices->size();
 
@@ -321,7 +297,7 @@ osg::ref_ptr<osg::Texture2D> OceanTile::createNormalMap( void )
     osg::Image* img = new osg::Image;
     img->setImage(_resolution, _resolution, 1, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, pixels, osg::Image::USE_NEW_DELETE, 1);
 
-#ifdef DEBUG_DATA
+#ifdef LINUX_DEBUG_DATA
     // saves normal map as image
     static int count = 0;
     std::stringstream ss;
@@ -338,4 +314,28 @@ osg::ref_ptr<osg::Texture2D> OceanTile::createNormalMap( void )
 
     return texture;
 }
+
+#ifdef LINUX_DEBUG_DATA
+void OceanTile::dumpData( std::fstream& out )
+{
+    out << "_resolution: " << _resolution << std::endl;
+    out << "_rowLength: " << _rowLength << std::endl;
+    out << "_numVertices: " << _numVertices << std::endl;
+    out << "_spacing: " << _spacing << std::endl;
+
+    for(unsigned int y = 0; y < _rowLength; ++y)
+    {
+        for(unsigned x = 0; x < _rowLength; ++x )
+        {
+            osg::Vec3f& v = _vertices->at( x+y*_rowLength );
+
+            out << std::setfill (' ') << std::setw (10) << v.x() << " ";
+            out << std::setfill (' ') << std::setw (10) << v.y() << " ";
+            out << std::setfill (' ') << std::setw (10) << v.z() << " ";
+            out << std::endl;
+        }
+    }
+    
+}
+#endif
 
