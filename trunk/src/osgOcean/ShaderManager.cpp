@@ -53,17 +53,17 @@ osg::Program* ShaderManager::createProgram( const std::string& name,
 {
     osg::ref_ptr<osg::Shader> vShader = 0;
     osg::ref_ptr<osg::Shader> fShader = 0;
-    
-	 if (loadFromFiles)
+
+    if (loadFromFiles)
     {
-		  vShader = osgDB::readShaderFile(osg::Shader::VERTEX, vertexSrc);
+        vShader = osgDB::readShaderFile(osg::Shader::VERTEX, vertexSrc);
         if (!vShader)
         {
             osg::notify(osg::WARN) << "Could not read shader from file " << vertexSrc << std::endl;
             return NULL;
         }
 
-    	  fShader = osgDB::readShaderFile(osg::Shader::FRAGMENT, fragmentSrc);
+        fShader = osgDB::readShaderFile(osg::Shader::FRAGMENT, fragmentSrc);
         if (!fShader)
         {
             osg::notify(osg::WARN) << "Could not read shader from file " << fragmentSrc << std::endl;
@@ -72,28 +72,46 @@ osg::Program* ShaderManager::createProgram( const std::string& name,
     }
     else
     {
-        vShader = new osg::Shader( osg::Shader::VERTEX, vertexSrc );
-        fShader = new osg::Shader( osg::Shader::FRAGMENT, fragmentSrc );
+        if (vertexSrc.empty() == false)
+        {
+            vShader = new osg::Shader( osg::Shader::VERTEX, vertexSrc );
+        }
+        if (fragmentSrc.empty() == false)
+        {
+            fShader = new osg::Shader( osg::Shader::FRAGMENT, fragmentSrc );
+        }
     }
-
-    std::string globalDefinitionsList = buildGlobalDefinitionsList();
-    vShader->setShaderSource(globalDefinitionsList + vShader->getShaderSource());
-    fShader->setShaderSource(globalDefinitionsList + fShader->getShaderSource());
-
-    vShader->setName(name+"_vertex_shader");
-    fShader->setName(name+"_fragment_shader");
 
     osg::Program* program = new osg::Program;
     program->setName(name);
-    program->addShader( vShader.get() );
-    program->addShader( fShader.get() );
+
+    std::string globalDefinitionsList = buildGlobalDefinitionsList(name);
+    if (vShader)
+    {
+        vShader->setShaderSource(globalDefinitionsList + vShader->getShaderSource());
+        vShader->setName(name+"_vertex_shader");
+        program->addShader( vShader.get() );
+    }
+    if (fShader)
+    {
+        fShader->setShaderSource(globalDefinitionsList + fShader->getShaderSource());
+        fShader->setName(name+"_fragment_shader");
+        program->addShader( fShader.get() );
+    }
 
     return program;
 }
 
-std::string ShaderManager::buildGlobalDefinitionsList()
+std::string ShaderManager::buildGlobalDefinitionsList(const std::string& name)
 {
     std::string list;
+
+    if (name.empty() == false)
+    {
+        list += "// " + name + "\n";
+    }
+    list += "#version 120\n";
+
     for (GlobalDefinitions::const_iterator it = _globalDefinitions.begin();
          it != _globalDefinitions.end(); ++it)
     {
