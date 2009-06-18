@@ -49,4 +49,4 @@ void main(void)
     gl_Position = gl_ProjectionMatrix * v1;
 	 gl_Position.z = 0.01;
     gl_ClipVertex = v1;
-};
+}
