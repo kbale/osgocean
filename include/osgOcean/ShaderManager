@@ -67,6 +67,6 @@ namespace osgOcean
         ShaderManager(const ShaderManager&);
         ShaderManager& operator=(const ShaderManager&);
 
-        std::string buildGlobalDefinitionsList();
+        std::string buildGlobalDefinitionsList(const std::string& name);
     };
 }
