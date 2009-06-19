@@ -20,14 +20,16 @@
 using namespace osgOcean;
 
 OceanTechnique::OceanTechnique(void):
-    _isDirty( true )
+    _isDirty     ( true ),
+    _isAnimating ( true )
 {
 
 }
 
 OceanTechnique::OceanTechnique( const OceanTechnique& copy, const osg::CopyOp& copyop ):
-    osg::Geode ( copy, copyop ),
-    _isDirty   ( true )
+    osg::Geode   ( copy, copyop ),
+    _isDirty     ( true ),
+    _isAnimating ( copy._isAnimating )
 {
 
 }
