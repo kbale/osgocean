@@ -12,9 +12,9 @@ Use CMake version 2.6.3 or greater to generate native makefiles or workspaces fo
 
 == Dependencies ==
 
-=== OpenSceneGraph 2.8 ===
+=== OpenSceneGraph ===
 
-The main dependancy is of course the OpenSceneGraph libraries. osgOcean 1.0 was built with with OSG2.8 in mind. The libraries can be downloaded here: 
+The main dependancy is of course the OpenSceneGraph libraries. osgOcean 1.0 was built with with OSG2.8 in mind, but it supports OSG 2.6 and might even run on earlier versions (untested). The libraries can be downloaded here: 
 
 <a href="http://www.openscenegraph.org/projects/osg/wiki/Downloads"> http://www.openscenegraph.org/projects/osg/wiki/Downloads </a>
 
