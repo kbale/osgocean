@@ -52,8 +52,8 @@ OceanScene::OceanScene( void ):
     _glareAttenuation      ( 0.75 ),
     _underwaterFogColor    ( 0.2274509f, 0.4352941f, 0.7294117f, 1.f ),
     _underwaterAttenuation ( 0.015f, 0.0075f, 0.005f),
-    _underwaterFogDensity  ( 0.01f*0.01*1.442695f ),
-    _aboveWaterFogDensity  ( 0.0012f*0.0012f*1.442695f),
+    _underwaterFogDensity  ( 0.01f ),
+    _aboveWaterFogDensity  ( 0.0012f ),
     _surfaceStateSet       ( new osg::StateSet ),
     _reflectionMatrix      ( 1,  0,  0,  0,
                              0,  1,  0,  0,
@@ -98,8 +98,8 @@ OceanScene::OceanScene( OceanTechnique* technique ):
     _glareAttenuation      ( 0.75f ),
     _underwaterFogColor    ( 0.2274509f, 0.4352941f, 0.7294117f, 1.f ),
     _underwaterAttenuation ( 0.015f, 0.0075f, 0.005f),
-    _underwaterFogDensity  ( -0.01f*0.01*1.442695f ),
-    _aboveWaterFogDensity  ( -0.0012f*0.0012f*1.442695f),
+    _underwaterFogDensity  ( 0.01f ),
+    _aboveWaterFogDensity  ( 0.0012f ),
     _surfaceStateSet       ( new osg::StateSet ),
     _reflectionMatrix      ( 1,  0,  0,  0,
                              0,  1,  0,  0,
@@ -208,6 +208,8 @@ void OceanScene::init( void )
 
     if( _oceanSurface.valid() )
     {
+        const float LOG2E = 1.442695;
+
         _globalStateSet = new osg::StateSet;
 
         // This is now a #define, added by the call to 
@@ -224,8 +226,8 @@ void OceanScene::init( void )
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_WaterHeight", _oceanSurface->getSurfaceHeight() ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterFogColor", _underwaterFogColor ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_AboveWaterFogColor", _aboveWaterFogColor ) );
-        _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterFogDensity", _underwaterFogDensity ) );
-        _globalStateSet->addUniform( new osg::Uniform("osgOcean_AboveWaterFogDensity", _aboveWaterFogDensity ) );
+        _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterFogDensity", -_underwaterFogDensity*_underwaterFogDensity*LOG2E ) );
+        _globalStateSet->addUniform( new osg::Uniform("osgOcean_AboveWaterFogDensity", -_aboveWaterFogDensity*_aboveWaterFogDensity*LOG2E ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterDiffuse", _underwaterDiffuse ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterAttenuation", _underwaterAttenuation ) );
 

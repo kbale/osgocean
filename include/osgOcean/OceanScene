@@ -331,16 +331,26 @@ namespace osgOcean
         */
         inline void setUnderwaterFog( float density, const osg::Vec4f& color )
         {
-            //const float LOG2E = 1.442695;
-            //_underwaterFogDensity = -density*density*LOG2E;
+            _underwaterFogDensity = density;
             _underwaterFogColor = color;
             
+            const float LOG2E = 1.442695;
             if( _globalStateSet.valid() ){
-                _globalStateSet->getUniform("osgOcean_UnderwaterFogDensity")->set(_underwaterFogDensity);
+                _globalStateSet->getUniform("osgOcean_UnderwaterFogDensity")->set(-density*density*LOG2E);
                 _globalStateSet->getUniform("osgOcean_UnderwaterFogColor")->set(_underwaterFogColor);
             }
             else
                 _isDirty = true;
+        }
+
+        inline float getUnderwaterFogDensity() const
+        {
+            return _underwaterFogDensity;
+        }
+
+        inline osg::Vec4f getUnderwaterFogColor() const
+        {
+            return _underwaterFogColor;
         }
 
         /** Sets the fogging params for the above water scene.
@@ -349,16 +359,26 @@ namespace osgOcean
         */
         inline void setAboveWaterFog( float density, const osg::Vec4f& color )
         {
-            const float LOG2E = 1.442695;
-            _aboveWaterFogDensity = -density*density*LOG2E;
+            _aboveWaterFogDensity = density;
             _aboveWaterFogColor = color;
 
+            const float LOG2E = 1.442695;
             if( _globalStateSet.valid() ){
-                _globalStateSet->getUniform("osgOcean_AboveWaterFogDensity")->set(_aboveWaterFogDensity);
+                _globalStateSet->getUniform("osgOcean_AboveWaterFogDensity")->set(-density*density*LOG2E);
                 _globalStateSet->getUniform("osgOcean_AboveWaterFogColor")->set(color);
             }
             else
                 _isDirty = true;
+        }
+
+        inline float getAboveWaterFogDensity() const
+        {
+            return _aboveWaterFogDensity;
+        }
+
+        inline osg::Vec4f getAboveWaterFogColor() const
+        {
+            return _aboveWaterFogColor;
         }
 
         /** Changes the color of diffuse light used underwater.
