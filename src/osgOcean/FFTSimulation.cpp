@@ -14,8 +14,8 @@
 * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
 * http://www.gnu.org/copyleft/lesser.txt.
 */
-#include <stdlib.h> // Need to include this for linux compatibility
 #include <osgOcean/FFTSimulation>
+#include <osgOcean/RandUtils>
 
 #include <complex>
 #include <vector>
@@ -51,7 +51,6 @@ using namespace osgOcean;
     #define fftw_complex         fftwf_complex
     #define fftw_plan            fftwf_plan
     #define fftw_destroy_plan    fftwf_destroy_plan
-    #define fftw_plan_dft_c2r_2d fftwf_plan_dft_c2r_2d
     #define fftw_plan_dft_2d     fftwf_plan_dft_2d
     #define fftw_execute         fftwf_execute
     #define fftw_malloc          fftwf_malloc
@@ -72,14 +71,19 @@ class FFTSimulation::Implementation
 private:
     const double _PI2;             /**< 2*PI */
     const double _GRAVITY;         /**< Gravitational constant 9.81 */
+    const double _GRAVITY2;        /**< Gravitational constant squared */
 
     int _N;                        /**< Size of FFT grid 2^n ie 128,64,32 etc. */
-    int _nOver2;                      /**< Half fourier size (_N/2)*/
+    int _numPoints;                /**< Size of FFT squared */
+    int _nOver2;                   /**< Half fourier size (_N/2)*/
     osg::Vec2f _windDir;           /**< Direction of wind. */
-    float _windSpeed;              /**< Wind speed (m/s) */
+    float _windSpeed4;             /**< Wind speed (m/s) to power 4 */
     float _A;                      /**< Wave scale modifier. */
     float _length;                 /**< Real world tile resolution (m). */
     float _w0;                     /**< Base frequency (2PI / looptime). */
+    float _maxWave;                /**< Maximum wave size for current wind speed */
+    float _depth;                  /**< Depth (m) */
+    float _reflDampFactor;         /**< Dampen reflections going against the wind */
 
     fftw_complex *_complexData0;   /**< 2D complex data array used for FFT input*/
     fftw_complex *_complexData1;   /**< 2D complex data array used for FFT input */
@@ -92,6 +96,11 @@ private:
 
     std::vector< complex > _baseAmplitudes; /**< Base fourier amplitudes */
     std::vector< complex > _curAmplitudes;  /**< Current fourier amplitudes */  
+    
+    std::vector< complex > _h0TildeK;
+    std::vector< complex > _h0TildeKconj;
+    std::vector< float > _wK;
+    std::vector< osg::Vec2 > _Kh;
 
 public:
     /** Constructor.
@@ -107,7 +116,9 @@ public:
         int fourierSize = 64,
         const osg::Vec2f& windDir = osg::Vec2f(1.0f, 1.0f),
         float windSpeed  = 12.f,
-        float waveScale = 1e-9,    
+        float depth = 1000.f,
+        float reflectionDamping = 0.35f,
+        float waveScale = 1e-9, 
         float tileRes = 256.f,
         float loopTime  = 10.f
         );
@@ -134,63 +145,56 @@ public:
     void computeDisplacements( const float& scaleFactor, osg::Vec2Array* waveDisplacements ) const;
 
 private:
-    /** Computes a random number.
-    * @return value between 0-1
-    */
-    static float unitRand(void);
-    
-    /** Computes Gaussian distributed random complex number.
-    */
-    static complex gaussianRand();
-
     float phillipsSpectrum(const osg::Vec2f& K) const;
-
-    complex h0Tilde(const osg::Vec2f& K) const;
-    complex hTilde(const osg::Vec2f& K, int kx, int ky, float time) const;
 
     /** Computes the base fourier amplitudes htilde0.*/
     void computeBaseAmplitudes();
 
     /** Computes the current fourier amplitudes htilde.*/
-    void computeCurrentAmplitudes(float time);
+    inline void computeCurrentAmplitudes(float time);
 
+    void computeConstants( void );
 };
-
 
 FFTSimulation::Implementation::Implementation( int fourierSize,
                                                const osg::Vec2f& windDir,
                                                float windSpeed,
+                                               float depth,
+                                               float reflectionDamping,
                                                float waveScale,
                                                float tileRes,
                                                float loopTime ):
-    _PI2        ( 2.0*osg::PI ),
-    _GRAVITY    ( 9.81 ),
-    _N          ( fourierSize ), 
-    _nOver2     ( fourierSize/2 ),
-    _windDir    ( windDir ), 
-    _windSpeed  ( windSpeed ), 
-    _A          ( float(_N)*waveScale ),
-    _length     ( tileRes ),
-    _w0         ( _PI2 / loopTime )
+    _PI2            ( 2.0*osg::PI ),
+    _GRAVITY        ( 9.81 ),
+    _GRAVITY2       ( 96.2361 ),
+    _N              ( fourierSize ), 
+    _numPoints      ( _N*_N ),
+    _nOver2         ( fourierSize/2 ),
+    _windDir        ( windDir ), 
+    _windSpeed4     ( windSpeed*windSpeed*windSpeed*windSpeed ), 
+    _A              ( float(_N)*waveScale ),
+    _length         ( tileRes ),
+    _w0             ( _PI2 / loopTime ),
+    _maxWave        ( _windSpeed4/_GRAVITY2 ),
+    _depth          ( depth ),
+    _reflDampFactor ( reflectionDamping )
 {
-    _baseAmplitudes.resize( (_N+1)*(_N+1) );
-
+    _curAmplitudes.resize( _numPoints );
     computeBaseAmplitudes();
-    
-    _curAmplitudes.resize( _N*_N );
+    computeConstants();
 
 #ifdef USE_FFTW_MALLOC
-    _complexData0 = (fftw_complex*)fftw_malloc(_N*_N * sizeof(fftw_complex));
-    _complexData1 = (fftw_complex*)fftw_malloc(_N*_N * sizeof(fftw_complex));
+    _complexData0 = (fftw_complex*)fftw_malloc(_numPoints * sizeof(fftw_complex));
+    _complexData1 = (fftw_complex*)fftw_malloc(_numPoints * sizeof(fftw_complex));
 
-    _realData0 = (fftw_complex*)fftw_malloc(_N*_N * sizeof(fftw_complex));
-    _realData1 = (fftw_complex*)fftw_malloc(_N*_N * sizeof(fftw_complex));
+    _realData0 = (fftw_complex*)fftw_malloc(_numPoints * sizeof(fftw_complex));
+    _realData1 = (fftw_complex*)fftw_malloc(_numPoints * sizeof(fftw_complex));
 #else
-    _complexData0 = new fftw_complex[ _N*_N ];
-    _complexData1 = new fftw_complex[ _N*_N ];
+    _complexData0 = new fftw_complex[ _numPoints ];
+    _complexData1 = new fftw_complex[ _numPoints ];
 
-    _realData0 = new fftw_complex[ _N*_N ];
-    _realData1 = new fftw_complex[ _N*_N ];
+    _realData0 = new fftw_complex[ _numPoints ];
+    _realData1 = new fftw_complex[ _numPoints ];
 #endif
 
     _fftPlan0 = fftw_plan_dft_2d( _N, _N, _complexData0, _realData0, FFTW_BACKWARD, FFTW_ESTIMATE );
@@ -217,27 +221,6 @@ FFTSimulation::Implementation::~Implementation()
 #endif
 }
 
-float FFTSimulation::Implementation::unitRand()
-{
-    return (float)rand()/RAND_MAX;
-}
-
-complex FFTSimulation::Implementation::gaussianRand()
-{
-    float x1, x2, w;
-
-    do {
-        x1 = 2.f * unitRand() - 1.f;
-        x2 = 2.f * unitRand() - 1.f;
-        w = x1 * x1 + x2 * x2;
-    } 
-    while ( w >= 1.f );
-
-    w = sqrt( (-2.f * log( w ) ) / w );
-
-    return complex(x1 * w, x2 * w);
-}
-
 float FFTSimulation::Implementation::phillipsSpectrum(const osg::Vec2f& K) const
 {
     float k2 = K.length2();
@@ -245,83 +228,102 @@ float FFTSimulation::Implementation::phillipsSpectrum(const osg::Vec2f& K) const
     if (k2 == 0.f) 
         return 0.f;
 
-    float v2 = _windSpeed * _windSpeed;
-
-    float v4 = v2 * v2;
-
     float k4 = k2 * k2;
 
-    float g2 = _GRAVITY * _GRAVITY;
-
-    float KdotW = K.x() * _windDir.x() + K.y() * _windDir.y(); 
+    float KdotW = K*_windDir;
 
     float KdotWhat = KdotW*KdotW/k2;
 
-    float eterm = exp(-g2 / (k2 * v4)) / k4;
+    float eterm = exp( -_GRAVITY2 / (k2*_windSpeed4) ) / k4;
 
-    float damping = 0.001f;
+    const float damping = 0.000001;
 
-    float l2 = v4/g2 * damping*damping;    
-
-    float result = _A * eterm * KdotWhat * exp(-k2*l2);    
+    float specResult = _A * eterm * KdotWhat * exp( -k2 * _maxWave * damping );    
 
     if (KdotW < 0.f)    
-        result *= 0.25f;
+        specResult *= _reflDampFactor;
 
-    return result;
-}
-
-complex FFTSimulation::Implementation::h0Tilde( const osg::Vec2f& K ) const
-{
-    complex g = gaussianRand();    
-
-    fftw_data_type p = sqrt( 0.5 * phillipsSpectrum(K) );
-
-    return g * p;
+    return specResult;
 }
 
 void FFTSimulation::Implementation::computeBaseAmplitudes()
 {
+    _baseAmplitudes.resize( (_N+1)*(_N+1) );
+
+    osg::Vec2 K;
+    float oneOverLen = 1.f / _length;
+    float real,imag;
+    
     for (int y = 0, y2 = -_nOver2; y <= _N; ++y, ++y2) 
     {
-        float Ky = _PI2*y2/_length;
+        K.y() = _PI2*y2*oneOverLen;
 
         for (int x = 0, x2 = -_nOver2; x <= _N; ++x, ++x2) 
         {
-            float Kx = _PI2*x2/_length;
+            K.x() = _PI2*x2*oneOverLen;
 
-            _baseAmplitudes[y*(_N+1)+x] = h0Tilde(osg::Vec2f(Kx, Ky));
+            RandUtils::gaussianRand(real,imag);
+            _baseAmplitudes[y*(_N+1)+x] = complex(real,imag) * sqrt( 0.5 * phillipsSpectrum(K) );
         }
     }
 }
 
-complex FFTSimulation::Implementation::hTilde(const osg::Vec2f& K, int kx, int ky, float time) const
+void FFTSimulation::Implementation::computeConstants( void )
 {
-    complex h0_tildeK = _baseAmplitudes[ ky*(_N+1)+kx ];
-    complex h0_tildemKconj = conj( _baseAmplitudes[ (_N-ky)*(_N+1)+(_N-kx) ] );
+    float oneOverLen = 1.f/(float)_length;
 
-    float wK = sqrt( _GRAVITY * K.length() );
-    float wK2 = floor(wK/_w0)*_w0;
-    float xp = wK2 * time;
-    float cxp = cos(xp);
-    float sxp = sin(xp);
+    _h0TildeK.resize(_numPoints);
+    _h0TildeKconj.resize(_numPoints);
+    _wK.resize(_numPoints);
+    _Kh.resize(_numPoints);
 
-    return h0_tildeK * complex(cxp, sxp) + h0_tildemKconj * complex(cxp, -sxp);
+    int ptr = 0;
+
+    osg::Vec2 K;
+    osg::Vec2 Kh0(0,0);
+    
+    float klen = 0.f;
+    float wK  = 0.f;
+
+    for(int y = 0; y < _N; ++y )
+    {
+        K.y() = _PI2 * ( (float)(y-_nOver2) * oneOverLen );
+
+        for( int x = 0; x < _N; ++x )
+        {
+            K.x() = _PI2 * ( (float)(x-_nOver2) * oneOverLen );
+
+            ptr = y*_N+x;
+
+            _h0TildeK[ptr] = _baseAmplitudes[ y*(_N+1)+x ];
+            _h0TildeKconj[ptr] = conj( _baseAmplitudes[ (_N-y)*(_N+1)+(_N-x) ] );
+
+            klen = K.length();
+
+            wK = sqrt( _GRAVITY * klen * tanh(klen*_depth) );
+            _wK[ptr] = floor(wK/_w0)*_w0;
+
+            if (klen != 0)
+                _Kh[ptr] = K * (1.f/klen);
+            else
+                _Kh[ptr] = Kh0;
+        }
+    }
 }
 
 void FFTSimulation::Implementation::computeCurrentAmplitudes(float time)
 {
-    float oneOverLen = 1.f/(float)_length;
-    osg::Vec2f K;
-
     for (int y = 0; y < _N; ++y) 
     {
         for (int x = 0; x < _N; ++x) 
         {
-            K.x() = _PI2 * ( float(x-_nOver2) * oneOverLen );
-            K.y() = _PI2 * ( float(y-_nOver2) * oneOverLen );
+            int ptr = y*_N+x;
 
-            _curAmplitudes[y*_N+x] = hTilde(K, x, y, time);
+            float wT = _wK[ptr] * time;
+            float cwT = cos(wT);
+            float swT = sin(wT);
+
+            _curAmplitudes[y*_N+x] = _h0TildeK[ptr] * complex(cwT, swT) + _h0TildeKconj[ptr] * complex(cwT, -swT);
         }
     }
 }
@@ -340,17 +342,15 @@ void FFTSimulation::Implementation::computeHeights( osg::FloatArray* waveheights
         {
             int ptr = y*_N+x;
 
-            const complex& c = _curAmplitudes[ptr];
-
-            _complexData0[ptr][0] = c.real();
-            _complexData0[ptr][1] = c.imag();
+            _complexData0[ptr][0] = _curAmplitudes[ptr].real();
+            _complexData0[ptr][1] = _curAmplitudes[ptr].imag();
         }
     }
 
     fftw_execute(_fftPlan0);
 
-    if (waveheights->size() != (unsigned int)(_N*_N) ){
-        waveheights->resize(_N*_N);
+    if (waveheights->size() != (unsigned int)(_numPoints) ){
+        waveheights->resize(_numPoints);
     }
 
     const float signs[2] = { 1.f, -1.f };
@@ -371,38 +371,30 @@ void FFTSimulation::Implementation::computeDisplacements(const float& scaleFacto
     {
         for (int x = 0; x < _N; ++x) 
         {
-            const complex& c = _curAmplitudes[y*_N+x];
+            int ptr = y*_N+x;
+            int flipPtr = x*_N+y;
 
-            osg::Vec2f K( (float)(x-_nOver2), (float)(y-_nOver2) );    
+            const complex& c = _curAmplitudes[ptr];
 
-            float k = K.length();
-
-            osg::Vec2f Kh;
-
-            if (k != 0)
-                Kh = K * (1.f/k);
-            else
-                Kh.x() = Kh.y() = 0.f;
-
-            int ptr = x*_N+y;
-
-            _complexData0[ptr][0] =  c.imag() * Kh.x();
-            _complexData0[ptr][1] = -c.real() * Kh.x();
+            _complexData0[flipPtr][0] =  c.imag() * _Kh[ptr].x();
+            _complexData0[flipPtr][1] = -c.real() * _Kh[ptr].x();
             
-            _complexData1[ptr][0] =  c.imag() * Kh.y();
-            _complexData1[ptr][1] = -c.real() * Kh.y();
+            _complexData1[flipPtr][0] =  c.imag() * _Kh[ptr].y();
+            _complexData1[flipPtr][1] = -c.real() * _Kh[ptr].y();
         }
     }
 
     fftw_execute(_fftPlan0);
     fftw_execute(_fftPlan1);
 
-    if (waveDisplacements->size() != (unsigned int)(_N*_N) )
-        waveDisplacements->resize(_N*_N);
+    if (waveDisplacements->size() != (unsigned int)(_numPoints) )
+        waveDisplacements->resize(_numPoints);
 
-    float signs[2] = { 1.f, -1.f };
+    const float signs[2] = { 1.f, -1.f };
 
     unsigned int ptr = 0;
+
+    osg::Vec2 real;
 
     for (int y = 0; y < _N; ++y)
     {
@@ -411,7 +403,9 @@ void FFTSimulation::Implementation::computeDisplacements(const float& scaleFacto
             ptr = x*_N+y;
 
             double s = signs[(x + y) & 1];
-            waveDisplacements->at(y*_N+x) = osg::Vec2(_realData0[ptr][0], _realData1[ptr][0]) * s * (double)scaleFactor;
+            real.x() = _realData0[ptr][0];
+            real.y() = _realData1[ptr][0];
+            waveDisplacements->at(y*_N+x) = real * s * (double)scaleFactor;
         }
     }
 }
@@ -420,10 +414,12 @@ void FFTSimulation::Implementation::computeDisplacements(const float& scaleFacto
 FFTSimulation::FFTSimulation( int fourierSize,
                               const osg::Vec2f& windDir,
                               float windSpeed,
+                              float depth,
+                              float reflectionDamping,
                               float waveScale,
                               float tileRes,
                               float loopTime)
-    : _implementation( new Implementation(fourierSize, windDir, windSpeed, waveScale, tileRes, loopTime) )
+    : _implementation( new Implementation(fourierSize, windDir, windSpeed, depth, reflectionDamping, waveScale, tileRes, loopTime) )
 {
 }
 
