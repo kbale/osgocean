@@ -241,6 +241,7 @@ public:
     SceneModel( const osg::Vec2f& windDirection = osg::Vec2f(1.0f,1.0f),
                 float windSpeed = 12.f,
                 float depth = 10000.f,
+                float reflectionDamping = 0.35f,
                 float scale = 1e-8,
                 bool  isChoppy = true,
                 float choppyFactor = -2.5f,
@@ -279,12 +280,13 @@ public:
         _sunDiffuse.push_back( intColor( 251, 251, 161 ) );
         _sunDiffuse.push_back( intColor( 191, 191, 191 ) );
 
-        build(windDirection, windSpeed, depth, scale, isChoppy, choppyFactor, crestFoamHeight);
+        build(windDirection, windSpeed, depth, reflectionDamping, scale, isChoppy, choppyFactor, crestFoamHeight);
     }
 
     void build( const osg::Vec2f& windDirection,
                 float windSpeed,
                 float depth,
+                float reflectionDamping,
                 float waveScale,
                 bool  isChoppy,
                 float choppyFactor,
@@ -304,7 +306,7 @@ public:
             {
                 ScopedTimer oceanSurfaceTimer("  . Generating ocean surface: ", osg::notify(osg::NOTICE));
                 _oceanSurface = new osgOcean::FFTOceanSurface( 64, 256, 17, 
-                    windDirection, windSpeed, depth, waveScale, isChoppy, choppyFactor, 10.f, 256 );  
+                    windDirection, windSpeed, depth, reflectionDamping, waveScale, isChoppy, choppyFactor, 10.f, 256 );  
 
                 _oceanSurface->setEnvironmentMap( _cubemap.get() );
                 _oceanSurface->setFoamBottomHeight( 2.2f );
@@ -703,8 +705,11 @@ int main(int argc, char *argv[])
     float windSpeed = 12.f;
     while (arguments.read("--windSpeed", windSpeed));
 
-    float depth = 10000.f;
+    float depth = 1000.f;
     while (arguments.read("--depth", depth));
+
+    float reflectionDamping = 0.35f;
+    while (arguments.read("--reflectionDamping", reflectionDamping));
 
     float scale = 1e-8;
     while (arguments.read("--waveScale", scale ) );
@@ -737,7 +742,7 @@ int main(int argc, char *argv[])
     viewer.addEventHandler( new osgViewer::StatsHandler );
     osg::ref_ptr<TextHUD> hud = new TextHUD;
 
-    osg::ref_ptr<SceneModel> scene = new SceneModel(windDirection, windSpeed, depth, scale, isChoppy, choppyFactor, crestFoamHeight);
+    osg::ref_ptr<SceneModel> scene = new SceneModel(windDirection, windSpeed, depth, reflectionDamping, scale, isChoppy, choppyFactor, crestFoamHeight);
     viewer.addEventHandler(scene->getOceanSceneEventHandler());
     viewer.addEventHandler(scene->getOceanSurface()->getEventHandler());
 
