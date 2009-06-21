@@ -58,21 +58,22 @@ namespace osgOcean
         float        _pointSpacing;         /**< Spacing between points in real world. */
         osg::Vec2f   _windDirection;        /**< Direction of wind. */
         osg::Vec2f   _noiseWindDir;         /**< Direction of wind for noise tile. */
-        float        _windSpeed;                /**< Wind speed m/s */
-        float        _noiseWindSpeed;          /**< Wind speed for noise tile m/s */
+        float        _windSpeed;            /**< Wind speed m/s */
+        float        _noiseWindSpeed;       /**< Wind speed for noise tile m/s */
         float        _waveScale;            /**< Wave scale modifier. */
         float        _noiseWaveScale;       /**< Wave scale modifier for noise tile. */
         float        _depth;                /**< Depth (m). */
+        float        _reflDampFactor;       /**< Dampen waves going against the wind */
         float        _cycleTime;            /**< Time before the ocean tiles loop. */
         float        _choppyFactor;         /**< Amount of chop to add. */
         bool         _isChoppy;             /**< Enable choppy waves generation. */
-        bool             _isEndless;            /**< Set whether the ocean is of fixed size. */
+        bool         _isEndless;            /**< Set whether the ocean is of fixed size. */
 
-        osg::Vec2f     _startPos;             /**< Start position of the surface ( -half width, half height ). */
+        osg::Vec2f   _startPos;             /**< Start position of the surface ( -half width, half height ). */
         
-        const float     _THRESHOLD;            /**< Pixel threshold. */
-        const float     _VRES;                 /**< Vertical resolution. */
-        float             _C;                    /**< C constant. */
+        const float  _THRESHOLD;            /**< Pixel threshold. */
+        const float  _VRES;                 /**< Vertical resolution. */
+        float        _C;                    /**< C constant. */
         
         unsigned int _numLevels;            /**< Number of mipmap levels. */
         unsigned int _oldFrame;             /**< Last ocean frame number. */
@@ -84,7 +85,7 @@ namespace osgOcean
         osg::Vec4f  _lightColor;            /**< Color of the sun */
         osg::Vec3f  _waveTopColor;          /**< Color for the upwelling shading. */
         osg::Vec3f  _waveBottomColor;       /**< Color for the upwelling shading. */
-        bool        _useCrestFoam;                /**< Crest foam flag. */
+        bool        _useCrestFoam;          /**< Crest foam flag. */
         float       _foamCapTop;            /**< Maximum height for foam caps. */
         float       _foamCapBottom;         /**< Minimum height for foam caps. */
         float       _averageHeight;         /**< Average height over the total tiles. */
@@ -94,13 +95,13 @@ namespace osgOcean
 
         std::vector<float> _minDist;        /**< Minimum distances used for mipmap selection */
 
-        std::vector< std::vector<OceanTile> > _mipmapData;                                    /**< Wave tile data. */
+        std::vector< std::vector<OceanTile> > _mipmapData;                            /**< Wave tile data. */
         std::vector< std::vector< osg::ref_ptr<MipmapGeometry> > > _oceanGeom;        /**< Geometry tiles. */
         
         osg::ref_ptr<osg::Vec3Array> _activeVertices;       /**< Active vertex buffer. */
-        osg::ref_ptr<osg::Vec3Array> _activeNormals;           /**< Active normal buffer. */
+        osg::ref_ptr<osg::Vec3Array> _activeNormals;        /**< Active normal buffer. */
 
-        osg::ref_ptr<osg::TextureCubeMap> _environmentMap;    /**< Cubemap used for refractions/reflections */
+        osg::ref_ptr<osg::TextureCubeMap> _environmentMap;  /**< Cubemap used for refractions/reflections */
 
         enum TEXTURE_UNITS{ ENV_MAP=0,REFLECT_MAP=1,REFRACT_MAP=2,NORMAL_MAP=3,FOG_MAP=4,FOAM_MAP=5 };
 
@@ -111,6 +112,7 @@ namespace osgOcean
             const osg::Vec2f& windDirection,
             float windSpeed,
             float depth,
+            float reflectionDamping,
             float waveScale,
             bool isChoppy,
             float choppyFactor,
