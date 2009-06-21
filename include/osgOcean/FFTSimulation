@@ -50,7 +50,9 @@ namespace osgOcean
             int fourierSize = 64,
             const osg::Vec2f& windDir = osg::Vec2f(1.0f, 1.0f),
             float windSpeed  = 12.f,
-            float waveScale = 1e-9,    
+            float depth = 1000.f,
+            float reflectionDamping = 0.35f,
+            float waveScale = 1e-9, 
             float tileRes = 256.f,
             float loopTime  = 10.f
             );
