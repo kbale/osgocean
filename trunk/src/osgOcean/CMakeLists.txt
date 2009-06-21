@@ -54,6 +54,7 @@ SET( LIB_HEADERS
   ${HEADER_PATH}/OceanScene
   ${HEADER_PATH}/OceanTechnique
   ${HEADER_PATH}/OceanTile
+  ${HEADER_PATH}/RandUtils
   ${HEADER_PATH}/ScreenAlignedQuad
   ${HEADER_PATH}/ShaderManager
   ${HEADER_PATH}/SiltEffect
