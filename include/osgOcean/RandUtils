@@ -54,7 +54,7 @@ namespace osgOcean
                 x2 = rangedRand(-1.f,1.f);
                 length2 = x1 * x1 + x2 * x2;
             } 
-            while ( length2 >= 1.f || length2 == 0);
+            while ( length2 >= 1.f );
 
             length2 = sqrt( (-2.f * log( length2 ) ) / length2 );
 
