@@ -15,6 +15,7 @@
 * http://www.gnu.org/copyleft/lesser.txt.
 */
 
+#pragma once
 #include <osgOcean/Export>
 #include <osgOcean/OceanTechnique>
 #include <osgOcean/GodRayBlendSurface>
@@ -55,6 +56,7 @@ namespace osgOcean
         bool _enableSilt;
         bool _enableDOF;
         bool _enableGlare;
+        bool _enableDistortion;
         bool _enableDefaultShader;
 
         osg::Vec2s _reflectionTexSize;
@@ -283,6 +285,19 @@ namespace osgOcean
             _isDirty = true;
         }
 
+        /** Enable distortion.
+          */
+        inline void enableDistortion( bool flag )
+        {
+            _enableDistortion = flag;
+            
+            _isDirty = true;
+        }
+
+        inline bool isDistortionEnabled() const{
+            return _enableDistortion;
+        }
+
         inline void setOceanTechnique( OceanTechnique* surface ){ 
             
             if( _oceanSurface.valid() )
@@ -336,7 +351,7 @@ namespace osgOcean
             
             const float LOG2E = 1.442695;
             if( _globalStateSet.valid() ){
-                _globalStateSet->getUniform("osgOcean_UnderwaterFogDensity")->set(-density*density*LOG2E);
+                _globalStateSet->getUniform("osgOcean_UnderwaterFogDensity")->set(-_underwaterFogDensity*_underwaterFogDensity*LOG2E);
                 _globalStateSet->getUniform("osgOcean_UnderwaterFogColor")->set(_underwaterFogColor);
             }
             else
@@ -364,7 +379,7 @@ namespace osgOcean
 
             const float LOG2E = 1.442695;
             if( _globalStateSet.valid() ){
-                _globalStateSet->getUniform("osgOcean_AboveWaterFogDensity")->set(-density*density*LOG2E);
+                _globalStateSet->getUniform("osgOcean_AboveWaterFogDensity")->set(-_aboveWaterFogDensity*_aboveWaterFogDensity*LOG2E);
                 _globalStateSet->getUniform("osgOcean_AboveWaterFogColor")->set(color);
             }
             else
@@ -399,6 +414,11 @@ namespace osgOcean
         {
 	        _underwaterAttenuation = attenuation;
             _isDirty = true;
+        }
+
+        osg::Vec3f getUnderwaterAttenuation() const
+        {
+            return _underwaterAttenuation;
         }
 
         /** Override the default scene shader for custom shaders. 
