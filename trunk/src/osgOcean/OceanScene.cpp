@@ -77,6 +77,7 @@ OceanScene::OceanScene( OceanTechnique* technique ):
     _enableSilt            ( false ),
     _enableDOF             ( false ),
     _enableGlare           ( false ),
+    _enableDistortion      ( false ),
     _enableDefaultShader   ( true ),
     _reflectionTexSize     ( 512,512 ),
     _refractionTexSize     ( 512,512 ),
@@ -127,6 +128,7 @@ OceanScene::OceanScene( const OceanScene& copy, const osg::CopyOp& copyop ):
     _enableSilt            ( copy._enableSilt ),
     _enableDOF             ( copy._enableDOF ),
     _enableGlare           ( copy._enableGlare ),
+    _enableDistortion      ( copy._enableDistortion ),
     _enableDefaultShader   ( copy._enableDefaultShader ),
     _reflectionTexSize     ( copy._reflectionTexSize ),
     _refractionTexSize     ( copy._refractionTexSize ),
@@ -451,13 +453,13 @@ void OceanScene::traverse( osg::NodeVisitor& nv )
 
 void OceanScene::update( osg::NodeVisitor& nv )
 {
-    if( _godrays.valid() )
+    if( _enableGodRays && _godrays.valid() )
         _godrays->accept(nv);
 
-    if( _godRayBlendSurface.valid() )
+    if( _enableGodRays && _godRayBlendSurface.valid() )
         _godRayBlendSurface->accept(nv);
 
-    if( _distortionSurface.valid() )
+    if( _enableDistortion && _distortionSurface.valid() )
         _distortionSurface->accept(nv);
 }
 
@@ -466,7 +468,8 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv )
     // Above water
     if( cv.getEyePoint().z() > _oceanSurface->getSurfaceHeight() )
     {
-        if( _reflectionCamera.valid() )    
+        if( _oceanSurface.valid() && _oceanSurface->getNodeMask() != 0 && 
+            _enableReflections && _reflectionCamera.valid() )    
         {
             // update reflection camera and render reflected scene
             _reflectionCamera->setViewMatrix( _reflectionMatrix * cv.getCurrentCamera()->getViewMatrix() );
@@ -492,7 +495,8 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv )
     // Below water
     else
     {
-        if( _refractionCamera.valid() )
+        if( _oceanSurface.valid() && _oceanSurface->getNodeMask() != 0 && 
+            _enableRefractions && _refractionCamera.valid() )
         {
             // update refraction camera and render refracted scene
             _refractionCamera->setViewMatrix( cv.getCurrentCamera()->getViewMatrix() );
@@ -502,7 +506,7 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv )
             cv.popStateSet();
         }
 
-        if( _godrayPreRender.valid() )
+        if( _enableGodRays && _godrayPreRender.valid() )
         {
             // Render the god rays to texture
             _godrayPreRender->setViewMatrix( cv.getCurrentCamera()->getViewMatrix() );
@@ -551,20 +555,21 @@ void OceanScene::postRenderCull( osgUtil::CullVisitor& cv )
 
 void OceanScene::cull(osgUtil::CullVisitor& cv)
 {
-    if( _oceanSurface.valid() )
+    if(cv.getEyePoint().z() < _oceanSurface->getSurfaceHeight() )
     {
-          if(cv.getEyePoint().z() < _oceanSurface->getSurfaceHeight() )
-          {
-            _globalStateSet->getUniform("osgOcean_Eye")->set( cv.getEyePoint() );
-            _globalStateSet->getUniform("osgOcean_EyeUnderwater")->set(true);
-          }
-        else
-            _globalStateSet->getUniform("osgOcean_EyeUnderwater")->set(false);
+        _globalStateSet->getUniform("osgOcean_Eye")->set( cv.getEyePoint() );
+        _globalStateSet->getUniform("osgOcean_EyeUnderwater")->set(true);
+    }
+    else
+        _globalStateSet->getUniform("osgOcean_EyeUnderwater")->set(false);
 
-        unsigned int mask = cv.getTraversalMask();
+    unsigned int mask = cv.getTraversalMask();
 
-        cv.pushStateSet(_globalStateSet.get());
+    cv.pushStateSet(_globalStateSet.get());
 
+    if ( _oceanSurface.valid() && _oceanSurface->getNodeMask() != 0 &&
+         (_enableReflections || _enableRefractions) )
+    {
         // render ocean surface with reflection / refraction stateset
         cv.pushStateSet( _surfaceStateSet.get() );
         cv.setTraversalMask( mask & _surfaceMask );
@@ -572,28 +577,26 @@ void OceanScene::cull(osgUtil::CullVisitor& cv)
         
         // pop surfaceStateSet
         cv.popStateSet(); 
-
-        // render rest of scene
-        cv.setTraversalMask( mask & _normalSceneMask );
-        osg::Group::traverse(cv);
-
-        // pop globalStateSet
-        cv.popStateSet(); 
-
-        if( cv.getEyePoint().z() < _oceanSurface->getSurfaceHeight() )
-        {
-            if( _enableSilt )
-            {
-                cv.setTraversalMask( mask & _siltMask );
-                osg::Group::traverse(cv);
-            }
-        }
-
-        // put original mask back
-        cv.setTraversalMask( mask );
     }
-    else
-        osg::Group::traverse(cv);
+
+    // render rest of scene
+    cv.setTraversalMask( mask & _normalSceneMask );
+    osg::Group::traverse(cv);
+
+    // pop globalStateSet
+    cv.popStateSet(); 
+
+    if( cv.getEyePoint().z() < _oceanSurface->getSurfaceHeight() )
+    {
+        if( _enableSilt )
+        {
+            cv.setTraversalMask( mask & _siltMask );
+            osg::Group::traverse(cv);
+        }
+    }
+
+    // put original mask back
+    cv.setTraversalMask( mask );
 }
 
 osg::Camera* OceanScene::renderToTexturePass( osg::Texture* textureBuffer )
