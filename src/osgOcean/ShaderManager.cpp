@@ -125,13 +125,13 @@ osg::Program* ShaderManager::createProgram( const std::string& name,
     program->setName(name);
 
     std::string globalDefinitionsList = buildGlobalDefinitionsList(name);
-    if (vShader)
+    if (vShader.valid())
     {
         vShader->setShaderSource(globalDefinitionsList + vShader->getShaderSource());
         vShader->setName(name+"_vertex_shader");
         program->addShader( vShader.get() );
     }
-    if (fShader)
+    if (fShader.valid())
     {
         fShader->setShaderSource(globalDefinitionsList + fShader->getShaderSource());
         fShader->setName(name+"_fragment_shader");
