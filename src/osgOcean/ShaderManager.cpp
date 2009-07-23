@@ -17,7 +17,7 @@
 
 #include <osgOcean/ShaderManager>
 #include <osgDB/ReadFile>
-#include <osgDB/fileutils>
+#include <osgDB/FileUtils>
 #include <osg/Version>
 
 using namespace osgOcean;
