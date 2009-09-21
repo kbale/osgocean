@@ -45,6 +45,7 @@ SET( TEXTURE_FILES
 )
 
 SET( LIB_HEADERS
+  ${HEADER_PATH}/Cylinder
   ${HEADER_PATH}/DistortionSurface
   ${HEADER_PATH}/FFTOceanSurface
   ${HEADER_PATH}/FFTSimulation
@@ -74,6 +75,7 @@ ADD_LIBRARY(
   osgOcean
   SHARED
   ${LIB_HEADERS}
+  Cylinder.cpp
   DistortionSurface.cpp
   FFTOceanSurface.cpp
   FFTSimulation.cpp

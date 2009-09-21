@@ -15,7 +15,9 @@
 * http://www.gnu.org/copyleft/lesser.txt.
 */
 
-#include "Cylinder.h"
+#include <osgOcean/Cylinder>
+
+using namespace osgOcean;
 
 Cylinder::Cylinder(void)
 {}

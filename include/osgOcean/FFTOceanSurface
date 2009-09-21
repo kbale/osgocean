@@ -303,6 +303,10 @@ namespace osgOcean
             _isStateDirty = true;
         }
 
+        inline osg::Vec4f getLightColor() const{
+            return _lightColor;
+        }
+
         inline void enableCrestFoam( bool enable ){
             _useCrestFoam = enable;
             _isStateDirty = true;
@@ -408,6 +412,15 @@ namespace osgOcean
 
         inline float getWindSpeed() const{
             return _windSpeed;
+        }
+
+        inline void setDepth(const float depth, bool dirty = true){
+            _depth = depth;
+            if (dirty) _isDirty = true;
+        }
+
+        inline float getDepth() const{
+            return _depth;
         }
 
         /**

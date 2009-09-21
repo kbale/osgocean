@@ -19,6 +19,9 @@
 #include <osg/Geometry>
 #include <osg/Math>
 
+namespace osgOcean
+{
+
 class Cylinder : public osg::Geometry
 {
 protected:
@@ -39,3 +42,5 @@ public:
 
 	void setColor(const osg::Vec4f& color);
 };
+
+}

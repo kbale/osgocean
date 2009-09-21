@@ -49,11 +49,9 @@ ADD_EXECUTABLE(
   oceanExample
 
   application.cpp
-  Cylinder.cpp
   SkyDome.cpp
   SphereSegment.cpp
 
-  ${HEADER_PATH}/Cylinder.h
   ${HEADER_PATH}/SkyDome.h
   ${HEADER_PATH}/SphereSegment.h
 )

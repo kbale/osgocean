@@ -22,6 +22,7 @@
 #include <osgOcean/DistortionSurface>
 #include <osgOcean/GodRays>
 #include <osgOcean/SiltEffect>
+#include <osgOcean/Cylinder>
 
 #include <osg/Group>
 #include <osg/Camera>
@@ -57,6 +58,7 @@ namespace osgOcean
         bool _enableDOF;
         bool _enableGlare;
         bool _enableDistortion;
+        bool _enableUnderwaterScattering;
         bool _enableDefaultShader;
 
         osg::Vec2s _reflectionTexSize;
@@ -112,6 +114,12 @@ namespace osgOcean
         float _glareThreshold;
         float _glareAttenuation;
 
+        float _eyeHeightReflectionCutoff;
+        float _eyeHeightRefractionCutoff;
+
+        osg::ref_ptr<osg::MatrixTransform>  _oceanTransform;
+        osg::ref_ptr<Cylinder>              _oceanCylinder;
+
     public:
         OceanScene( void );
         OceanScene( OceanTechnique* technique );
@@ -126,6 +134,15 @@ namespace osgOcean
           */
         void init( void );
 
+        /** Check if the eye is above water or not. */
+        bool isEyeAboveWater( const osg::Vec3& eye );
+
+        void setOceanVisible(bool visible){
+            _oceanTransform->setNodeMask( visible ? _normalSceneMask | _surfaceMask : 0 );
+        }
+
+        bool isOceanVisible() const { return _oceanTransform->getNodeMask() != 0; }
+
         inline void enableReflections( bool enable ){
             _enableReflections = enable;
             _isDirty = true;
@@ -135,6 +152,14 @@ namespace osgOcean
             return _enableReflections;
         }
 
+        inline void setEyeHeightReflectionCutoff( float cutoff ){
+            _eyeHeightReflectionCutoff = cutoff;
+        }
+
+        inline float getEyeHeightReflectionCutoff() const{
+            return _eyeHeightReflectionCutoff;
+        }
+
         inline void enableRefractions( bool enable ){
             _enableRefractions = enable;
             _isDirty = true;
@@ -142,6 +167,14 @@ namespace osgOcean
 
         inline bool areRefractionsEnabled() const{
             return _enableRefractions;
+        }
+
+        inline void setEyeHeightRefractionCutoff( float cutoff ){
+            _eyeHeightRefractionCutoff = cutoff;
+        }
+
+        inline float getEyeHeightRefractionCutoff() const{
+            return _eyeHeightRefractionCutoff;
         }
 
         inline void enableGodRays( bool enable ){
@@ -174,6 +207,10 @@ namespace osgOcean
         inline void setSunDirection( const osg::Vec3f& sunDir ){
             _sunDirection = sunDir;
             _isDirty = true;
+        }
+
+        inline osg::Vec3f getSunDirection() const{
+            return _sunDirection;
         }
 
         /** Set reflection texture size (must be 2^n) */
@@ -218,6 +255,10 @@ namespace osgOcean
                 _dofStateSet->getUniform("osgOcean_DOF_Near")->set(_dofNear);
         }
 
+        inline float getDOFNear() const{
+            return _dofNear;
+        }
+
         /** Set far DOF blur distance 
           * Updates the uniform is DOF state is valid.
           */        
@@ -226,6 +267,10 @@ namespace osgOcean
 
             if( _dofStateSet.valid() )
                 _dofStateSet->getUniform("osgOcean_DOF_Far")->set(_dofNear);
+        }
+
+        inline float getDOFFar() const{
+            return _dofFar;
         }
 
         /** Set far clamp value.
@@ -238,6 +283,10 @@ namespace osgOcean
                 _dofStateSet->getUniform("osgOcean_DOF_Clamp")->set(_dofFarClamp);
         }
 
+        inline float getDOFFarClamp() const{
+            return _dofFarClamp;
+        }
+
         /** Set DOF focal distance.
           * Updates the uniform is dof state is valid.
           */        
@@ -246,6 +295,10 @@ namespace osgOcean
 
             if( _dofStateSet.valid() )
                 _dofStateSet->getUniform("osgOcean_DOF_Focus")->set(_dofFocus);
+        }
+
+        inline float getDOFFocalDistance() const{
+            return _dofFocus;
         }
 
         /** Enable cross hatch glare.
@@ -275,6 +328,10 @@ namespace osgOcean
             _isDirty = true;
         }
 
+        inline float getGlareThreshold() const{
+            return _glareThreshold;
+        }
+
         /** Set the glare attenuation.
         * Controls the rate at which the glare drops off.
         * Typical range: 0.75 < attenuation < 0.95 
@@ -285,12 +342,15 @@ namespace osgOcean
             _isDirty = true;
         }
 
+        inline float getGlareAttenuation() const{
+            return _glareAttenuation;
+        }
+
         /** Enable distortion.
           */
         inline void enableDistortion( bool flag )
         {
             _enableDistortion = flag;
-            
             _isDirty = true;
         }
 
@@ -298,18 +358,28 @@ namespace osgOcean
             return _enableDistortion;
         }
 
+        inline void enableUnderwaterScattering( bool flag )
+        {
+            _enableUnderwaterScattering = flag;
+            _isDirty = true;
+        }
+
+        inline bool isUnderwaterScatteringEnabled() const{
+            return _enableUnderwaterScattering;
+        }
+
         inline void setOceanTechnique( OceanTechnique* surface ){ 
             
             if( _oceanSurface.valid() )
-                removeChild( _oceanSurface.get() );
+                _oceanTransform->removeChild( _oceanSurface.get() );
 
             _oceanSurface = surface;
 
-            if ( _oceanSurface.valid() )
+            if (_oceanSurface.valid())
             {
                 _oceanSurface->setNodeMask( _surfaceMask );
 
-                addChild( _oceanSurface.get() );
+                _oceanTransform->addChild( _oceanSurface.get() );
             }
 
             _isDirty = true;
@@ -348,6 +418,7 @@ namespace osgOcean
         {
             _underwaterFogDensity = density;
             _underwaterFogColor = color;
+            _oceanCylinder->setColor(_underwaterFogColor);
             
             const float LOG2E = 1.442695;
             if( _globalStateSet.valid() ){
@@ -404,6 +475,11 @@ namespace osgOcean
         {
             _underwaterDiffuse = diffuse;
             _isDirty = true;
+        }
+
+        osg::Vec4f getUnderwaterDiffuse() const
+        {
+            return _underwaterDiffuse;
         }
 
         /** Change the attenuation of light underwater.
@@ -494,13 +570,13 @@ namespace osgOcean
         /** Main cull traversal.
           * Renders main scene, surface, silt.
           */
-        void cull( osgUtil::CullVisitor& cv );
+        void cull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surfaceVisible );
         
         /** Render to texture passes for reflection/refractions/god rays. */
-        void preRenderCull( osgUtil::CullVisitor& cv );
+        void preRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surfaceVisible );
         
         /** Post render passes for DOF/god rays. */
-        void postRenderCull( osgUtil::CullVisitor& cv );
+        void postRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surfaceVisible );
 
         /** Update god ray geometry and screen quad. */
         void update(osg::NodeVisitor& nv);

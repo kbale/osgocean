@@ -52,7 +52,7 @@ namespace osgOcean
             float windSpeed  = 12.f,
             float depth = 1000.f,
             float reflectionDamping = 0.35f,
-            float waveScale = 1e-9, 
+            float waveScale = 1e-9,    
             float tileRes = 256.f,
             float loopTime  = 10.f
             );
@@ -79,5 +79,3 @@ namespace osgOcean
         void computeDisplacements( const float& scaleFactor, osg::Vec2Array* waveDisplacements ) const;
     };
 }
-
-

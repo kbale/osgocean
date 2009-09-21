@@ -338,4 +338,3 @@ osg::ref_ptr<osg::Texture2D> OceanTile::createNormalMap( void )
 
     return texture;
 }
-

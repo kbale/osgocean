@@ -45,7 +45,6 @@
 #include <osgOcean/ShaderManager>
 
 #include "SkyDome.h"
-#include "Cylinder.h"
 
 #define USE_CUSTOM_SHADER
 
@@ -221,7 +220,6 @@ private:
     osg::ref_ptr<osgOcean::FFTOceanSurface> _oceanSurface;
     osg::ref_ptr<osg::TextureCubeMap> _cubemap;
     osg::ref_ptr<SkyDome> _skyDome;
-    osg::ref_ptr<Cylinder> _oceanCylinder;
         
     std::vector<std::string> _cubemapDirs;
     std::vector<osg::Vec4f>  _lightColors;
@@ -344,19 +342,6 @@ public:
                 _skyDome = new SkyDome( 1900.f, 16, 16, _cubemap.get() );
                 _skyDome->setNodeMask( _oceanScene->getReflectedSceneMask() | _oceanScene->getNormalSceneMask() );
 
-                _oceanCylinder = new Cylinder(1900.f, 999.8f, 16, false, true );
-                _oceanCylinder->setColor( _waterFogColors[_sceneType] );
-                _oceanCylinder->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
-                _oceanCylinder->getOrCreateStateSet()->setMode(GL_FOG, osg::StateAttribute::OFF);
-                
-                osg::Geode* oceanCylinderGeode = new osg::Geode;
-                oceanCylinderGeode->addDrawable(_oceanCylinder.get());
-                oceanCylinderGeode->setNodeMask( _oceanScene->getNormalSceneMask() );
-
-                osg::PositionAttitudeTransform* cylinderPat = new osg::PositionAttitudeTransform;
-                cylinderPat->setPosition( osg::Vec3f(0.f, 0.f, -1000.f) );
-                cylinderPat->addChild( oceanCylinderGeode );
-
                 // add a pat to track the camera
                 osg::PositionAttitudeTransform* pat = new osg::PositionAttitudeTransform;
                 pat->setDataVariance( osg::Object::DYNAMIC );
@@ -366,7 +351,6 @@ public:
                 pat->setCullCallback( new CameraTrackCallback );
                 
                 pat->addChild( _skyDome.get() );
-                pat->addChild( cylinderPat );
 
                 _oceanScene->addChild( pat );
 
@@ -462,8 +446,6 @@ public:
 
         _light->setPosition( osg::Vec4f(_sunPositions[_sceneType],1.f) );
         _light->setDiffuse( _sunDiffuse[_sceneType] ) ;
-
-        _oceanCylinder->setColor( _waterFogColors[_sceneType] );
 
         if(_islandSwitch.valid() )
         {

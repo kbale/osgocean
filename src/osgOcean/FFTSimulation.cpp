@@ -96,7 +96,7 @@ private:
 
     std::vector< complex > _baseAmplitudes; /**< Base fourier amplitudes */
     std::vector< complex > _curAmplitudes;  /**< Current fourier amplitudes */  
-    
+
     std::vector< complex > _h0TildeK;
     std::vector< complex > _h0TildeKconj;
     std::vector< float > _wK;
@@ -118,7 +118,7 @@ public:
         float windSpeed  = 12.f,
         float depth = 1000.f,
         float reflectionDamping = 0.35f,
-        float waveScale = 1e-9, 
+        float waveScale = 1e-9,    
         float tileRes = 256.f,
         float loopTime  = 10.f
         );
@@ -253,7 +253,7 @@ void FFTSimulation::Implementation::computeBaseAmplitudes()
     osg::Vec2 K;
     float oneOverLen = 1.f / _length;
     float real,imag;
-    
+
     for (int y = 0, y2 = -_nOver2; y <= _N; ++y, ++y2) 
     {
         K.y() = _PI2*y2*oneOverLen;
@@ -378,7 +378,7 @@ void FFTSimulation::Implementation::computeDisplacements(const float& scaleFacto
 
             _complexData0[flipPtr][0] =  c.imag() * _Kh[ptr].x();
             _complexData0[flipPtr][1] = -c.real() * _Kh[ptr].x();
-            
+
             _complexData1[flipPtr][0] =  c.imag() * _Kh[ptr].y();
             _complexData1[flipPtr][1] = -c.real() * _Kh[ptr].y();
         }
