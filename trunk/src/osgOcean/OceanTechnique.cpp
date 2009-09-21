@@ -20,16 +20,16 @@
 using namespace osgOcean;
 
 OceanTechnique::OceanTechnique(void):
-    _isDirty     ( true ),
-    _isAnimating ( true )
+    _isDirty    ( true ),
+    _isAnimating( true )
 {
 
 }
 
 OceanTechnique::OceanTechnique( const OceanTechnique& copy, const osg::CopyOp& copyop ):
-    osg::Geode   ( copy, copyop ),
-    _isDirty     ( true ),
-    _isAnimating ( copy._isAnimating )
+    osg::Geode  ( copy, copyop ),
+    _isDirty    ( true ),
+    _isAnimating( copy._isAnimating )
 {
 
 }
@@ -43,6 +43,25 @@ float OceanTechnique::getSurfaceHeight(void) const
 {
     osg::notify(osg::DEBUG_INFO) << "OceanTechnique::getSurfaceHeight() Not Implemented" << std::endl;
     return 0.f;
+}
+
+/** Check if the ocean surface is visible or not. Basic test is very 
+    simple, subclasses can do a better test. */
+bool OceanTechnique::isVisible( osgUtil::CullVisitor& cv, bool eyeAboveWater )
+{
+    if (getNodeMask() == 0) return false;
+
+    // Use a small cutoff to unconditionally cull ocean surface.
+    // This assumes the view frustum is 45 degrees wide...
+    static const float cutoff = osg::PI/8;      // 45 degrees divided by 2
+    osg::Vec3 lookVector = cv.getLookVectorLocal();
+    float dotProduct = lookVector * osg::Vec3(0,0,1);
+    return ( eyeAboveWater && dotProduct <  cutoff) ||
+           (!eyeAboveWater && dotProduct > -cutoff);
+
+    // A better way would be to check if any of the frustum corners intersect 
+    // the plane at (0,0,ocean_height) with normal (0,0,1), and if not then 
+    // return true.
 }
 
 

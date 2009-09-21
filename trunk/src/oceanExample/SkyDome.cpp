@@ -86,5 +86,3 @@ osg::ref_ptr<osg::Program> SkyDome::createShader(void)
 
 	return program;
 }
-
-

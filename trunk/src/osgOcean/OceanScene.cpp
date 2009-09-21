@@ -20,6 +20,34 @@
 
 using namespace osgOcean;
 
+namespace
+{
+    // CameraTrackCallback used by osgOcean with the undersea cylinder.
+    // Note: only set on MatrixTransform.
+    class CameraTrackCallback: public osg::NodeCallback
+    {
+    public:
+        virtual void operator()(osg::Node* node, osg::NodeVisitor* nv)
+        {
+            if( nv->getVisitorType() == osg::NodeVisitor::CULL_VISITOR )
+            {
+                osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(nv);
+                osg::Vec3f centre,up;
+                cv->getCurrentCamera()->getViewMatrixAsLookAt(_eye,centre,up);
+            }
+            else if(nv->getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR ){
+                osg::MatrixTransform* mt = static_cast<osg::MatrixTransform*>(node);
+                mt->setMatrix( osg::Matrix::translate( _eye.x(), _eye.y(), mt->getMatrix().getTrans().z() ) );
+            }
+
+            traverse(node, nv); 
+        }
+
+        osg::Vec3f _eye;
+    };
+
+}
+
 #define USE_LOCAL_SHADERS 1
 
 OceanScene::OceanScene( void ):
@@ -31,6 +59,8 @@ OceanScene::OceanScene( void ):
     _enableSilt            ( false ),
     _enableDOF             ( false ),
     _enableGlare           ( false ),
+    _enableDistortion      ( false ),
+    _enableUnderwaterScattering( false ),
     _enableDefaultShader   ( true ),
     _reflectionTexSize     ( 512,512 ),
     _refractionTexSize     ( 512,512 ),
@@ -58,8 +88,43 @@ OceanScene::OceanScene( void ):
     _reflectionMatrix      ( 1,  0,  0,  0,
                              0,  1,  0,  0,
                              0,  0, -1,  0,    
-                             0,  0,  0,  1 )
+                             0,  0,  0,  1 ),
+    _eyeHeightReflectionCutoff( FLT_MAX),
+    _eyeHeightRefractionCutoff(-FLT_MAX),
+    _oceanTransform(new osg::MatrixTransform),
+    _oceanCylinder(new Cylinder(1900.f, 3999.8f, 16, false, true))
 {
+    //-----------------------------------------------------------------------
+    // _oceanCylinder follows the camera underwater, so that the clear
+    // color is not visible past the far plane - it will be the fog color.
+    _oceanCylinder->setColor( _underwaterFogColor );
+    _oceanCylinder->getOrCreateStateSet()->setAttributeAndModes(new osg::Program, osg::StateAttribute::OFF);
+    _oceanCylinder->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
+    _oceanCylinder->getOrCreateStateSet()->setMode(GL_FOG, osg::StateAttribute::OFF);
+
+    osg::Geode* cylinderGeode = new osg::Geode;
+    cylinderGeode->addDrawable( _oceanCylinder.get() );
+    cylinderGeode->setNodeMask( _normalSceneMask );
+
+    osg::MatrixTransform* cylinderMT = new osg::MatrixTransform;
+    cylinderMT->setMatrix( osg::Matrix::translate(0, 0, -4000) );
+    cylinderMT->addChild( cylinderGeode );
+
+    // add a pat to track the camera
+    osg::MatrixTransform* mt = new osg::MatrixTransform;
+    mt->setDataVariance( osg::Object::DYNAMIC );
+    mt->setUpdateCallback( new CameraTrackCallback );
+    mt->setCullCallback( new CameraTrackCallback );
+
+    mt->addChild( cylinderMT );
+    mt->setNodeMask( getNormalSceneMask() );
+
+    _oceanTransform->addChild( mt );
+    //-----------------------------------------------------------------------
+
+    _oceanTransform->setNodeMask( _normalSceneMask | _surfaceMask );
+    addChild( _oceanTransform.get() );
+
     addResourcePaths();
 
     setNumChildrenRequiringUpdateTraversal(1);
@@ -78,6 +143,7 @@ OceanScene::OceanScene( OceanTechnique* technique ):
     _enableDOF             ( false ),
     _enableGlare           ( false ),
     _enableDistortion      ( false ),
+    _enableUnderwaterScattering( false ),
     _enableDefaultShader   ( true ),
     _reflectionTexSize     ( 512,512 ),
     _refractionTexSize     ( 512,512 ),
@@ -105,10 +171,45 @@ OceanScene::OceanScene( OceanTechnique* technique ):
     _reflectionMatrix      ( 1,  0,  0,  0,
                              0,  1,  0,  0,
                              0,  0, -1,  0,    
-                             0,  0,  0,  1 )
+                             0,  0,  0,  1 ),
+    _eyeHeightReflectionCutoff( FLT_MAX),
+    _eyeHeightRefractionCutoff(-FLT_MAX),
+    _oceanTransform(new osg::MatrixTransform),
+    _oceanCylinder(new Cylinder(1900.f, 3999.8f, 16, false, true))
 {
+    //-----------------------------------------------------------------------
+    // _oceanCylinder follows the camera underwater, so that the clear
+    // color is not visible past the far plane - it will be the fog color.
+    _oceanCylinder->setColor( _underwaterFogColor );
+    _oceanCylinder->getOrCreateStateSet()->setAttributeAndModes(new osg::Program, osg::StateAttribute::OFF);
+    _oceanCylinder->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
+    _oceanCylinder->getOrCreateStateSet()->setMode(GL_FOG, osg::StateAttribute::OFF);
+
+    osg::Geode* cylinderGeode = new osg::Geode;
+    cylinderGeode->addDrawable( _oceanCylinder.get() );
+    cylinderGeode->setNodeMask( _normalSceneMask );
+
+    osg::MatrixTransform* cylinderMT = new osg::MatrixTransform;
+    cylinderMT->setMatrix( osg::Matrix::translate(0, 0, -4000) );
+    cylinderMT->addChild( cylinderGeode );
+
+    // add a transform to track the camera
+    osg::MatrixTransform* mt = new osg::MatrixTransform;
+    mt->setDataVariance( osg::Object::DYNAMIC );
+    mt->setUpdateCallback( new CameraTrackCallback );
+    mt->setCullCallback( new CameraTrackCallback );
+
+    mt->addChild( cylinderMT );
+    mt->setNodeMask( getNormalSceneMask() );
+
+    _oceanTransform->addChild( mt );
+    //-----------------------------------------------------------------------
+
+    _oceanTransform->setNodeMask( _normalSceneMask | _surfaceMask );
+    addChild( _oceanTransform.get() );
+
     _oceanSurface->setNodeMask( _surfaceMask );
-    addChild( _oceanSurface.get() );
+    _oceanTransform->addChild( _oceanSurface.get() );
 
     addResourcePaths();
 
@@ -129,6 +230,7 @@ OceanScene::OceanScene( const OceanScene& copy, const osg::CopyOp& copyop ):
     _enableDOF             ( copy._enableDOF ),
     _enableGlare           ( copy._enableGlare ),
     _enableDistortion      ( copy._enableDistortion ),
+    _enableUnderwaterScattering( copy._enableUnderwaterScattering ),
     _enableDefaultShader   ( copy._enableDefaultShader ),
     _reflectionTexSize     ( copy._reflectionTexSize ),
     _refractionTexSize     ( copy._refractionTexSize ),
@@ -139,7 +241,7 @@ OceanScene::OceanScene( const OceanScene& copy, const osg::CopyOp& copyop ):
     _refractionSceneMask   ( copy._refractionSceneMask ),
     _siltMask              ( copy._siltMask ),
     _surfaceMask           ( copy._surfaceMask ),
-    _normalSceneMask       ( copy._normalSceneMask),
+    _normalSceneMask       ( copy._normalSceneMask ),
     _reflectionCamera      ( copy._reflectionCamera ),
     _refractionCamera      ( copy._refractionCamera ),
     _godrayPreRender       ( copy._godrayPreRender ),
@@ -149,7 +251,7 @@ OceanScene::OceanScene( const OceanScene& copy, const osg::CopyOp& copyop ):
     _siltClipNode          ( copy._siltClipNode ),
     _reflectionClipNode    ( copy._reflectionClipNode ),
     _lightID               ( copy._lightID ),
-    _reflectionMatrix      ( copy._reflectionMatrix),
+    _reflectionMatrix      ( copy._reflectionMatrix ),
     _surfaceStateSet       ( copy._surfaceStateSet ),
     _underwaterFogDensity  ( copy._underwaterFogDensity ),
     _aboveWaterFogDensity  ( copy._aboveWaterFogDensity ), 
@@ -170,7 +272,11 @@ OceanScene::OceanScene( const OceanScene& copy, const osg::CopyOp& copyop ):
     _glareStateSet         ( copy._glareStateSet ),
     _distortionSurface     ( copy._distortionSurface),
     _globalStateSet        ( copy._globalStateSet ),
-    _defaultSceneShader    ( copy._defaultSceneShader )
+    _defaultSceneShader    ( copy._defaultSceneShader ),
+    _eyeHeightReflectionCutoff( copy._eyeHeightReflectionCutoff ),
+    _eyeHeightRefractionCutoff( copy._eyeHeightRefractionCutoff ),
+    _oceanTransform        ( copy._oceanTransform ),
+    _oceanCylinder         ( copy._oceanCylinder )
 {
 }
 
@@ -188,7 +294,10 @@ void OceanScene::init( void )
     _godrayPreRender  = NULL;
     _godrayPostRender = NULL;
 
-    _reflectionClipNode = NULL;
+    if( _reflectionClipNode.valid() ){
+        removeChild( _reflectionClipNode.get() );
+        _reflectionClipNode = NULL;
+    }
 
     _dofPasses.clear();
     _dofStateSet = NULL;
@@ -197,11 +306,6 @@ void OceanScene::init( void )
     _glareStateSet = NULL;
     
     _distortionSurface = NULL;
-
-    if( _siltClipNode.valid() ){
-        removeChild( _siltClipNode.get() );
-        _siltClipNode = NULL;
-    }
 
     if( _siltClipNode.valid() ){
         removeChild( _siltClipNode.get() );
@@ -223,6 +327,7 @@ void OceanScene::init( void )
 
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_EnableDOF", _enableDOF ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_EnableGlare", _enableGlare ) );
+        _globalStateSet->addUniform( new osg::Uniform("osgOcean_EnableUnderwaterScattering", _enableUnderwaterScattering ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_EyeUnderwater", false ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_Eye", osg::Vec3f() ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_WaterHeight", _oceanSurface->getSurfaceHeight() ) );
@@ -258,6 +363,9 @@ void OceanScene::init( void )
 
             _surfaceStateSet->setTextureAttributeAndModes( _reflectionUnit, reflectionTexture.get(), osg::StateAttribute::ON );
 
+            // TODO: if we give access to _oceanTransform to set the height 
+            // of the ocean, we'll need to set the clip plane's height to
+            // _oceanSurface->getSurfaceHeight() + _oceanTransform->getTrans().z() .
             osg::ClipPlane* reflClipPlane = new osg::ClipPlane(0);
             reflClipPlane->setClipPlane( 0.0, 0.0, 1.0, _oceanSurface->getSurfaceHeight() );
             _reflectionClipNode = new osg::ClipNode;
@@ -429,20 +537,34 @@ void OceanScene::traverse( osg::NodeVisitor& nv )
 
         if (cv) 
         {
-            preRenderCull(*cv);     // reflections/refractions
-            
-            // Above water
-            if( cv->getEyePoint().z() > _oceanSurface->getSurfaceHeight() ) {
-                if(!_enableGlare)     
-                    cull(*cv);        // normal scene render
-            }
-            // Below water passes
-            else {
-                    if(!_enableDOF)
-                    cull(*cv);        // normal scene render
-            }
+            if (cv->getCurrentCamera()->getName() == "ShadowCamera" ||
+                cv->getCurrentCamera()->getName() == "AnalysisCamera" )
+                // Do not do reflections and everything if we're in a shadow pass.
+                osg::Group::traverse(nv);
+            else
+            {
+                bool eyeAboveWater  = isEyeAboveWater(cv->getEyePoint());
+                bool surfaceVisible = _oceanSurface->isVisible(*cv, eyeAboveWater);
 
-            postRenderCull(*cv);    // god rays/dof/glare
+                (*_oceanSurface->getCullCallback())(_oceanSurface.get(), &nv);
+
+                preRenderCull(*cv, eyeAboveWater, surfaceVisible);     // reflections/refractions
+                
+                // Above water
+                if( eyeAboveWater )
+                {
+                    if(!_enableGlare)
+                        cull(*cv, eyeAboveWater, surfaceVisible);        // normal scene render
+                }
+                // Below water passes
+                else 
+                {
+                    if(!_enableDOF)
+                        cull(*cv, eyeAboveWater, surfaceVisible);        // normal scene render
+                }
+
+                postRenderCull(*cv, eyeAboveWater, surfaceVisible);    // god rays/dof/glare
+            }
         }
         else
             osg::Group::traverse(nv);
@@ -463,13 +585,17 @@ void OceanScene::update( osg::NodeVisitor& nv )
         _distortionSurface->accept(nv);
 }
 
-void OceanScene::preRenderCull( osgUtil::CullVisitor& cv )
+void OceanScene::preRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surfaceVisible )
 {
     // Above water
-    if( cv.getEyePoint().z() > _oceanSurface->getSurfaceHeight() )
+    if( eyeAboveWater )
     {
-        if( _oceanSurface.valid() && _oceanSurface->getNodeMask() != 0 && 
-            _enableReflections && _reflectionCamera.valid() )    
+        bool reflectionVisible = cv.getEyePoint().z() < _eyeHeightReflectionCutoff;
+        _surfaceStateSet->getUniform("osgOcean_EnableReflections")->set(reflectionVisible);
+
+        // Render reflection if ocean surface is visible.
+        if( _enableReflections && surfaceVisible && reflectionVisible &&
+            _oceanSurface.valid() && _reflectionCamera.valid() )
         {
             // update reflection camera and render reflected scene
             _reflectionCamera->setViewMatrix( _reflectionMatrix * cv.getCurrentCamera()->getViewMatrix() );
@@ -495,8 +621,12 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv )
     // Below water
     else
     {
-        if( _oceanSurface.valid() && _oceanSurface->getNodeMask() != 0 && 
-            _enableRefractions && _refractionCamera.valid() )
+        bool refractionVisible = cv.getEyePoint().z() > _eyeHeightRefractionCutoff;
+        _surfaceStateSet->getUniform("osgOcean_EnableRefractions")->set(refractionVisible);
+
+        // Render refraction if ocean surface is visible.
+        if( _enableRefractions && surfaceVisible && refractionVisible &&
+            _oceanSurface.valid() && _refractionCamera.valid() )
         {
             // update refraction camera and render refracted scene
             _refractionCamera->setViewMatrix( cv.getCurrentCamera()->getViewMatrix() );
@@ -529,7 +659,7 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv )
     }
 }
 
-void OceanScene::postRenderCull( osgUtil::CullVisitor& cv )
+void OceanScene::postRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surfaceVisible )
 {
     if( cv.getEyePoint().z() < _oceanSurface->getSurfaceHeight() )
     {
@@ -553,30 +683,35 @@ void OceanScene::postRenderCull( osgUtil::CullVisitor& cv )
     }
 }
 
-void OceanScene::cull(osgUtil::CullVisitor& cv)
+void OceanScene::cull(osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surfaceVisible)
 {
-    if(cv.getEyePoint().z() < _oceanSurface->getSurfaceHeight() )
-    {
-        _globalStateSet->getUniform("osgOcean_Eye")->set( cv.getEyePoint() );
-        _globalStateSet->getUniform("osgOcean_EyeUnderwater")->set(true);
-    }
-    else
-        _globalStateSet->getUniform("osgOcean_EyeUnderwater")->set(false);
+    _globalStateSet->getUniform("osgOcean_EyeUnderwater")->set(!eyeAboveWater);
+    _globalStateSet->getUniform("osgOcean_Eye")->set( cv.getEyePoint() );
 
     unsigned int mask = cv.getTraversalMask();
 
     cv.pushStateSet(_globalStateSet.get());
 
-    if ( _oceanSurface.valid() && _oceanSurface->getNodeMask() != 0 &&
-         (_enableReflections || _enableRefractions) )
+    if ( _oceanSurface.valid() && _oceanSurface->getNodeMask() != 0 && surfaceVisible )
     {
+        // HACK: Make sure masks are set correctly on children... This 
+        // assumes that the ocean surface is the only child that should have
+        // the _surfaceMask bit set. Otherwise other children will be
+        // rendered twice.
+        for (unsigned int i = 0; i < getNumChildren(); ++i)
+        {
+            osg::Node* child = getChild(i);
+            if (child != _oceanTransform.get())
+                child->setNodeMask((child->getNodeMask() & ~_surfaceMask) | _normalSceneMask);
+        }
+
         // render ocean surface with reflection / refraction stateset
         cv.pushStateSet( _surfaceStateSet.get() );
         cv.setTraversalMask( mask & _surfaceMask );
         osg::Group::traverse(cv);
         
         // pop surfaceStateSet
-        cv.popStateSet(); 
+        cv.popStateSet();
     }
 
     // render rest of scene
@@ -586,7 +721,7 @@ void OceanScene::cull(osgUtil::CullVisitor& cv)
     // pop globalStateSet
     cv.popStateSet(); 
 
-    if( cv.getEyePoint().z() < _oceanSurface->getSurfaceHeight() )
+    if( !eyeAboveWater )
     {
         if( _enableSilt )
         {
@@ -598,6 +733,12 @@ void OceanScene::cull(osgUtil::CullVisitor& cv)
     // put original mask back
     cv.setTraversalMask( mask );
 }
+
+bool OceanScene::isEyeAboveWater( const osg::Vec3& eye )
+{
+    return (eye.z() >= _oceanSurface->getSurfaceHeight() );
+}
+
 
 osg::Camera* OceanScene::renderToTexturePass( osg::Texture* textureBuffer )
 {
@@ -1144,6 +1285,7 @@ osg::Program* OceanScene::createDefaultSceneShader(void)
         "uniform vec3 osgOcean_Eye;\n"
         "uniform vec3 osgOcean_UnderwaterAttenuation;\n"
         "uniform vec4 osgOcean_UnderwaterDiffuse;\n"
+        "uniform bool osgOcean_EnableUnderwaterScattering;\n"
         "// -----------------\n"
         "\n"
         "varying vec3 vExtinction;\n"
@@ -1180,7 +1322,8 @@ osg::Program* OceanScene::createDefaultSceneShader(void)
         "\n"
         "	vec4 worldVertex = (osg_ViewMatrixInverse*gl_ModelViewMatrix) * gl_Vertex;\n"
         "\n"
-        "	computeScattering( osgOcean_Eye, worldVertex.xyz, vExtinction, vInScattering);\n"
+        "	if (osgOcean_EnableUnderwaterScattering)\n"
+        "           computeScattering( osgOcean_Eye, worldVertex.xyz, vExtinction, vInScattering);\n"
         "\n"
         "	vWorldHeight = worldVertex.z;\n"
         "}\n";
@@ -1202,6 +1345,7 @@ osg::Program* OceanScene::createDefaultSceneShader(void)
         "uniform bool osgOcean_EnableGlare;\n"
         "uniform bool osgOcean_EnableDOF;\n"
         "uniform bool osgOcean_EyeUnderwater;\n"
+        "uniform bool osgOcean_EnableUnderwaterScattering;\n"
         "// -------------------\n"
         "\n"
         "uniform sampler2D uTextureMap;\n"
@@ -1272,7 +1416,8 @@ osg::Program* OceanScene::createDefaultSceneShader(void)
         "		final_color = lighting( textureColor );\n"
         "\n"
         "        // mix in underwater light\n"
-        "		final_color.rgb = final_color.rgb * vExtinction + vInScattering;\n"
+        "	    if (osgOcean_EnableUnderwaterScattering)\n"
+        "		    final_color.rgb = final_color.rgb * vExtinction + vInScattering;\n"
         "\n"
         "		float fogFactor = computeFogFactor( osgOcean_UnderwaterFogDensity, gl_FogFragCoord );\n"
         "\n"
@@ -1354,9 +1499,13 @@ _oceanScene(oceanScene)
 void OceanScene::PrerenderCameraCullCallback::operator()(osg::Node*, osg::NodeVisitor* nv)
 {
     osgUtil::CullVisitor* cv = dynamic_cast<osgUtil::CullVisitor*> (nv);
-    
+
     if(cv)
-        _oceanScene->cull(*cv);
+    {
+        bool eyeAboveWater  = _oceanScene->isEyeAboveWater(cv->getEyePoint());
+        bool surfaceVisible = _oceanScene->getOceanTechnique()->isVisible(*cv, eyeAboveWater);
+        _oceanScene->cull(*cv, eyeAboveWater, surfaceVisible);
+    }
 }
 
 
