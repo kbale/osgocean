@@ -63,6 +63,9 @@ SET( LIB_HEADERS
   ${HEADER_PATH}/Export
 )
 
+# Adds headers to the "Header Files" group in visual studio
+SOURCE_GROUP( "Header Files" ${HEADER_PATH}/*.* )
+
 ADD_DEFINITIONS(-DOSGOCEAN_LIBRARY)
 
 INCLUDE_DIRECTORIES (
