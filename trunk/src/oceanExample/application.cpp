@@ -334,6 +334,7 @@ public:
                 _oceanScene->enableGodRays(true);
                 _oceanScene->enableSilt(true);
                 _oceanScene->enableUnderwaterDOF(true);
+				_oceanScene->enableDistortion(true);
                 _oceanScene->enableGlare(true);
                 _oceanScene->setGlareAttenuation(0.8f);
 
