@@ -1644,6 +1644,6 @@ void FFTOceanSurface::EventHandler::getUsage(osg::ApplicationUsage& usage) const
     usage.addKeyboardMouseBinding("w","Decrease wind speed by 0.5 (dirties geometry if autoDirty is active)");
     usage.addKeyboardMouseBinding("W","Increase wind speed by 0.5 (dirties geometry if autoDirty is active)");
     usage.addKeyboardMouseBinding("d","Dirty geometry manually");
-    usage.addKeyboardMouseBinding("D","Toggle autoDirty (if off, changes will require manual dirty");
+    usage.addKeyboardMouseBinding("D","Toggle autoDirty (if off, changes will require manual dirty)");
     usage.addKeyboardMouseBinding("P","Print out current ocean surface settings");
 }

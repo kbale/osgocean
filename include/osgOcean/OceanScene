@@ -137,6 +137,15 @@ namespace osgOcean
         /** Check if the eye is above water or not. */
         bool isEyeAboveWater( const osg::Vec3& eye );
 
+        void setOceanSurfaceHeight(double height){
+            _oceanTransform->setMatrix(osg::Matrix::translate(0,0,height));
+            _isDirty = true;
+        }
+
+        double getOceanSurfaceHeight() const{
+            return _oceanTransform->getMatrix().getTrans().z();
+        }
+
         void setOceanVisible(bool visible){
             _oceanTransform->setNodeMask( visible ? _normalSceneMask | _surfaceMask : 0 );
         }

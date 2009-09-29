@@ -330,7 +330,7 @@ void OceanScene::init( void )
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_EnableUnderwaterScattering", _enableUnderwaterScattering ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_EyeUnderwater", false ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_Eye", osg::Vec3f() ) );
-        _globalStateSet->addUniform( new osg::Uniform("osgOcean_WaterHeight", _oceanSurface->getSurfaceHeight() ) );
+        _globalStateSet->addUniform( new osg::Uniform("osgOcean_WaterHeight", float(getOceanSurfaceHeight() + _oceanSurface->getSurfaceHeight()) ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterFogColor", _underwaterFogColor ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_AboveWaterFogColor", _aboveWaterFogColor ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterFogDensity", -_underwaterFogDensity*_underwaterFogDensity*LOG2E ) );
@@ -363,11 +363,8 @@ void OceanScene::init( void )
 
             _surfaceStateSet->setTextureAttributeAndModes( _reflectionUnit, reflectionTexture.get(), osg::StateAttribute::ON );
 
-            // TODO: if we give access to _oceanTransform to set the height 
-            // of the ocean, we'll need to set the clip plane's height to
-            // _oceanSurface->getSurfaceHeight() + _oceanTransform->getTrans().z() .
             osg::ClipPlane* reflClipPlane = new osg::ClipPlane(0);
-            reflClipPlane->setClipPlane( 0.0, 0.0, 1.0, _oceanSurface->getSurfaceHeight() );
+            reflClipPlane->setClipPlane( 0.0, 0.0, 1.0, getOceanSurfaceHeight() + _oceanSurface->getSurfaceHeight() );
             _reflectionClipNode = new osg::ClipNode;
             _reflectionClipNode->addClipPlane( reflClipPlane );
 
@@ -390,7 +387,7 @@ void OceanScene::init( void )
         {
             osg::TextureRectangle* godRayTexture = createTextureRectangle( _screenDims/2, GL_RGB );
 
-            _godrays = new GodRays(10,_sunDirection, _oceanSurface->getSurfaceHeight() );
+            _godrays = new GodRays(10,_sunDirection, getOceanSurfaceHeight() + _oceanSurface->getSurfaceHeight() );
             
             _godrayPreRender=renderToTexturePass( godRayTexture );
             _godrayPreRender->setClearColor( osg::Vec4(0.0745098, 0.10588235, 0.1529411, 1.0) );
@@ -507,7 +504,7 @@ void OceanScene::init( void )
             silt->setNodeMask(_siltMask);
 
             osg::ClipPlane* siltClipPlane = new osg::ClipPlane(1);
-            siltClipPlane->setClipPlane( 0.0, 0.0, -1.0, _oceanSurface->getSurfaceHeight() );
+            siltClipPlane->setClipPlane( 0.0, 0.0, -1.0, getOceanSurfaceHeight() + _oceanSurface->getSurfaceHeight() );
 
             _siltClipNode = new osg::ClipNode;
             _siltClipNode->addClipPlane( siltClipPlane );
@@ -661,7 +658,14 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bo
 
 void OceanScene::postRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surfaceVisible )
 {
-    if( cv.getEyePoint().z() < _oceanSurface->getSurfaceHeight() )
+    if( eyeAboveWater )
+    {
+        if( _enableGlare )
+        {
+            _glarePasses.back()->accept(cv);
+        }
+    }
+    else
     {
         // dof screen first
         if( _enableDOF )
@@ -672,13 +676,6 @@ void OceanScene::postRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, b
         if( _enableGodRays )
         {
             _godrayPostRender->accept(cv);
-        }
-    }
-    else
-    {
-        if( _enableGlare )
-        {
-            _glarePasses.back()->accept(cv);
         }
     }
 }
@@ -736,7 +733,7 @@ void OceanScene::cull(osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surface
 
 bool OceanScene::isEyeAboveWater( const osg::Vec3& eye )
 {
-    return (eye.z() >= _oceanSurface->getSurfaceHeight() );
+    return (eye.z() >= getOceanSurfaceHeight() + _oceanSurface->getSurfaceHeight() );
 }
 
 
@@ -1564,6 +1561,19 @@ bool OceanScene::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::G
                 osg::notify(osg::NOTICE) << "Silt " << (_oceanScene->isSiltEnabled()? "enabled" : "disabled") << std::endl;
                 return true;
             }
+            // Ocean surface height
+            if (ea.getKey() == '+')
+            {
+                _oceanScene->setOceanSurfaceHeight(_oceanScene->getOceanSurfaceHeight() + 1.0);
+                osg::notify(osg::NOTICE) << "Ocean surface is now at z = " << _oceanScene->getOceanSurfaceHeight() << std::endl;
+                return true;
+            }
+            if (ea.getKey() == '-')
+            {
+                _oceanScene->setOceanSurfaceHeight(_oceanScene->getOceanSurfaceHeight() - 1.0);
+                osg::notify(osg::NOTICE) << "Ocean surface is now at z = " << _oceanScene->getOceanSurfaceHeight() << std::endl;
+                return true;
+            }
 
             break;
         }
@@ -1583,4 +1593,6 @@ void OceanScene::EventHandler::getUsage(osg::ApplicationUsage& usage) const
     usage.addKeyboardMouseBinding("g","Toggle glare (above water)");
     usage.addKeyboardMouseBinding("G","Toggle God rays (underwater)");
     usage.addKeyboardMouseBinding("t","Toggle silt (underwater)");
+    usage.addKeyboardMouseBinding("+","Raise ocean surface");
+    usage.addKeyboardMouseBinding("-","Lower ocean surface");
 }
