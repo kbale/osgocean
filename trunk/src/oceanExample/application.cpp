@@ -665,6 +665,7 @@ int main(int argc, char *argv[])
     arguments.getApplicationUsage()->addCommandLineOption("--isNotChoppy","Set the waves not choppy (by default they are).");
     arguments.getApplicationUsage()->addCommandLineOption("--choppyFactor <factor>","How choppy the waves are. Default: 2.5");
     arguments.getApplicationUsage()->addCommandLineOption("--crestFoamHeight <height>","How high the waves need to be before foam forms on the crest. Default: 2.2 ");
+    arguments.getApplicationUsage()->addCommandLineOption("--oceanSurfaceHeight <z>","Z position of the ocean surface in world coordinates. Default: 0.0");
 
     unsigned int helpType = 0;
     if ((helpType = arguments.readHelpType()))
@@ -707,6 +708,9 @@ int main(int argc, char *argv[])
     float crestFoamHeight = 2.2f;
     while (arguments.read("--crestFoamHeight", crestFoamHeight));
 
+    double oceanSurfaceHeight = 0.0f;
+    while (arguments.read("--oceanSurfaceHeight", oceanSurfaceHeight));
+
     osg::ref_ptr<osg::Node> loadedModel = osgDB::readNodeFiles(arguments);
 
     // any option left unread are converted into errors to write out later.
@@ -742,6 +746,7 @@ int main(int argc, char *argv[])
                                 scene->getOceanScene()->getReflectedSceneMask() | 
                                 scene->getOceanScene()->getRefractedSceneMask() );
         scene->getOceanScene()->addChild(loadedModel.get());
+        scene->getOceanScene()->setOceanSurfaceHeight(oceanSurfaceHeight);
     }
 
     viewer.setSceneData( root );

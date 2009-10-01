@@ -351,6 +351,11 @@ void OceanScene::init( void )
         
         if( _enableReflections )
         {
+            // Update the reflection matrix's translation to take into account
+            // the ocean surface height. The translation we need is 2*h.
+            // See http://www.gamedev.net/columns/hardcore/rnerwater1/page3.asp
+            _reflectionMatrix.setTrans(0, 0, 2 * getOceanSurfaceHeight());
+
             osg::ref_ptr<osg::Texture2D> reflectionTexture = createTexture2D( _reflectionTexSize, GL_RGBA );
             
             // clip everything below water line

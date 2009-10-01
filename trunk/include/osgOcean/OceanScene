@@ -45,7 +45,7 @@ namespace osgOcean
     class OSGOCEAN_EXPORT OceanScene : public osg::Group
     {
     private:
-        const osg::Matrixf _reflectionMatrix;
+        osg::Matrixf _reflectionMatrix;
 
         osg::ref_ptr<OceanTechnique> _oceanSurface;
 
