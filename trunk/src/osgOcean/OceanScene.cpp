@@ -369,7 +369,7 @@ void OceanScene::init( void )
             _surfaceStateSet->setTextureAttributeAndModes( _reflectionUnit, reflectionTexture.get(), osg::StateAttribute::ON );
 
             osg::ClipPlane* reflClipPlane = new osg::ClipPlane(0);
-            reflClipPlane->setClipPlane( 0.0, 0.0, 1.0, getOceanSurfaceHeight() + _oceanSurface->getSurfaceHeight() );
+            reflClipPlane->setClipPlane( 0.0, 0.0, 1.0, -getOceanSurfaceHeight() + _oceanSurface->getSurfaceHeight() );
             _reflectionClipNode = new osg::ClipNode;
             _reflectionClipNode->addClipPlane( reflClipPlane );
 
@@ -509,7 +509,7 @@ void OceanScene::init( void )
             silt->setNodeMask(_siltMask);
 
             osg::ClipPlane* siltClipPlane = new osg::ClipPlane(1);
-            siltClipPlane->setClipPlane( 0.0, 0.0, -1.0, getOceanSurfaceHeight() + _oceanSurface->getSurfaceHeight() );
+            siltClipPlane->setClipPlane( 0.0, 0.0, -1.0, -getOceanSurfaceHeight() + _oceanSurface->getSurfaceHeight() );
 
             _siltClipNode = new osg::ClipNode;
             _siltClipNode->addClipPlane( siltClipPlane );
