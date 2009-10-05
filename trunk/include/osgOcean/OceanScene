@@ -257,8 +257,8 @@ namespace osgOcean
         /** Set near DOF blur distance.
           * Updates the uniform is DOF state is valid.
           */        
-        inline void setDOFNear( float near ) {
-            _dofNear = near;
+        inline void setDOFNear( float dofNear ) {
+            _dofNear = dofNear;
 
             if( _dofStateSet.valid() )
                 _dofStateSet->getUniform("osgOcean_DOF_Near")->set(_dofNear);
@@ -271,11 +271,11 @@ namespace osgOcean
         /** Set far DOF blur distance 
           * Updates the uniform is DOF state is valid.
           */        
-        inline void setDOFFar(float far ) {
-            _dofFar = far;
+        inline void setDOFFar( float dofFar ) {
+            _dofFar = dofFar;
 
             if( _dofStateSet.valid() )
-                _dofStateSet->getUniform("osgOcean_DOF_Far")->set(_dofNear);
+                _dofStateSet->getUniform("osgOcean_DOF_Far")->set(_dofFar);
         }
 
         inline float getDOFFar() const{
