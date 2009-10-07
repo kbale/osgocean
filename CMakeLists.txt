@@ -4,6 +4,22 @@
 
 cmake_minimum_required (VERSION 2.6 FATAL_ERROR)
 
+#--- Selects the type of build
+# Needs to be included before the project definition so that 
+# CMAKE_CONFIGURATION_TYPES is present in the cache when CMake runs
+OPTION(RELEASE_ONLY_BUILD "Create a release only build project." OFF)
+
+IF( RELEASE_ONLY_BUILD )
+	MESSAGE(STATUS "Creating a RELEASE ONLY build.")
+	SET(CMAKE_BUILD_TYPES "Release;MinSizeRel")
+ELSE()
+	MESSAGE(STATUS "Creating a debug and release build.")
+	SET(CMAKE_BUILD_TYPES "Debug;RelWithDebInfo;Release;MinSizeRel")
+ENDIF()
+
+#--- Set build types according to the selection above
+SET (CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPES}" CACHE STRING "" FORCE)
+
 project (osgOcean)
 
 SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${osgOcean_BINARY_DIR}/bin)
@@ -83,6 +99,8 @@ ELSE()
   # Error if none of the three is selected.
   MESSAGE("No FFT library selected, you will not be able to generate ocean surfaces.")
 ENDIF()
+
+
 
 # This option is to enable the /DYNAMICBASE switch
 # It is used to workaround a bug in Windows 7 when linking in release, which results in corrupt
