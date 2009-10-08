@@ -55,40 +55,27 @@ ADD_EXECUTABLE(
   ${HEADER_PATH}/SkyDome.h
   ${HEADER_PATH}/SphereSegment.h
 )
-IF( RELEASE_BUILD_ONLY )
-  TARGET_LINK_LIBRARIES(
-    oceanExample
 
-    osgOcean
-  
-    optimized ${OSG_LIBRARY}
-    optimized ${OSGGA_LIBRARY}
-    optimized ${OSGVIEWER_LIBRARY}
-    optimized ${OSGDB_LIBRARY}
-    optimized ${OSGTEXT_LIBRARY}
-  )
-ELSE()
-  TARGET_LINK_LIBRARIES(
-    oceanExample
+TARGET_LINK_LIBRARIES(
+  oceanExample
 
-    osgOcean
+  osgOcean
 
-    debug ${OSG_LIBRARY_DEBUG}
-    optimized ${OSG_LIBRARY}
+  debug ${OSG_LIBRARY_DEBUG}
+  optimized ${OSG_LIBRARY}
 
-    debug ${OSGGA_LIBRARY_DEBUG}
-    optimized ${OSGGA_LIBRARY}
+  debug ${OSGGA_LIBRARY_DEBUG}
+  optimized ${OSGGA_LIBRARY}
 
-    debug ${OSGVIEWER_LIBRARY_DEBUG}
-    optimized ${OSGVIEWER_LIBRARY}
+  debug ${OSGVIEWER_LIBRARY_DEBUG}
+  optimized ${OSGVIEWER_LIBRARY}
 
-    debug ${OSGDB_LIBRARY_DEBUG}
-    optimized ${OSGDB_LIBRARY}
-	
-	debug ${OSGTEXT_LIBRARY_DEBUG}
-    optimized ${OSGTEXT_LIBRARY}
-  )
-ENDIF()
+  debug ${OSGDB_LIBRARY_DEBUG}
+  optimized ${OSGDB_LIBRARY}
+
+  debug ${OSGTEXT_LIBRARY_DEBUG}
+  optimized ${OSGTEXT_LIBRARY}
+)
 
 INSTALL(
    TARGETS oceanExample
