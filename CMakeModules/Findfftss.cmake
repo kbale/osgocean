@@ -1,14 +1,17 @@
 FIND_PATH(
 	FFTSS_INCLUDE_DIR
 	NAMES fftw3compat.h
-	/usr/local/include
+	HINTS $ENV{FFTSS_DIR}/include
+	PATHS /usr/local/include
     /usr/include
 )
 
 FIND_LIBRARY(
 	FFTSS_LIBRARY
 	NAMES fftss libfftss
-	/usr/local/lib
+	HINTS $ENV{FFTSS_DIR}/lib/
+	HINTS $ENV{FFTSS_DIR}/lib/
+	PATHS /usr/local/lib
     /usr/lib
 )
 
