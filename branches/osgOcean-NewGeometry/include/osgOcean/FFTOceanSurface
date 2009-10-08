@@ -1,0 +1,495 @@
+/*
+* This source file is part of the osgOcean library
+* 
+* Copyright (C) 2009 Kim Bale
+* Copyright (C) 2009 The University of Hull, UK
+* 
+* This program is free software; you can redistribute it and/or modify it under
+* the terms of the GNU Lesser General Public License as published by the Free Software
+* Foundation; either version 3 of the License, or (at your option) any later
+* version.
+
+* This program is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+* FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+* http://www.gnu.org/copyleft/lesser.txt.
+*/
+
+#pragma once
+#include <osgOcean/Export>
+#include <osgOcean/OceanTechnique>
+#include <osgOcean/FFTSimulation>
+#include <osgOcean/MipmapGeometry> 
+#include <osgOcean/OceanTile> 
+
+#include <osg/Timer>
+#include <osg/Geometry>
+#include <osg/NodeCallback>
+#include <osgUtil/CullVisitor>
+#include <osg/TextureCubeMap>
+#include <osg/Texture2D>
+#include <osg/Program>
+#include <osg/TexMat>
+#include <osgDB/FileUtils>
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <osg/Notify>
+#include <osgDB/ReadFile>
+
+namespace osgOcean
+{
+    /** 
+    * Creates and manages the ocean surface geometry and rendering. 
+    * Uses a modified geomipmapping alogorithm to provide level of detail.
+    * LOD is managed automatically within the update and cull traversals.
+    */
+    class OSGOCEAN_EXPORT FFTOceanSurface : public OceanTechnique
+    {
+    private:
+        unsigned int _tileSize;             /**< Size of FFT grid 2^n ie 128,64,32 etc. */
+        unsigned int _noiseTileSize;        /**< Size of Noise FFT grid */
+        unsigned int _tileResolution;       /**< Size of tile in world width/height. */
+        float        _tileResInv;           /**< 1 / _tileResoltion; */
+        unsigned int _noiseTileRes;         /**< Size of noise tile in world width/height. */
+        unsigned int _numTiles;             /**< Number of tiles on width/height. */
+        unsigned int _totalPoints;          /**< Total number of points on width/height. */ 
+        float        _pointSpacing;         /**< Spacing between points in real world. */
+        osg::Vec2f   _windDirection;        /**< Direction of wind. */
+        osg::Vec2f   _noiseWindDir;         /**< Direction of wind for noise tile. */
+        float        _windSpeed;            /**< Wind speed m/s */
+        float        _noiseWindSpeed;       /**< Wind speed for noise tile m/s */
+        float        _waveScale;            /**< Wave scale modifier. */
+        float        _noiseWaveScale;       /**< Wave scale modifier for noise tile. */
+        float        _depth;                /**< Depth (m). */
+        float        _reflDampFactor;       /**< Dampen waves going against the wind */
+        float        _cycleTime;            /**< Time before the ocean tiles loop. */
+        float        _choppyFactor;         /**< Amount of chop to add. */
+        bool         _isChoppy;             /**< Enable choppy waves generation. */
+        bool         _isEndless;            /**< Set whether the ocean is of fixed size. */
+
+        osg::Vec2f   _startPos;             /**< Start position of the surface ( -half width, half height ). */
+        
+        const float  _THRESHOLD;            /**< Pixel threshold. */
+        const float  _VRES;                 /**< Vertical resolution. */
+        float        _C;                    /**< C constant. */
+        
+        unsigned int _numLevels;            /**< Number of mipmap levels. */
+        unsigned int _oldFrame;             /**< Last ocean frame number. */
+        unsigned int _numVertices;          /**< Total number of vertices in array. */
+        unsigned int _newNumVertices;       /**< Number of vertices after updateMipmaps is called */
+        
+        const unsigned int _NUMFRAMES;      /**< Number of frames in the animation cycle */
+
+        osg::Vec4f  _lightColor;            /**< Color of the sun */
+        osg::Vec3f  _waveTopColor;          /**< Color for the upwelling shading. */
+        osg::Vec3f  _waveBottomColor;       /**< Color for the upwelling shading. */
+        bool        _useCrestFoam;          /**< Crest foam flag. */
+        float       _foamCapTop;            /**< Maximum height for foam caps. */
+        float       _foamCapBottom;         /**< Minimum height for foam caps. */
+        float       _averageHeight;         /**< Average height over the total tiles. */
+        float       _fresnelMul;            /**< Fresnel multiplier uniform, typical values: (0.5-0.8). */
+
+        bool        _isStateDirty;
+
+        std::vector<float> _minDist;        /**< Minimum distances used for mipmap selection */
+
+        std::vector< std::vector<OceanTile> > _mipmapData;                            /**< Wave tile data. */
+        std::vector< std::vector< osg::ref_ptr<MipmapGeometry> > > _oceanGeom;        /**< Geometry tiles. */
+        
+        osg::ref_ptr<osg::Vec3Array> _activeVertices;       /**< Active vertex buffer. */
+        osg::ref_ptr<osg::Vec3Array> _activeNormals;        /**< Active normal buffer. */
+
+        osg::ref_ptr<osg::TextureCubeMap> _environmentMap;  /**< Cubemap used for refractions/reflections */
+
+        enum TEXTURE_UNITS{ ENV_MAP=0,REFLECT_MAP=1,REFRACT_MAP=2,NORMAL_MAP=3,FOG_MAP=4,FOAM_MAP=5 };
+
+    public:
+        FFTOceanSurface(unsigned int FFTGridSize,
+            unsigned int resolution,
+            unsigned int numTiles, 
+            const osg::Vec2f& windDirection,
+            float windSpeed,
+            float depth,
+            float reflectionDamping,
+            float waveScale,
+            bool isChoppy,
+            float choppyFactor,
+            float animLoopTime,
+            unsigned int numFrames );
+
+        FFTOceanSurface( const FFTOceanSurface& copy, 
+            const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY );
+
+        virtual const char* libraryName() const { return "osgOcean"; }
+        virtual const char* className() const { return "FFTOceanSurface"; }
+        virtual bool isSameKindAs(const osg::Object* obj) const { return dynamic_cast<const FFTOceanSurface*>(obj) != 0; }
+
+    protected:
+        ~FFTOceanSurface(void);
+
+        /** This class overrides OceanTechnique::EventHandler to provide 
+         *  support for manipulating this particular subclass of 
+         *  OceanTechnique. Note that the method signatures are identical, 
+         *  and that the FFTOceanSurface will be accessed through the base 
+         *  class OceanTechnique pointer.
+         */
+        class EventHandler : public OceanTechnique::EventHandler
+        {
+        public:
+            EventHandler(OceanTechnique* oceanSurface);
+            virtual bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object* object, osg::NodeVisitor* nv);
+            virtual void getUsage(osg::ApplicationUsage& usage) const;
+        protected:
+            bool _autoDirty;
+        };
+
+    public:
+        /**
+        * Checks for mipmap or frame changes and updates the geometry accordingly.
+        * Will rebuild state or geometry if found to be dirty.
+        */
+        void update( unsigned int frame, const double& dt, const osg::Vec3f& eye );
+
+        /**
+        * Sets up geometry and mipmaping data.
+        * Forces stateset rebuid.
+        */
+        void build( void );
+
+    private:
+        /**
+        * Add the default resource paths to osgDB::Registry.
+        * Checks if already present.
+        * paths: resources/textures and resources/shaders.
+        */
+        void addResourcePaths(void);
+
+        /**
+        * Creates ocean surface stateset. 
+        * Loads shaders and adds uniforms and textures;
+        */
+        void initStateSet( void );
+
+        /**
+        * Computes the ocean FFTs and stores vertices/normals for mipmap levels.
+        */
+        void computeSea( unsigned int totalFrames );
+
+        /**
+        * Sets up with the ocean surface with mipmap geometry.
+        */
+        void createOceanTiles( void );
+
+        /**
+        * Computes and assigns mipmap primitives to the geometry.
+        */
+        void computePrimitives( void );
+
+        /**
+        * Copies vertices needs for the tiles into _activeVertices array.
+        */
+        void computeVertices( unsigned int frame );
+        
+        /**
+        * Checks for any changes in mipmap resolution based on eye position.
+        * @return true if any updates have occured.
+        */
+        bool updateMipmaps( const osg::Vec3f& eye, unsigned int frame );
+
+        /**
+        * Adds primitives for main body of vertices.
+        */
+        void addMainBody( MipmapGeometry* cTile );
+
+        /**
+        * Adds primitives for the right skirt.
+        */
+        void addRightBorder ( MipmapGeometry* cTile, MipmapGeometry* xTile );
+
+        /**
+        * Adds primitives for the bottom skirt.
+        */
+        void addBottomBorder( MipmapGeometry* cTile, MipmapGeometry* yTile );
+
+        /**
+        * Adds primitives for the corner piece.
+        */
+        void addCornerPatch( MipmapGeometry* cTile, MipmapGeometry* xTile, MipmapGeometry* yTile, MipmapGeometry* xyTile );
+
+        /**
+        * Adds primitives for main body of the lowest resolution tile (2x2 vertices).
+        * This is a special case treated similar to a corner piece.
+        */
+        void addMaxDistMainBody( MipmapGeometry* cTile, MipmapGeometry* xTile, MipmapGeometry* yTile, MipmapGeometry* xyTile );
+
+        /**
+        * Adds primitives for edge of the lowest resolution tile (2x2 vertices).
+        */
+        void addMaxDistEdge( MipmapGeometry* cTile, MipmapGeometry* xTile, MipmapGeometry* yTile );
+
+        /**
+        * Compute noise coordinates for the fragment shader.
+        * @param noiseSize Size of noise tile (m).
+        * @param movement Number of tiles moved x,y.
+        * @param speed Speed of movement(m/s).
+        * @parem time Simulation Time.
+        */
+        osg::Vec3f computeNoiseCoords(float noiseSize, const osg::Vec2f& movement, float speed, float time);
+
+        /**
+        * Creates a custom DOT3 noise map for the ocean surface.
+        * This will execute an FFT to generate a height field from which the normal map is generated.
+        * Default behaviour is to create a normal map using the params from the ocean geometry setup.
+        */
+        osg::ref_ptr<osg::Texture2D> createNoiseMap( unsigned int FFTSize, 
+            const osg::Vec2f& windDir, 
+            float windSpeed, 
+            float waveScale,
+            float tileResolution );
+
+        /** 
+        * Convenience method for creating a Texture2D based on an image file path. 
+        */
+        osg::Texture2D* createTexture( const std::string& path, osg::Texture::WrapMode wrap );
+
+        /** 
+        * Convenience method for retrieving mipmap geometry from _oceanGeom. 
+        */
+        inline MipmapGeometry* getTile( unsigned int x, unsigned int y ){    
+            return _oceanGeom.at(y).at(x).get();
+        }
+
+        /** 
+        * Convenience method for loading the ocean shader. 
+        * @return NULL if shader files were not found
+        */
+        osg::Program* createShader(void);
+
+        /**
+        * Linear interpolation of 3 RGBA colors.
+        * @return interpolated color (vec4)
+        */
+        inline osg::Vec4f colorLerp (const osg::Vec4f& c0, const osg::Vec4f& c1, const osg::Vec4f& c2) const 
+        {
+            return osg::Vec4f(
+                c1[0]*(1-c0[0]) + c2[0]*c0[0],
+                c1[1]*(1-c0[1]) + c2[1]*c0[1],
+                c1[2]*(1-c0[2]) + c2[2]*c0[2],
+                c1[3]*(1-c0[3]) + c2[3]*c0[3]
+            );
+        }
+
+    // inline accessors/mutators
+    public:
+        inline void setEnvironmentMap( osg::TextureCubeMap* environmentMap ){
+            _environmentMap = environmentMap;
+            _isStateDirty = true;
+        }
+
+        inline void setWaveTopColor( const osg::Vec3f& color ){
+            _waveTopColor = color;
+            _isStateDirty = true;
+        }
+
+        inline void setWaveBottomColor( const osg::Vec3f& color ){
+            _waveBottomColor = color;
+            _isStateDirty = true;
+        }
+
+        inline void setLightColor( const osg::Vec4f& color ){
+            _lightColor = color;
+            _isStateDirty = true;
+        }
+
+        inline osg::Vec4f getLightColor() const{
+            return _lightColor;
+        }
+
+        inline void enableCrestFoam( bool enable ){
+            _useCrestFoam = enable;
+            _isStateDirty = true;
+        }
+
+        inline bool isCrestFoamEnabled() const{
+            return _useCrestFoam;
+        }
+
+        inline void setFoamBottomHeight( float height ){
+            _foamCapBottom = height;
+            _isStateDirty = true;
+        }
+
+        inline void setFoamTopHeight( float height ){
+            _foamCapTop = height;
+            _isStateDirty = true;
+        }
+
+        inline void setFresnelMultiplier( float mul ){
+            _fresnelMul = mul;
+            _isStateDirty = true;
+        }
+
+        /**
+        * Enable/Disable endless ocean.
+        * Dirties geometry by default, pass dirty=false to dirty yourself later.
+        */
+        inline void enableEndlessOcean( bool enable, bool dirty = true ){
+            _isEndless = enable;
+            if (dirty) _isDirty = true;
+        }
+
+        inline bool isEndlessOceanEnabled() const{
+            return _isEndless;
+        }
+
+        inline float getSurfaceHeight( void ) const {
+            return _averageHeight;
+        }
+
+        /**
+        * Enable/Disable choppy wave geometry.
+        * Dirties geometry by default, pass dirty=false to dirty yourself later.
+        */
+        inline void setIsChoppy(bool isChoppy, bool dirty = true){
+            _isChoppy = isChoppy;
+            if (dirty) _isDirty = true;
+        }
+
+        inline bool isChoppy(void) const{
+            return _isChoppy;
+        }
+
+        /**
+        * Change the choppy factor.
+        * Dirties geometry by default, pass dirty=false to dirty yourself later.
+        */
+        inline void setChoppyFactor(float choppyFactor, bool dirty = true){
+            _choppyFactor = choppyFactor;
+            if (dirty) _isDirty = true;
+        }
+
+        inline float getChoppyFactor() const{
+            return _choppyFactor;
+        }
+
+        /**
+        * Tweak the wave scale factor.
+        * Typically a very small value: ~1e-8.
+        * Dirties geometry by default, pass dirty=false to dirty yourself later.
+        */
+        inline void setWaveScaleFactor( float scale, bool dirty = true ){
+            _waveScale = scale;
+            if (dirty) _isDirty = true;
+        }
+
+        inline float getWaveScaleFactor( void ) const {
+            return _waveScale;
+        }
+
+        /**
+        * Change the wind direction.
+        * Dirties geometry by default, pass dirty=false to dirty yourself later.
+        */
+        inline void setWindDirection(const osg::Vec2f& windDir, bool dirty = true){
+            _windDirection = windDir;
+            if (dirty) _isDirty = true;
+        }
+
+        inline osg::Vec2f getWindDirection() const{
+            return _windDirection;
+        }
+
+        /**
+        * Change the wind speed.
+        * Dirties geometry by default, pass dirty=false to dirty yourself later.
+        */
+        inline void setWindSpeed(const float windSpeed, bool dirty = true){
+            _windSpeed = windSpeed;
+            if (dirty) _isDirty = true;
+        }
+
+        inline float getWindSpeed() const{
+            return _windSpeed;
+        }
+
+        inline void setDepth(const float depth, bool dirty = true){
+            _depth = depth;
+            if (dirty) _isDirty = true;
+        }
+
+        inline float getDepth() const{
+            return _depth;
+        }
+
+        /**
+        * Sets the parameters for a custom noise map for use in the fragment shader.
+        * @param FFTSize is the size of the FFT grid that will be used and thus the size of the resulting texture. Values must be 2^n.
+        * Dirties the stateset.
+        */
+        inline void setNoiseMapParams( unsigned int FFTSize, 
+            const osg::Vec2f& windDir, 
+            float windSpeed, 
+            float waveScale,
+            float tileResolution )
+        {
+            _noiseTileSize = FFTSize;
+            _noiseWindDir = windDir;
+            _noiseWindSpeed = windSpeed;
+            _noiseWaveScale = waveScale;
+            _noiseTileRes = tileResolution;
+            
+            _isStateDirty = true;
+        }
+
+        virtual OceanTechnique::EventHandler* getEventHandler()
+        {
+            if (!_eventHandler.valid())
+                 _eventHandler = new FFTOceanSurface::EventHandler(this);
+            return _eventHandler.get();
+        }
+
+    // -------------------------------
+    //     Callback declarations
+    // -------------------------------
+    protected:
+        /**
+        * Data structure to store data needed for animation callback.
+        */
+        class OSGOCEAN_EXPORT OceanDataType: public osg::Referenced
+        {
+        private:
+            osgOcean::FFTOceanSurface& _oceanSurface;
+            const unsigned int _NUMFRAMES;
+            osg::Vec3f _eye;
+            float _time;
+            const unsigned int _FPS;
+            float _msPerFrame;
+            unsigned int _frame;
+            osg::Timer_t _oldTime;
+            osg::Timer_t _newTime;
+
+        public:
+            OceanDataType(    FFTOceanSurface& ocean, unsigned int numFrames, unsigned int fps );
+            OceanDataType( const OceanDataType& copy, const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY );
+            
+            inline void setEye( const osg::Vec3f& eye ){ _eye = eye;    }
+            
+            /**
+            * @see FFTOceanSurface::update();
+            */
+            void updateOcean(void);
+        };
+
+        /**
+        * Cull/Update Animation callback.
+        */
+        class OSGOCEAN_EXPORT OceanAnimationCallback: public osg::NodeCallback
+        {
+        public:
+            virtual void operator()(osg::Node* node, osg::NodeVisitor* nv);
+        };
+};
+
+}// namespace
