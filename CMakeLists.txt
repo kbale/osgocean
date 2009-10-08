@@ -4,22 +4,6 @@
 
 cmake_minimum_required (VERSION 2.6 FATAL_ERROR)
 
-#--- Selects the type of build
-# Needs to be included before the project definition so that 
-# CMAKE_CONFIGURATION_TYPES is present in the cache when CMake runs
-OPTION(RELEASE_ONLY_BUILD "Create a release only build project." OFF)
-
-IF( RELEASE_ONLY_BUILD )
-	MESSAGE(STATUS "Creating a RELEASE ONLY build.")
-	SET(CMAKE_BUILD_TYPES "Release;MinSizeRel")
-ELSE()
-	MESSAGE(STATUS "Creating a debug and release build.")
-	SET(CMAKE_BUILD_TYPES "Debug;RelWithDebInfo;Release;MinSizeRel")
-ENDIF()
-
-#--- Set build types according to the selection above
-SET (CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPES}" CACHE STRING "" FORCE)
-
 project (osgOcean)
 
 SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${osgOcean_BINARY_DIR}/bin)
@@ -52,6 +36,30 @@ include_directories (${OSGTEXT_INCLUDE_DIR})
 
 find_package (OpenThreads REQUIRED)
 include_directories(${OPENTHREADS_INCLUDE_DIR})
+
+IF (NOT WIN32)
+  IF (NOT OSG_LIBRARY_DEBUG)
+    SET(OSG_LIBRARY_DEBUG ${OSG_LIBRARY})
+  ENDIF()
+  IF (NOT OSGDB_LIBRARY_DEBUG)
+    SET(OSGDB_LIBRARY_DEBUG ${OSGDB_LIBRARY})
+  ENDIF()
+  IF (NOT OSGGA_LIBRARY_DEBUG)
+    SET(OSGGA_LIBRARY_DEBUG ${OSGGA_LIBRARY})
+  ENDIF()
+  IF (NOT OSGVIEWER_LIBRARY_DEBUG)
+    SET(OSGVIEWER_LIBRARY_DEBUG ${OSGVIEWER_LIBRARY})
+  ENDIF()
+  IF (NOT OSGUTIL_LIBRARY_DEBUG)
+    SET(OSGUTIL_LIBRARY_DEBUG ${OSGUTIL_LIBRARY})
+  ENDIF()
+  IF (NOT OSGTEXT_LIBRARY_DEBUG)
+    SET(OSGTEXT_LIBRARY_DEBUG ${OSGTEXT_LIBRARY})
+  ENDIF()
+  IF (NOT OPENTHREADS_LIBRARY_DEBUG)
+    SET(OPENTHREADS_LIBRARY_DEBUG ${OPENTHREADS_LIBRARY})
+  ENDIF()
+ENDIF()
 
 find_package (OpenGL REQUIRED)
 include_directories (${OPENGL_INCLUDE_DIR})
