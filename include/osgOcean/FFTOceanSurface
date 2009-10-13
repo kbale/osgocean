@@ -344,9 +344,15 @@ namespace osgOcean
             return _isEndless;
         }
 
+        /// Returns the average height over the whole surface (in local space)
         inline float getSurfaceHeight( void ) const {
             return _averageHeight;
         }
+
+        /// Returns the height at the given point (in local space). If the 
+        /// address of a Vec3f is passed in the normal argument, the normal at
+        /// that position will be calculated and stored in it.
+        float getSurfaceHeightAt(float x, float y, osg::Vec3f* normal = NULL);
 
         /**
         * Enable/Disable choppy wave geometry.

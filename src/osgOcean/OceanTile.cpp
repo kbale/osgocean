@@ -278,7 +278,7 @@ void OceanTile::computeMaxDelta( void )
     }
 }
 
-float OceanTile::biLinearInterp(int lx, int hx, int ly, int hy, int tx, int ty ) 
+float OceanTile::biLinearInterp(int lx, int hx, int ly, int hy, int tx, int ty ) const
 {
     float s00 = getVertex(lx, ly).z();
     float s01 = getVertex(hx, ly).z();
@@ -292,6 +292,43 @@ float OceanTile::biLinearInterp(int lx, int hx, int ly, int hy, int tx, int ty )
     float value = (v1 - v0)/(hy - ly)*(ty - ly) + v0;
 
     return value;
+}
+
+float OceanTile::biLinearInterp(float x, float y ) const
+{
+    float dx = x/_spacing;
+    float dy = y/_spacing;
+    unsigned int ix = dx;
+    unsigned int iy = dy;
+    dx -= ix;
+    dy -= iy;
+
+    float s00 = getVertex(ix  , iy  ).z();
+    float s01 = getVertex(ix+1, iy  ).z();
+    float s10 = getVertex(ix  , iy+1).z();
+    float s11 = getVertex(ix+1, iy+1).z();
+
+    return s00*(1.f-dx)*(1.f-dy) + s01*dx*(1.f-dy) + s10*(1.f-dx)*dy +
+    s11*dx*dy;
+}
+
+osg::Vec3f OceanTile::normalBiLinearInterp(float x, float y ) const
+{
+    float dx = x / _spacing;
+    float dy = y / _spacing;
+
+    unsigned int ix = dx;
+    unsigned int iy = dy;
+
+    dx -= ix;
+    dy -= iy;
+
+    osg::Vec3f s00 = getNormal(ix,iy);
+    osg::Vec3f s01 = getNormal(ix + 1,iy);
+    osg::Vec3f s10 = getNormal(ix,iy + 1);
+    osg::Vec3f s11 = getNormal(ix + 1,iy + 1);
+
+    return s00*(1.f - dx)*(1.f-dy) + s01*dx*(1.f-dy) + s10*(1.f - dx)*dy + s11*dx*dy;
 }
 
 osg::ref_ptr<osg::Texture2D> OceanTile::createNormalMap( void ) 

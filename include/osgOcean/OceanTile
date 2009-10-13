@@ -122,6 +122,10 @@ namespace osgOcean
             return _averageHeight;
         }
 
+        float OceanTile::biLinearInterp(float x, float y ) const;
+
+        osg::Vec3f normalBiLinearInterp(float x, float y ) const;
+
     private:
 
         /** Compute normals for an N+2 x N+2 grid to ensure continuous normals around the edges.
@@ -141,7 +145,7 @@ namespace osgOcean
         * Not used at the moment.
         * @see computeMaxDelta();
         */
-        float biLinearInterp(int lx, int hx, int ly, int hy, int tx, int ty );
+        float biLinearInterp(int lx, int hx, int ly, int hy, int tx, int ty ) const;
 
         /** Convenience method for computing array position. */
         inline unsigned int array_pos( unsigned int x, unsigned int y, unsigned int rowLen )
