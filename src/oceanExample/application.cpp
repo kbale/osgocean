@@ -131,43 +131,69 @@ public:
 //               Camera Track Callback
 // ----------------------------------------------------
 
-class CameraTrackDataType: public osg::Referenced
-{
-private:
-    osg::Vec3f _eye;
-    osg::PositionAttitudeTransform& _pat;
-
-public:
-    CameraTrackDataType( osg::PositionAttitudeTransform& pat ):_pat(pat){};
-
-    inline void setEye( const osg::Vec3f& eye ){ _eye = eye; }
-
-    inline void update(void){
-        _pat.setPosition( osg::Vec3f(_eye.x(), _eye.y(), _pat.getPosition().z() ) );
-    }
-};
-
 class CameraTrackCallback: public osg::NodeCallback
 {
 public:
     virtual void operator()(osg::Node* node, osg::NodeVisitor* nv)
     {
-        osg::ref_ptr<CameraTrackDataType> data = dynamic_cast<CameraTrackDataType*> ( node->getUserData() );
-
         if( nv->getVisitorType() == osg::NodeVisitor::CULL_VISITOR )
         {
             osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(nv);
-            osg::Vec3f eye,centre,up;
-            cv->getCurrentCamera()->getViewMatrixAsLookAt(eye,centre,up);
-            data->setEye(eye);
+            osg::Vec3f centre,up;
+            cv->getCurrentCamera()->getViewMatrixAsLookAt(_eye,centre,up);
         }
         else if(nv->getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR ){
-            data->update();
+            osg::PositionAttitudeTransform* pat = dynamic_cast<osg::PositionAttitudeTransform*>(node);
+            pat->setPosition( osg::Vec3f(_eye.x(), _eye.y(), pat->getPosition().z() ) );
         }
 
         traverse(node, nv); 
     }
+
+    osg::Vec3f _eye;
 };
+
+
+class BoatPositionCallback : public osg::NodeCallback
+{
+public: 
+    BoatPositionCallback(osgOcean::OceanScene* oceanScene)
+        : _oceanScene(oceanScene) {}
+
+    virtual void operator()(osg::Node* node, osg::NodeVisitor* nv)
+    {
+        if(nv->getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR ){
+            osg::MatrixTransform* mt = dynamic_cast<osg::MatrixTransform*>(node);
+            if (!mt || !_oceanScene.valid()) return;
+
+            osg::Matrix mat = osg::computeLocalToWorld(nv->getNodePath());
+            osg::Vec3d pos = mat.getTrans();
+
+            osg::Vec3f normal;
+            // Get the ocean surface height at the object's position, note
+            // that this only considers one point on the object (the object's
+            // geometric center) and not the whole object.
+            float height = _oceanScene->getOceanSurfaceHeightAt(pos.x(), pos.y(), &normal);
+
+            mat.makeTranslate(osg::Vec3f(pos.x(), pos.y(), height));
+
+            osg::Matrix rot;
+            rot.makeIdentity();
+            rot.makeRotate( normal.x(), osg::Vec3f(1.0f, 0.0f, 0.0f), 
+                            normal.y(), osg::Vec3f(0.0f, 1.0f, 0.0f),
+                            (1.0f-normal.z()), osg::Vec3f(0.0f, 0.0f, 1.0f));
+
+            mat = rot*mat;
+            mt->setMatrix(mat);
+        }
+
+        traverse(node, nv); 
+    }
+
+    osg::observer_ptr<osgOcean::OceanScene> _oceanScene;
+};
+
+
 
 // ----------------------------------------------------
 //                  Scoped timer
@@ -334,7 +360,7 @@ public:
                 _oceanScene->enableGodRays(true);
                 _oceanScene->enableSilt(true);
                 _oceanScene->enableUnderwaterDOF(true);
-				_oceanScene->enableDistortion(true);
+                _oceanScene->enableDistortion(true);
                 _oceanScene->enableGlare(true);
                 _oceanScene->setGlareAttenuation(0.8f);
 
@@ -347,7 +373,6 @@ public:
                 osg::PositionAttitudeTransform* pat = new osg::PositionAttitudeTransform;
                 pat->setDataVariance( osg::Object::DYNAMIC );
                 pat->setPosition( osg::Vec3f(0.f, 0.f, 0.f) );
-                pat->setUserData( new CameraTrackDataType(*pat) );
                 pat->setUpdateCallback( new CameraTrackCallback );
                 pat->setCullCallback( new CameraTrackCallback );
                 
@@ -666,6 +691,7 @@ int main(int argc, char *argv[])
     arguments.getApplicationUsage()->addCommandLineOption("--choppyFactor <factor>","How choppy the waves are. Default: 2.5");
     arguments.getApplicationUsage()->addCommandLineOption("--crestFoamHeight <height>","How high the waves need to be before foam forms on the crest. Default: 2.2 ");
     arguments.getApplicationUsage()->addCommandLineOption("--oceanSurfaceHeight <z>","Z position of the ocean surface in world coordinates. Default: 0.0");
+    arguments.getApplicationUsage()->addCommandLineOption("--testCollision","Test ocean surface collision detection by making a boat float on its surface.");
 
     unsigned int helpType = 0;
     if ((helpType = arguments.readHelpType()))
@@ -711,6 +737,9 @@ int main(int argc, char *argv[])
     double oceanSurfaceHeight = 0.0f;
     while (arguments.read("--oceanSurfaceHeight", oceanSurfaceHeight));
 
+    bool testCollision = false;
+    if (arguments.read("--testCollision")) testCollision = true;
+
     osg::ref_ptr<osg::Node> loadedModel = osgDB::readNodeFiles(arguments);
 
     // any option left unread are converted into errors to write out later.
@@ -730,6 +759,7 @@ int main(int argc, char *argv[])
     osg::ref_ptr<TextHUD> hud = new TextHUD;
 
     osg::ref_ptr<SceneModel> scene = new SceneModel(windDirection, windSpeed, depth, reflectionDamping, scale, isChoppy, choppyFactor, crestFoamHeight);
+    scene->getOceanScene()->setOceanSurfaceHeight(oceanSurfaceHeight);
     viewer.addEventHandler(scene->getOceanSceneEventHandler());
     viewer.addEventHandler(scene->getOceanSurface()->getEventHandler());
 
@@ -743,10 +773,24 @@ int main(int argc, char *argv[])
     if (loadedModel.valid())
     {
         loadedModel->setNodeMask( scene->getOceanScene()->getNormalSceneMask() | 
-                                scene->getOceanScene()->getReflectedSceneMask() | 
-                                scene->getOceanScene()->getRefractedSceneMask() );
+                                  scene->getOceanScene()->getReflectedSceneMask() | 
+                                  scene->getOceanScene()->getRefractedSceneMask() );
         scene->getOceanScene()->addChild(loadedModel.get());
-        scene->getOceanScene()->setOceanSurfaceHeight(oceanSurfaceHeight);
+    }
+
+    if (testCollision)
+    {
+        osg::ref_ptr<osg::Node> boat = osgDB::readNodeFile("resources/boat.3ds");
+        boat->setNodeMask( scene->getOceanScene()->getNormalSceneMask() | 
+                           scene->getOceanScene()->getReflectedSceneMask() | 
+                           scene->getOceanScene()->getRefractedSceneMask() );
+
+        osg::ref_ptr<osg::MatrixTransform> boatTransform = new osg::MatrixTransform;
+        boatTransform->addChild(boat.get());
+        boatTransform->setMatrix(osg::Matrix::translate(osg::Vec3f(0.0f, 160.0f,0.0f)));
+        boatTransform->setUpdateCallback( new BoatPositionCallback(scene->getOceanScene()) );
+
+        scene->getOceanScene()->addChild(boatTransform.get());   
     }
 
     viewer.setSceneData( root );
