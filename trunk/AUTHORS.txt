@@ -13,3 +13,5 @@ Contributors:
 -------------
 Jean-Sébastien Guay - CM-Labs Simulations Inc. - http://www.vxsim.com/
 Ulrich Hertlein
+Jan Ciger
+Dimitrios Filiagos
