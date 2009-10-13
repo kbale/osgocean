@@ -369,7 +369,7 @@ void OceanScene::init( void )
             _surfaceStateSet->setTextureAttributeAndModes( _reflectionUnit, reflectionTexture.get(), osg::StateAttribute::ON );
 
             osg::ClipPlane* reflClipPlane = new osg::ClipPlane(0);
-            reflClipPlane->setClipPlane( 0.0, 0.0, 1.0, -getOceanSurfaceHeight() + _oceanSurface->getSurfaceHeight() );
+            reflClipPlane->setClipPlane( 0.0, 0.0, 1.0, -getOceanSurfaceHeight() );
             _reflectionClipNode = new osg::ClipNode;
             _reflectionClipNode->addClipPlane( reflClipPlane );
 
@@ -392,7 +392,7 @@ void OceanScene::init( void )
         {
             osg::TextureRectangle* godRayTexture = createTextureRectangle( _screenDims/2, GL_RGB );
 
-            _godrays = new GodRays(10,_sunDirection, getOceanSurfaceHeight() + _oceanSurface->getSurfaceHeight() );
+            _godrays = new GodRays(10,_sunDirection, getOceanSurfaceHeight() );
             
             _godrayPreRender=renderToTexturePass( godRayTexture );
             _godrayPreRender->setClearColor( osg::Vec4(0.0745098, 0.10588235, 0.1529411, 1.0) );
@@ -509,7 +509,7 @@ void OceanScene::init( void )
             silt->setNodeMask(_siltMask);
 
             osg::ClipPlane* siltClipPlane = new osg::ClipPlane(1);
-            siltClipPlane->setClipPlane( 0.0, 0.0, -1.0, -getOceanSurfaceHeight() + _oceanSurface->getSurfaceHeight() );
+            siltClipPlane->setClipPlane( 0.0, 0.0, -1.0, -getOceanSurfaceHeight() );
 
             _siltClipNode = new osg::ClipNode;
             _siltClipNode->addClipPlane( siltClipPlane );
@@ -592,7 +592,7 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bo
     // Above water
     if( eyeAboveWater )
     {
-        bool reflectionVisible = cv.getEyePoint().z() < _eyeHeightReflectionCutoff;
+        bool reflectionVisible = cv.getEyePoint().z() < _eyeHeightReflectionCutoff - getOceanSurfaceHeight();
         _surfaceStateSet->getUniform("osgOcean_EnableReflections")->set(reflectionVisible);
 
         // Render reflection if ocean surface is visible.
@@ -623,7 +623,7 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bo
     // Below water
     else
     {
-        bool refractionVisible = cv.getEyePoint().z() > _eyeHeightRefractionCutoff;
+        bool refractionVisible = cv.getEyePoint().z() > _eyeHeightRefractionCutoff - getOceanSurfaceHeight();
         _surfaceStateSet->getUniform("osgOcean_EnableRefractions")->set(refractionVisible);
 
         // Render refraction if ocean surface is visible.
@@ -738,7 +738,7 @@ void OceanScene::cull(osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surface
 
 bool OceanScene::isEyeAboveWater( const osg::Vec3& eye )
 {
-    return (eye.z() >= getOceanSurfaceHeight() + _oceanSurface->getSurfaceHeight() );
+    return (eye.z() >= getOceanSurfaceHeight());
 }
 
 

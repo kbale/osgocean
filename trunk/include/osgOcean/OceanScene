@@ -1,9 +1,9 @@
 /*
 * This source file is part of the osgOcean library
-* 
+*
 * Copyright (C) 2009 Kim Bale
 * Copyright (C) 2009 The University of Hull, UK
-* 
+*
 * This program is free software; you can redistribute it and/or modify it under
 * the terms of the GNU Lesser General Public License as published by the Free Software
 * Foundation; either version 3 of the License, or (at your option) any later
@@ -71,10 +71,10 @@ namespace osgOcean
         float _aboveWaterFogDensity;
         osg::Vec4f _aboveWaterFogColor;
 
-		  float _underwaterFogDensity;
-		  osg::Vec4f _underwaterFogColor;
+          float _underwaterFogDensity;
+          osg::Vec4f _underwaterFogColor;
         osg::Vec4f _underwaterDiffuse;
-		  osg::Vec3f _underwaterAttenuation;
+          osg::Vec3f _underwaterAttenuation;
 
         osg::Vec3f _sunDirection;
 
@@ -129,8 +129,8 @@ namespace osgOcean
         virtual const char* className() const { return "OceanScene"; }
         virtual bool isSameKindAs(const osg::Object* obj) const { return dynamic_cast<const OceanScene*>(obj) != 0; }
 
-        /** Sets up statesets and render passes based on current settings 
-          * Called in the update traversal if dirty flag is set. 
+        /** Sets up statesets and render passes based on current settings
+          * Called in the update traversal if dirty flag is set.
           */
         void init( void );
 
@@ -138,12 +138,19 @@ namespace osgOcean
         bool isEyeAboveWater( const osg::Vec3& eye );
 
         void setOceanSurfaceHeight(double height){
-            _oceanTransform->setMatrix(osg::Matrix::translate(0,0,height));
+            _oceanTransform->setMatrix(osg::Matrix::translate(0,0,height - _oceanSurface->getSurfaceHeight()));
             _isDirty = true;
         }
 
         double getOceanSurfaceHeight() const{
-            return _oceanTransform->getMatrix().getTrans().z();
+            return _oceanTransform->getMatrix().getTrans().z() + 
+                   _oceanSurface->getSurfaceHeight();
+        }
+
+        float getOceanSurfaceHeightAt(float x, float y, osg::Vec3* normal = 0)
+        {
+            return _oceanTransform->getMatrix().getTrans().z() + 
+                   _oceanSurface->getSurfaceHeightAt(x, y, normal);
         }
 
         void setOceanVisible(bool visible){
@@ -243,7 +250,7 @@ namespace osgOcean
         */
         inline void enableUnderwaterDOF( bool enable ){
             _enableDOF = enable;
-            
+
             if(enable)
                 _enableDefaultShader = true;
 
@@ -256,7 +263,7 @@ namespace osgOcean
 
         /** Set near DOF blur distance.
           * Updates the uniform is DOF state is valid.
-          */        
+          */
         inline void setDOFNear( float dofNear ) {
             _dofNear = dofNear;
 
@@ -268,9 +275,9 @@ namespace osgOcean
             return _dofNear;
         }
 
-        /** Set far DOF blur distance 
+        /** Set far DOF blur distance
           * Updates the uniform is DOF state is valid.
-          */        
+          */
         inline void setDOFFar( float dofFar ) {
             _dofFar = dofFar;
 
@@ -298,7 +305,7 @@ namespace osgOcean
 
         /** Set DOF focal distance.
           * Updates the uniform is dof state is valid.
-          */        
+          */
         inline void setDOFFocalDistance( float focus ){
             _dofFocus = focus;
 
@@ -316,7 +323,7 @@ namespace osgOcean
         inline void enableGlare( bool flag )
         {
             _enableGlare = flag;
-            
+
             if(flag)
                 _enableDefaultShader = true;
 
@@ -330,7 +337,7 @@ namespace osgOcean
         /** Set the luminance threshold for glare.
           * Luminance value at which glare appears.
           * Typical range: 0.75 < threshold < 1.0
-          */    
+          */
         inline void setGlareThreshold( float threshold )
         {
             _glareThreshold = threshold;
@@ -343,7 +350,7 @@ namespace osgOcean
 
         /** Set the glare attenuation.
         * Controls the rate at which the glare drops off.
-        * Typical range: 0.75 < attenuation < 0.95 
+        * Typical range: 0.75 < attenuation < 0.95
         */
         inline void setGlareAttenuation( float attenuation )
         {
@@ -377,8 +384,8 @@ namespace osgOcean
             return _enableUnderwaterScattering;
         }
 
-        inline void setOceanTechnique( OceanTechnique* surface ){ 
-            
+        inline void setOceanTechnique( OceanTechnique* surface ){
+
             if( _oceanSurface.valid() )
                 _oceanTransform->removeChild( _oceanSurface.get() );
 
@@ -428,7 +435,7 @@ namespace osgOcean
             _underwaterFogDensity = density;
             _underwaterFogColor = color;
             _oceanCylinder->setColor(_underwaterFogColor);
-            
+
             const float LOG2E = 1.442695;
             if( _globalStateSet.valid() ){
                 _globalStateSet->getUniform("osgOcean_UnderwaterFogDensity")->set(-_underwaterFogDensity*_underwaterFogDensity*LOG2E);
@@ -477,8 +484,8 @@ namespace osgOcean
         }
 
         /** Changes the color of diffuse light used underwater.
-		  * @note Should be computing this from physical calculations. For the moment this is tweaked by hand.
-		  * see: http://citeseer.ist.psu.edu/cache/papers/cs/26265/http:zSzzSzwww.cs.sunysb.eduzSz~ashzSzwaterCGF.pdf/
+          * @note Should be computing this from physical calculations. For the moment this is tweaked by hand.
+          * see: http://citeseer.ist.psu.edu/cache/papers/cs/26265/http:zSzzSzwww.cs.sunysb.eduzSz~ashzSzwaterCGF.pdf/
         */
         void setUnderwaterDiffuse( const osg::Vec4f& diffuse )
         {
@@ -497,7 +504,7 @@ namespace osgOcean
         */
         void setUnderwaterAttenuation( const osg::Vec3f& attenuation )
         {
-	        _underwaterAttenuation = attenuation;
+            _underwaterAttenuation = attenuation;
             _isDirty = true;
         }
 
@@ -506,7 +513,7 @@ namespace osgOcean
             return _underwaterAttenuation;
         }
 
-        /** Override the default scene shader for custom shaders. 
+        /** Override the default scene shader for custom shaders.
         * If custom shaders are required for individual nodes add them before adding to the OceanScene.
         * Dirties state.
         */
@@ -542,11 +549,11 @@ namespace osgOcean
             osgDB::Registry::instance()->getDataFilePathList().push_back(path);
         }
 
-        /** Base class for the OceanScene event handler. Subclasses of 
-         *  OceanScene can subclass this to provide support for 
+        /** Base class for the OceanScene event handler. Subclasses of
+         *  OceanScene can subclass this to provide support for
          *  manipulating their particular properties, calling the base class
          *  handle() to inherit the base class's events (or not as desired).
-         *  If subclasses subclass this handler, they need to override 
+         *  If subclasses subclass this handler, they need to override
          *  getEventHandler() in order for it to return the right concrete
          *  event handler instance.
          */
@@ -560,7 +567,7 @@ namespace osgOcean
             OceanScene* _oceanScene;
         };
 
-        /** Virtual constructor for OceanScene::EventHandler - override in 
+        /** Virtual constructor for OceanScene::EventHandler - override in
          * derived classes to return subclass-specific handler if needed.
          */
         virtual EventHandler* getEventHandler()
@@ -580,10 +587,10 @@ namespace osgOcean
           * Renders main scene, surface, silt.
           */
         void cull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surfaceVisible );
-        
+
         /** Render to texture passes for reflection/refractions/god rays. */
         void preRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surfaceVisible );
-        
+
         /** Post render passes for DOF/god rays. */
         void postRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surfaceVisible );
 
@@ -603,12 +610,12 @@ namespace osgOcean
 
         /** Combine original FBO with downsampled blur image. */
         osg::Camera* dofCombinerPass( osg::TextureRectangle* fullscreenTexture, osg::TextureRectangle* blurTexture, osg::TextureRectangle* outputTexture );
-        
+
         /** Post render pass displays combined DOF buffer */
         osg::Camera* dofFinalPass( osg::TextureRectangle* combinedTexture );
 
         /** Post render pass blends glare texture into main */
-        osg::Camera* glareCombinerPass( 
+        osg::Camera* glareCombinerPass(
             osg::TextureRectangle* fullscreenTexture,
             osg::TextureRectangle* glareTexture1,
             osg::TextureRectangle* glareTexture2,
@@ -616,14 +623,14 @@ namespace osgOcean
             osg::TextureRectangle* glareTexture4  );
 
         /** Pre render pass adds streak filter to image */
-        osg::Camera* glarePass(osg::TextureRectangle* streakInput, 
-            osg::TextureRectangle* steakOutput, 
-            int pass, 
+        osg::Camera* glarePass(osg::TextureRectangle* streakInput,
+            osg::TextureRectangle* steakOutput,
+            int pass,
             osg::Vec2f direction );
 
         /** Sets up a camera for a render to FBO pass. */
         osg::Camera* renderToTexturePass( osg::Texture* textureBuffer );
-        
+
         /** Create geometry for a screen aligned quad. */
         osg::Geode* createScreenQuad( const osg::Vec2s& dims, const osg::Vec2s& texSize );
 

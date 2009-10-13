@@ -447,6 +447,43 @@ void FFTOceanSurface::update( unsigned int frame, const double& dt, const osg::V
     _oldFrame = frame;
 }
 
+float FFTOceanSurface::getSurfaceHeightAt(float x, float y, osg::Vec3f* normal)
+{
+    if(_isDirty)
+        build();
+
+    // ocean surface coordinates
+    float oceanX, oceanY;
+
+    // translate x, y to oceanSurface origin coordinates
+    oceanX = -_startPos.x() + x;
+    oceanY =  _startPos.y() - y;
+
+    // calculate the corresponding tile on the ocean surface
+    unsigned int ix = oceanX/_tileResolution;
+    unsigned int iy = oceanY/_tileResolution;
+
+    unsigned int frame = _oldFrame;
+
+    // Test if the tile is valid 
+    if(ix < _numTiles && iy < _numTiles)
+    {
+        const OceanTile& data = _mipmapData[_oldFrame][0];
+
+        float tile_x = oceanX - ix * _tileResolution;
+        float tile_y = oceanY - iy * _tileResolution;
+
+        if (normal != 0)
+        {
+            *normal = data.normalBiLinearInterp(tile_x, tile_y);
+        }
+
+        return data.biLinearInterp(tile_x, tile_y);
+    }
+
+    return 0.0f;
+}
+
 bool FFTOceanSurface::updateMipmaps( const osg::Vec3f& eye, unsigned int frame )
 {
     static unsigned int count = 0;
