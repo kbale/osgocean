@@ -30,6 +30,7 @@ namespace osgOcean
     private:
         typedef std::map<const std::string, std::string> GlobalDefinitions;
         GlobalDefinitions _globalDefinitions;
+        bool _shadersEnabled;
 
     public:
         static ShaderManager& instance();
@@ -58,6 +59,11 @@ namespace osgOcean
                                             const std::string& vertexSrc, 
                                             const std::string& fragmentSrc, 
                                             bool loadFromFiles );
+
+        /// Check if shaders are globally enabled or not.
+        bool areShadersEnabled() const { return _shadersEnabled; }
+        /// Globally enable or disable shaders for osgOcean.
+        void enableShaders(bool enable) { _shadersEnabled = enable; }
 
     private:
         // private so clients can't call it, they have to call instance().

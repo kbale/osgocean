@@ -60,6 +60,8 @@ osg::Shader* readShader(const std::string& filename)
 }
 
 ShaderManager::ShaderManager()
+    : _globalDefinitions()
+    , _shadersEnabled(true)
 {
 }
 
@@ -90,6 +92,9 @@ osg::Program* ShaderManager::createProgram( const std::string& name,
                                             const std::string& fragmentSrc, 
                                             bool loadFromFiles )
 {
+    if (!_shadersEnabled)
+        return new osg::Program;
+
     osg::ref_ptr<osg::Shader> vShader = 0;
     osg::ref_ptr<osg::Shader> fShader = 0;
 

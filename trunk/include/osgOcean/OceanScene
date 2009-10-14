@@ -71,10 +71,10 @@ namespace osgOcean
         float _aboveWaterFogDensity;
         osg::Vec4f _aboveWaterFogColor;
 
-          float _underwaterFogDensity;
-          osg::Vec4f _underwaterFogColor;
+        float _underwaterFogDensity;
+        osg::Vec4f _underwaterFogColor;
         osg::Vec4f _underwaterDiffuse;
-          osg::Vec3f _underwaterAttenuation;
+        osg::Vec3f _underwaterAttenuation;
 
         osg::Vec3f _sunDirection;
 
@@ -98,6 +98,9 @@ namespace osgOcean
         osg::ref_ptr<GodRays> _godrays;
         osg::ref_ptr<osg::ClipNode> _siltClipNode;
         osg::ref_ptr<osg::ClipNode> _reflectionClipNode;
+
+        osg::ref_ptr<osg::Fog> _fog;
+        bool _eyeAboveWaterPreviousFrame;
 
         unsigned int _reflectionSceneMask;
         unsigned int _refractionSceneMask;

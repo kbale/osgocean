@@ -88,7 +88,9 @@ OceanScene::OceanScene( void ):
     _eyeHeightReflectionCutoff( FLT_MAX),
     _eyeHeightRefractionCutoff(-FLT_MAX),
     _oceanTransform(new osg::MatrixTransform),
-    _oceanCylinder(new Cylinder(1900.f, 3999.8f, 16, false, true))
+    _oceanCylinder(new Cylinder(1900.f, 3999.8f, 16, false, true)),
+    _fog(new osg::Fog),
+    _eyeAboveWaterPreviousFrame(true)
 {
     //-----------------------------------------------------------------------
     // _oceanCylinder follows the camera underwater, so that the clear
@@ -169,7 +171,9 @@ OceanScene::OceanScene( OceanTechnique* technique ):
     _eyeHeightReflectionCutoff( FLT_MAX),
     _eyeHeightRefractionCutoff(-FLT_MAX),
     _oceanTransform(new osg::MatrixTransform),
-    _oceanCylinder(new Cylinder(1900.f, 3999.8f, 16, false, true))
+    _oceanCylinder(new Cylinder(1900.f, 3999.8f, 16, false, true)),
+    _fog(new osg::Fog),
+    _eyeAboveWaterPreviousFrame(true)
 {
     //-----------------------------------------------------------------------
     // _oceanCylinder follows the camera underwater, so that the clear
@@ -268,7 +272,9 @@ OceanScene::OceanScene( const OceanScene& copy, const osg::CopyOp& copyop ):
     _eyeHeightReflectionCutoff( copy._eyeHeightReflectionCutoff ),
     _eyeHeightRefractionCutoff( copy._eyeHeightRefractionCutoff ),
     _oceanTransform        ( copy._oceanTransform ),
-    _oceanCylinder         ( copy._oceanCylinder )
+    _oceanCylinder         ( copy._oceanCylinder ),
+    _fog                   (copy._fog),
+    _eyeAboveWaterPreviousFrame(copy._eyeAboveWaterPreviousFrame)
 {
 }
 
@@ -329,6 +335,11 @@ void OceanScene::init( void )
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_AboveWaterFogDensity", -_aboveWaterFogDensity*_aboveWaterFogDensity*LOG2E ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterDiffuse", _underwaterDiffuse ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterAttenuation", _underwaterAttenuation ) );
+
+        _fog->setMode(osg::Fog::EXP2);
+        _fog->setDensity(_aboveWaterFogDensity);
+        _fog->setColor(_aboveWaterFogColor);
+        _globalStateSet->setAttributeAndModes(_fog.get(), osg::StateAttribute::ON);
 
         if(_enableDefaultShader)
         {
@@ -538,6 +549,15 @@ void OceanScene::traverse( osg::NodeVisitor& nv )
             else
             {
                 bool eyeAboveWater  = isEyeAboveWater(cv->getEyePoint());
+
+                // Switch the fog state from underwater to above water or vice versa if necessary.
+                if (_eyeAboveWaterPreviousFrame != eyeAboveWater)
+                {
+                    _fog->setDensity(eyeAboveWater ? _aboveWaterFogDensity : _underwaterFogDensity);
+                    _fog->setColor(eyeAboveWater ? _aboveWaterFogColor : _underwaterFogColor);
+                    _eyeAboveWaterPreviousFrame = eyeAboveWater;
+                }
+
                 bool surfaceVisible = _oceanSurface->isVisible(*cv, eyeAboveWater);
 
                 (*_oceanSurface->getCullCallback())(_oceanSurface.get(), &nv);
