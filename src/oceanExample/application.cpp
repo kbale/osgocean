@@ -689,6 +689,7 @@ int main(int argc, char *argv[])
     arguments.getApplicationUsage()->addCommandLineOption("--crestFoamHeight <height>","How high the waves need to be before foam forms on the crest. Default: 2.2 ");
     arguments.getApplicationUsage()->addCommandLineOption("--oceanSurfaceHeight <z>","Z position of the ocean surface in world coordinates. Default: 0.0");
     arguments.getApplicationUsage()->addCommandLineOption("--testCollision","Test ocean surface collision detection by making a boat float on its surface.");
+    arguments.getApplicationUsage()->addCommandLineOption("--disableShaders","Disable use of shaders for the whole application. Also disables most visual effects as they depend on shaders.");
 
     unsigned int helpType = 0;
     if ((helpType = arguments.readHelpType()))
@@ -737,6 +738,9 @@ int main(int argc, char *argv[])
     bool testCollision = false;
     if (arguments.read("--testCollision")) testCollision = true;
 
+    bool disableShaders = false;
+    if (arguments.read("--disableShaders")) disableShaders = true;
+
     osg::ref_ptr<osg::Node> loadedModel = osgDB::readNodeFiles(arguments);
 
     // any option left unread are converted into errors to write out later.
@@ -755,7 +759,28 @@ int main(int argc, char *argv[])
     viewer.addEventHandler( new osgViewer::StatsHandler );
     osg::ref_ptr<TextHUD> hud = new TextHUD;
 
+    osgOcean::ShaderManager::instance().enableShaders(!disableShaders);
     osg::ref_ptr<SceneModel> scene = new SceneModel(windDirection, windSpeed, depth, reflectionDamping, scale, isChoppy, choppyFactor, crestFoamHeight);
+    
+    if (disableShaders)
+    {
+        // Disable all special effects that depend on shaders.
+
+        // These depend on fullscreen RTT passes and shaders to do their effects.
+        scene->getOceanScene()->enableDistortion(false);
+        scene->getOceanScene()->enableGlare(false);
+        scene->getOceanScene()->enableUnderwaterDOF(false);
+
+        // These are only implemented in the shader, with no fixed-pipeline equivalent
+        scene->getOceanScene()->enableUnderwaterScattering(false);
+        // For these two, we might be able to use projective texturing so it would
+        // work on the fixed pipeline?
+        scene->getOceanScene()->enableReflections(false);
+        scene->getOceanScene()->enableRefractions(false);
+        scene->getOceanScene()->enableGodRays(false);  // Could be done in fixed pipeline?
+        scene->getOceanScene()->enableSilt(false);     // Could be done in fixed pipeline?
+    }
+
     scene->getOceanScene()->setOceanSurfaceHeight(oceanSurfaceHeight);
     viewer.addEventHandler(scene->getOceanSceneEventHandler());
     viewer.addEventHandler(scene->getOceanSurface()->getEventHandler());
