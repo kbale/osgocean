@@ -439,6 +439,13 @@ namespace osgOcean
             _underwaterFogColor = color;
             _oceanCylinder->setColor(_underwaterFogColor);
 
+            if (!_eyeAboveWaterPreviousFrame)
+            {
+                // Only set the fog color if we're currently underwater.
+                _fog->setColor(color);
+                _fog->setDensity(density);
+            }
+
             const float LOG2E = 1.442695;
             if( _globalStateSet.valid() ){
                 _globalStateSet->getUniform("osgOcean_UnderwaterFogDensity")->set(-_underwaterFogDensity*_underwaterFogDensity*LOG2E);
@@ -466,6 +473,13 @@ namespace osgOcean
         {
             _aboveWaterFogDensity = density;
             _aboveWaterFogColor = color;
+
+            if (_eyeAboveWaterPreviousFrame)
+            {
+                // Only set the fog color if we're currently above water.
+                _fog->setColor(color);
+                _fog->setDensity(density);
+            }
 
             const float LOG2E = 1.442695;
             if( _globalStateSet.valid() ){
