@@ -139,18 +139,16 @@ public:
         if( nv->getVisitorType() == osg::NodeVisitor::CULL_VISITOR )
         {
             osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(nv);
-            osg::Vec3f centre,up;
-            cv->getCurrentCamera()->getViewMatrixAsLookAt(_eye,centre,up);
-        }
-        else if(nv->getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR ){
-            osg::PositionAttitudeTransform* pat = dynamic_cast<osg::PositionAttitudeTransform*>(node);
-            pat->setPosition( osg::Vec3f(_eye.x(), _eye.y(), pat->getPosition().z() ) );
+            osg::Vec3f centre,up,eye;
+            // get MAIN camera eye,centre,up
+            cv->getRenderStage()->getCamera()->getViewMatrixAsLookAt(eye,centre,up);
+            // update position
+            osg::MatrixTransform* mt = static_cast<osg::MatrixTransform*>(node);
+            mt->setMatrix( osg::Matrix::translate( eye.x(), eye.y(), mt->getMatrix().getTrans().z() ) );
         }
 
         traverse(node, nv); 
     }
-
-    osg::Vec3f _eye;
 };
 
 
@@ -370,15 +368,14 @@ public:
                 _skyDome->setNodeMask( _oceanScene->getReflectedSceneMask() | _oceanScene->getNormalSceneMask() );
 
                 // add a pat to track the camera
-                osg::PositionAttitudeTransform* pat = new osg::PositionAttitudeTransform;
-                pat->setDataVariance( osg::Object::DYNAMIC );
-                pat->setPosition( osg::Vec3f(0.f, 0.f, 0.f) );
-                pat->setUpdateCallback( new CameraTrackCallback );
-                pat->setCullCallback( new CameraTrackCallback );
+                osg::MatrixTransform* transform = new osg::MatrixTransform;
+                transform->setDataVariance( osg::Object::DYNAMIC );
+                transform->setMatrix( osg::Matrixf::translate( osg::Vec3f(0.f, 0.f, 0.f) ));
+                transform->setCullCallback( new CameraTrackCallback );
                 
-                pat->addChild( _skyDome.get() );
+                transform->addChild( _skyDome.get() );
 
-                _oceanScene->addChild( pat );
+                _oceanScene->addChild( transform );
 
                 {
                     // Create and add fake texture for use with nodes without any texture
@@ -765,6 +762,7 @@ int main(int argc, char *argv[])
 
     viewer.addEventHandler( new SceneEventHandler(scene.get(), hud.get(), viewer ) );
     viewer.addEventHandler( new osgViewer::HelpHandler );
+    viewer.getCamera()->setName("MainCamera");
 
     osg::Group* root = new osg::Group;
     root->addChild( scene->getScene() );

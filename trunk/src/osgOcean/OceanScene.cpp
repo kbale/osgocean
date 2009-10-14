@@ -32,20 +32,16 @@ namespace
             if( nv->getVisitorType() == osg::NodeVisitor::CULL_VISITOR )
             {
                 osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(nv);
-                osg::Vec3f centre,up;
-                cv->getCurrentCamera()->getViewMatrixAsLookAt(_eye,centre,up);
-            }
-            else if(nv->getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR ){
+                osg::Vec3f centre,up,eye;
+                // get MAIN camera eye,centre,up
+                cv->getRenderStage()->getCamera()->getViewMatrixAsLookAt(eye,centre,up);
+                // update position
                 osg::MatrixTransform* mt = static_cast<osg::MatrixTransform*>(node);
-                mt->setMatrix( osg::Matrix::translate( _eye.x(), _eye.y(), mt->getMatrix().getTrans().z() ) );
+                mt->setMatrix( osg::Matrix::translate( eye.x(), eye.y(), mt->getMatrix().getTrans().z() ) );
             }
-
             traverse(node, nv); 
         }
-
-        osg::Vec3f _eye;
     };
-
 }
 
 #define USE_LOCAL_SHADERS 1
@@ -98,7 +94,6 @@ OceanScene::OceanScene( void ):
     // _oceanCylinder follows the camera underwater, so that the clear
     // color is not visible past the far plane - it will be the fog color.
     _oceanCylinder->setColor( _underwaterFogColor );
-    _oceanCylinder->getOrCreateStateSet()->setAttributeAndModes(new osg::Program, osg::StateAttribute::OFF);
     _oceanCylinder->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
     _oceanCylinder->getOrCreateStateSet()->setMode(GL_FOG, osg::StateAttribute::OFF);
 
@@ -113,7 +108,6 @@ OceanScene::OceanScene( void ):
     // add a pat to track the camera
     osg::MatrixTransform* mt = new osg::MatrixTransform;
     mt->setDataVariance( osg::Object::DYNAMIC );
-    mt->setUpdateCallback( new CameraTrackCallback );
     mt->setCullCallback( new CameraTrackCallback );
 
     mt->addChild( cylinderMT );
@@ -181,7 +175,6 @@ OceanScene::OceanScene( OceanTechnique* technique ):
     // _oceanCylinder follows the camera underwater, so that the clear
     // color is not visible past the far plane - it will be the fog color.
     _oceanCylinder->setColor( _underwaterFogColor );
-    _oceanCylinder->getOrCreateStateSet()->setAttributeAndModes(new osg::Program, osg::StateAttribute::OFF);
     _oceanCylinder->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
     _oceanCylinder->getOrCreateStateSet()->setMode(GL_FOG, osg::StateAttribute::OFF);
 
@@ -196,7 +189,6 @@ OceanScene::OceanScene( OceanTechnique* technique ):
     // add a transform to track the camera
     osg::MatrixTransform* mt = new osg::MatrixTransform;
     mt->setDataVariance( osg::Object::DYNAMIC );
-    mt->setUpdateCallback( new CameraTrackCallback );
     mt->setCullCallback( new CameraTrackCallback );
 
     mt->addChild( cylinderMT );
