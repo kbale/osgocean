@@ -122,7 +122,7 @@ namespace osgOcean
             return _averageHeight;
         }
 
-        float OceanTile::biLinearInterp(float x, float y ) const;
+        float biLinearInterp(float x, float y ) const;
 
         osg::Vec3f normalBiLinearInterp(float x, float y ) const;
 
