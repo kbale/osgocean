@@ -157,9 +157,15 @@ void FFTOceanSurface::initStateSet( void )
     osg::notify(osg::INFO) << "FFTOceanSurface::initStateSet()" << std::endl;
     _stateset=new osg::StateSet;
 
+    // Note that we will only set the textures in the state set if shaders are
+    // enabled, otherwise the fixed pipeline will try to put the env map onto
+    // the water surface, which has no texture coordinates, so the surface
+    // will take the general color of the env map...
+
     // Environment map    
     _stateset->addUniform( new osg::Uniform("osgOcean_EnvironmentMap", ENV_MAP ) );
-    _stateset->setTextureAttributeAndModes( ENV_MAP, _environmentMap.get(), osg::StateAttribute::ON );
+    if (ShaderManager::instance().areShadersEnabled())
+        _stateset->setTextureAttributeAndModes( ENV_MAP, _environmentMap.get(), osg::StateAttribute::ON );
     
     // Foam
     _stateset->addUniform( new osg::Uniform("osgOcean_EnableCrestFoam", _useCrestFoam ) );
@@ -171,7 +177,8 @@ void FFTOceanSurface::initStateSet( void )
     if( _useCrestFoam )
     {
         osg::Texture2D* foam_tex = createTexture("sea_foam.png", osg::Texture::REPEAT );
-        _stateset->setTextureAttributeAndModes( FOAM_MAP, foam_tex, osg::StateAttribute::ON );
+        if (ShaderManager::instance().areShadersEnabled())
+            _stateset->setTextureAttributeAndModes( FOAM_MAP, foam_tex, osg::StateAttribute::ON );
     }
 
     // Noise
@@ -182,7 +189,8 @@ void FFTOceanSurface::initStateSet( void )
     osg::ref_ptr<osg::Texture2D> noiseMap 
         = createNoiseMap( _noiseTileSize, _noiseWindDir, _noiseWindSpeed, _noiseWaveScale, _noiseTileRes ); 
 
-    _stateset->setTextureAttributeAndModes( NORMAL_MAP, noiseMap.get(), osg::StateAttribute::ON );
+    if (ShaderManager::instance().areShadersEnabled())
+        _stateset->setTextureAttributeAndModes( NORMAL_MAP, noiseMap.get(), osg::StateAttribute::ON );
 
     // Colouring
     osg::Vec4f waveTop = colorLerp(_lightColor, osg::Vec4f(), osg::Vec4f(_waveTopColor,1.f) );
@@ -303,7 +311,13 @@ void FFTOceanSurface::createOceanTiles( void )
     _oceanGeom.resize( _numTiles );
 
     osg::ref_ptr<osg::Vec4Array> colours = new osg::Vec4Array;
-    colours->push_back( osg::Vec4f(1.f, 1.f,1.f,1.f) );
+    // If shaders are enabled, the final color will be determined by the 
+    // shader so we need a white base color. But on the fixed pipeline this 
+    // color will determine the ocean surface's color.
+    if (ShaderManager::instance().areShadersEnabled())
+        colours->push_back( osg::Vec4f(1.f, 1.f,1.f,1.f) );
+    else
+        colours->push_back( osg::Vec4f(_waveTopColor,1.f) );
 
     for(int y = 0; y < (int)_numTiles; ++y )
     {
