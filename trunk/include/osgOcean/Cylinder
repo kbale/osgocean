@@ -36,11 +36,36 @@ public:
 
 protected:
 	virtual ~Cylinder(void);
+    float _radius;
+    float _height;
+    unsigned _steps;
+    bool _isTop;
+    bool _isBottom;
 
 public:
 	virtual void build( float radius, float height, unsigned int steps, bool top, bool bottom  );
 
 	void setColor(const osg::Vec4f& color);
+
+    inline const float getRadius( void ) const{
+        return _radius;
+    }
+
+    inline const float getHeight( void ) const{
+        return _height;
+    }
+
+    inline const unsigned getSteps( void ) const{
+        return _steps;
+    }
+
+    inline const bool getHasTop( void ) const{
+        return _isTop;
+    }
+
+    inline const bool getHasBottom( void ) const{
+        return _isBottom;
+    }
 };
 
 }

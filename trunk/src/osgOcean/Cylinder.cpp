@@ -24,11 +24,16 @@ Cylinder::Cylinder(void)
 
 Cylinder::Cylinder(float radius, float height, unsigned int steps, bool top, bool bottom  )
 {
-	build(radius,height,steps,top,bottom);
+	build(_radius,_height,_steps,_isTop,_isBottom);
 }
 
 Cylinder::Cylinder( const Cylinder& copy, const osg::CopyOp& copyop ):
-	osg::Geometry(copy, copyop)
+	osg::Geometry   (copy, copyop),
+    _radius         (copy._radius),
+    _height         (copy._height),
+    _steps          (copy._steps),
+    _isTop          (copy._isTop),
+    _isBottom       (copy._isBottom)
 {}
 
 Cylinder::~Cylinder(void)
@@ -37,6 +42,19 @@ Cylinder::~Cylinder(void)
 
 void Cylinder::build( float radius, float height, unsigned int steps, bool top, bool bottom )
 {
+    _radius = radius;
+    _height = height;
+    _steps = steps;
+    _isTop = top;
+    _isBottom = bottom;
+
+    // clear primitives if there are any
+    if(getNumPrimitiveSets() > 0)
+    {
+        removePrimitiveSet(0,getNumPrimitiveSets());
+        dirtyDisplayList();
+    }
+
 	const float twoPI = osg::PI * 2.f;
 	const float angleInc = twoPI / (float)steps;
 
