@@ -22,6 +22,9 @@
 
 namespace osgOcean
 {
+    /** 
+    * A selection of random number generator utility functions 
+    **/
     namespace RandUtils
     {
         /** uniformly distributed random int (0 -> RAND_MAX) */

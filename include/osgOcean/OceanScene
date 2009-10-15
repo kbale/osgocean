@@ -121,8 +121,10 @@ namespace osgOcean
         float _eyeHeightRefractionCutoff;
 
         osg::ref_ptr<osg::MatrixTransform>  _oceanTransform;
+        osg::ref_ptr<osg::MatrixTransform>  _oceanCylinderMT;
         osg::ref_ptr<Cylinder>              _oceanCylinder;
 
+        // NOTE: Remember to add new variables to the copy constructor.
     public:
         OceanScene( void );
         OceanScene( OceanTechnique* technique );
@@ -161,6 +163,25 @@ namespace osgOcean
         }
 
         bool isOceanVisible() const { return _oceanTransform->getNodeMask() != 0; }
+
+        /**
+        * Set the size of _oceanCylinder which follows the camera underwater, so that the clear
+        * color is not visible past the far plane - it will be the fog color.
+        * Height is a positive number which represents depth.
+        * Default values are Radius: 1900 and Height: 4000
+        */
+        inline void setCylinderSize( float radius, float height ){
+            _oceanCylinder->build( radius, height, 16, false, true );
+            _oceanCylinderMT->setMatrix( osg::Matrixf::translate(osg::Vec3f(0.f,0.f,-height-0.2f)) );
+        }
+
+        inline const float getCylinderRadius( void ) const{
+            return _oceanCylinder->getRadius();
+        }
+
+        inline const float getCylinderHeight( void ) const{
+            return _oceanCylinder->getHeight();
+        }
 
         inline void enableReflections( bool enable ){
             _enableReflections = enable;

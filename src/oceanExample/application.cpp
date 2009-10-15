@@ -191,8 +191,6 @@ public:
     osg::observer_ptr<osgOcean::OceanScene> _oceanScene;
 };
 
-
-
 // ----------------------------------------------------
 //                  Scoped timer
 // ----------------------------------------------------
@@ -335,6 +333,8 @@ public:
                 _oceanSurface->setFoamTopHeight( 3.0f );
                 _oceanSurface->enableCrestFoam( true );
                 _oceanSurface->setLightColor( _lightColors[_sceneType] );
+                // Make the ocean surface track with the main camera position, giving the illusion
+                // of an endless ocean surface.
                 _oceanSurface->enableEndlessOcean(true);
             }
 
@@ -348,6 +348,12 @@ public:
                 _oceanScene->setLightID(0);
                 _oceanScene->enableReflections(true);
                 _oceanScene->enableRefractions(true);
+
+                // Set the size of _oceanCylinder which follows the camera underwater. 
+                // This cylinder prevents the clear from being visible past the far plane 
+                // instead it will be the fog color.
+                // The size of the cylinder should be changed according the size of the ocean surface.
+                _oceanScene->setCylinderSize( 1900.f, 4000.f );
                 
                 _oceanScene->setAboveWaterFog(0.0012f, _fogColors[_sceneType] );
                 _oceanScene->setUnderwaterFog(0.002f,  _waterFogColors[_sceneType] );
