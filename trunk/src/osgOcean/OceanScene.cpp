@@ -110,7 +110,7 @@ OceanScene::OceanScene( void ):
     _oceanCylinderMT->setNodeMask( getNormalSceneMask() );
     _oceanCylinderMT->addChild( cylinderGeode );
 
-    _oceanTransform->addChild( _oceanCylinderMT );
+    _oceanTransform->addChild( _oceanCylinderMT.get() );
     //-----------------------------------------------------------------------
 
     _oceanTransform->setNodeMask( _normalSceneMask | _surfaceMask );
@@ -188,7 +188,7 @@ OceanScene::OceanScene( OceanTechnique* technique ):
     _oceanCylinderMT->setNodeMask( getNormalSceneMask() );
     _oceanCylinderMT->addChild( cylinderGeode );
 
-    _oceanTransform->addChild( _oceanCylinderMT );
+    _oceanTransform->addChild( _oceanCylinderMT.get() );
     //-----------------------------------------------------------------------
 
     _oceanTransform->setNodeMask( _normalSceneMask | _surfaceMask );
