@@ -26,24 +26,25 @@ class Cylinder : public osg::Geometry
 {
 protected:
 	osg::ref_ptr<osg::Vec4Array> _colorArray;
+    float _radius;
+    float _height;
+    unsigned _steps;
+    bool _hasTop;
+    bool _hasBottom;
 
 public:
 	Cylinder( void );
 
-	Cylinder( float radius, float height, unsigned int steps, bool top, bool bottom  );
+	Cylinder( float radius, float height, unsigned int steps, bool hasTop, bool hasBottom );
 
-	Cylinder(const Cylinder& copy, const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY);
+	Cylinder( const Cylinder& copy, const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY );
 
 protected:
 	virtual ~Cylinder(void);
-    float _radius;
-    float _height;
-    unsigned _steps;
-    bool _isTop;
-    bool _isBottom;
 
 public:
 	virtual void build( float radius, float height, unsigned int steps, bool top, bool bottom  );
+	virtual void build( void );
 
 	void setColor(const osg::Vec4f& color);
 
@@ -59,12 +60,12 @@ public:
         return _steps;
     }
 
-    inline const bool getHasTop( void ) const{
-        return _isTop;
+    inline const bool hasTop( void ) const{
+        return _hasTop;
     }
 
-    inline const bool getHasBottom( void ) const{
-        return _isBottom;
+    inline const bool hasBottom( void ) const{
+        return _hasBottom;
     }
 };
 

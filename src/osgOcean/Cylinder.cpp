@@ -19,22 +19,35 @@
 
 using namespace osgOcean;
 
-Cylinder::Cylinder(void)
-{}
-
-Cylinder::Cylinder(float radius, float height, unsigned int steps, bool top, bool bottom  )
+Cylinder::Cylinder( void ):
+    _radius     (1.f),
+    _height     (1.f),
+    _steps      (16),
+    _hasTop     (true),
+    _hasBottom  (true)
 {
-	build(_radius,_height,_steps,_isTop,_isBottom);
+    build();
+}
+
+Cylinder::Cylinder( float radius, float height, unsigned int steps, bool hasTop, bool hasBottom  ) :
+	_radius     (radius),
+	_height     (height),
+	_steps      (steps), 
+	_hasTop     (hasTop),
+	_hasBottom  (hasBottom)
+{
+	build();
 }
 
 Cylinder::Cylinder( const Cylinder& copy, const osg::CopyOp& copyop ):
-	osg::Geometry   (copy, copyop),
-    _radius         (copy._radius),
-    _height         (copy._height),
-    _steps          (copy._steps),
-    _isTop          (copy._isTop),
-    _isBottom       (copy._isBottom)
-{}
+    osg::Geometry  (copy, copyop),
+    _radius        (copy._radius),
+    _height        (copy._height),
+    _steps         (copy._steps),
+    _hasTop        (copy._hasTop),
+    _hasBottom     (copy._hasBottom)
+{
+}
 
 Cylinder::~Cylinder(void)
 {
@@ -45,9 +58,14 @@ void Cylinder::build( float radius, float height, unsigned int steps, bool top, 
     _radius = radius;
     _height = height;
     _steps = steps;
-    _isTop = top;
-    _isBottom = bottom;
+    _hasTop = top;
+    _hasBottom = bottom;
 
+	build();
+}
+
+void Cylinder::build( void )
+{
     // clear primitives if there are any
     if(getNumPrimitiveSets() > 0)
     {
@@ -56,7 +74,7 @@ void Cylinder::build( float radius, float height, unsigned int steps, bool top, 
     }
 
 	const float twoPI = osg::PI * 2.f;
-	const float angleInc = twoPI / (float)steps;
+	const float angleInc = twoPI / (float)_steps;
 
 	osg::Vec3Array* vertices = new osg::Vec3Array();
 
@@ -64,19 +82,19 @@ void Cylinder::build( float radius, float height, unsigned int steps, bool top, 
 
 	for ( float angle = 0.f; angle <= twoPI; angle += angleInc )
 	{
-		float x1 = radius * cos(angle);
-		float y1 = radius * sin(angle);
+		float x1 = _radius * cos(angle);
+		float y1 = _radius * sin(angle);
 
 		vertices->push_back( osg::Vec3( x1, y1, 0.f ) );
-		vertices->push_back( osg::Vec3( x1, y1, height ) );
+		vertices->push_back( osg::Vec3( x1, y1, _height ) );
 	}
 
-	vertices->push_back( osg::Vec3f(0.f,0.f,height) );	// top centre
+	vertices->push_back( osg::Vec3f(0.f, 0.f, _height) );	// top centre
 
 	osg::DrawElementsUInt* indices = 
 		new osg::DrawElementsUInt( osg::PrimitiveSet::TRIANGLE_STRIP, 0 );
 
-	for(unsigned int c = 1; c < steps*2+1; c += 2 )
+	for(unsigned int c = 1; c < _steps*2+1; c += 2 )
 	{	
 		indices->push_back( c   );
 		indices->push_back( c+1 );
@@ -87,36 +105,36 @@ void Cylinder::build( float radius, float height, unsigned int steps, bool top, 
 
 	addPrimitiveSet( indices );
 
-	if( bottom )
+	if( _hasBottom )
 	{
 		osg::DrawElementsUInt* fanIndices = 
 			new osg::DrawElementsUInt( osg::PrimitiveSet::TRIANGLE_FAN, 0 );
 
 		fanIndices->push_back( 0 );
 
-		for(int c = steps*2-1; c >= 1; c -= 2 )
+		for(int c = _steps*2-1; c >= 1; c -= 2 )
 		{	
 			fanIndices->push_back( c );
 		}
 
-		fanIndices->push_back( steps*2-1 );
+		fanIndices->push_back( _steps*2-1 );
 
 		addPrimitiveSet( fanIndices );
 	}
 
-	if( top )
+	if( _hasTop )
 	{
 		osg::DrawElementsUInt* fanIndices = 
 			new osg::DrawElementsUInt( osg::PrimitiveSet::TRIANGLE_FAN, 0 );
 
 		fanIndices->push_back( vertices->size()-1 );
 
-		for(int c = steps*2; c >= 1; c -= 2 )
+		for(int c = _steps*2; c >= 1; c -= 2 )
 		{	
 			fanIndices->push_back( c );
 		}
 
-		fanIndices->push_back( steps*2 );
+		fanIndices->push_back( _steps*2 );
 
 		addPrimitiveSet( fanIndices );
 	}
