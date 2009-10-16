@@ -19,8 +19,9 @@ This page will list hardware where osgOcean works. For now, no real details will
 
   * !GeForce 7900 GTX (since [http://code.google.com/p/osgocean/source/detail?r=42 r42]) (JSG)
   * !GeForce 7800 GS (JSG)
-  * Quadro FX 4500 (!GeForce 7800 equivalent) (Jan Ciger)
   * !GeForce Go 7600 (laptop) (Jan Ciger)
+
+  * Quadro FX 4500 (!GeForce 7800 equivalent) (Jan Ciger)
 
 == ATI ==
 
