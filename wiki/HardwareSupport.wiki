@@ -8,10 +8,15 @@ This page will list hardware where osgOcean works. For now, no real details will
 
 == nVidia ==
 
-  * !GeForce 9800 GTX+ (JSG)
+  * !GeForce 280 GTX (Ruben Smelik)
+
   * !GeForce 9800 GT (JSG)
+  * !GeForce 9800 GTX+ (JSG)
+  * !GeForce 9800 GX2 (Ruben Smelik)
+
   * !GeForce 8800 GT (JSG)
   * !GeForce 8800 GTS (KCB)
+
   * !GeForce 7900 GTX (since [http://code.google.com/p/osgocean/source/detail?r=42 r42]) (JSG)
   * !GeForce 7800 GS (JSG)
   * Quadro FX 4500 (!GeForce 7800 equivalent) (Jan Ciger)
