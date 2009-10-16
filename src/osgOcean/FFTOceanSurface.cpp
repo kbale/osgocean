@@ -18,6 +18,7 @@
 #include <osgOcean/FFTOceanSurface>
 #include <osgOcean/ShaderManager>
 #include <osg/io_utils>
+#include <osg/Material>
 
 using namespace osgOcean;
 
@@ -206,6 +207,16 @@ void FFTOceanSurface::initStateSet( void )
     if(program.valid())
         _stateset->setAttributeAndModes( program.get(), osg::StateAttribute::ON );
 
+    // If shaders are enabled, the final color will be determined by the 
+    // shader so we need a white base color. But on the fixed pipeline the
+    // material color will determine the ocean surface's color.
+    if (!ShaderManager::instance().areShadersEnabled())
+    {
+        osg::Material* mat = new osg::Material;
+        mat->setDiffuse(osg::Material::FRONT_AND_BACK, osg::Vec4f(_waveTopColor, 1.0f));
+        _stateset->setAttributeAndModes(mat, osg::StateAttribute::ON);
+    }
+
     _isStateDirty = false;
 
     osg::notify(osg::INFO) << "FFTOceanSurface::initStateSet() Complete." << std::endl;
@@ -311,13 +322,7 @@ void FFTOceanSurface::createOceanTiles( void )
     _oceanGeom.resize( _numTiles );
 
     osg::ref_ptr<osg::Vec4Array> colours = new osg::Vec4Array;
-    // If shaders are enabled, the final color will be determined by the 
-    // shader so we need a white base color. But on the fixed pipeline this 
-    // color will determine the ocean surface's color.
-    if (ShaderManager::instance().areShadersEnabled())
-        colours->push_back( osg::Vec4f(1.f, 1.f,1.f,1.f) );
-    else
-        colours->push_back( osg::Vec4f(_waveTopColor,1.f) );
+    colours->push_back( osg::Vec4f(1.f, 1.f,1.f,1.f) );
 
     for(int y = 0; y < (int)_numTiles; ++y )
     {
