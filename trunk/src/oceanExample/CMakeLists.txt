@@ -32,6 +32,10 @@ SET( ISLAND_RESOURCES
   ${osgOcean_SOURCE_DIR}/resources/island/islands.ive
 )
 
+SET( BOAT_RESOURCES 
+  ${osgOcean_SOURCE_DIR}/resources/boat/boat.3ds
+)
+
 SET( EXAMPLE_SHADERS
   ${osgOcean_SOURCE_DIR}/resources/shaders/terrain.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/terrain.frag
@@ -106,6 +110,12 @@ INSTALL(
   FILES ${ISLAND_RESOURCES}
   DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/resources/island
 )
+
+INSTALL(
+  FILES ${BOAT_RESOURCES}
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/resources/boat
+)
+
 
 
 
