@@ -495,7 +495,7 @@ public:
         const std::string filename = "islands.ive";
         osg::ref_ptr<osg::Node> island = osgDB::readNodeFile(filename);
 
-        if(!island){
+        if(!island.valid()){
             osg::notify(osg::WARN) << "Could not find: " << filename << std::endl;
             return NULL;
         }
@@ -809,17 +809,27 @@ int main(int argc, char *argv[])
 
     if (testCollision)
     {
-        osg::ref_ptr<osg::Node> boat = osgDB::readNodeFile("resources/boat.3ds");
-        boat->setNodeMask( scene->getOceanScene()->getNormalSceneMask() | 
-                           scene->getOceanScene()->getReflectedSceneMask() | 
-                           scene->getOceanScene()->getRefractedSceneMask() );
+        osgDB::Registry::instance()->getDataFilePathList().push_back("resources/boat");
+        const std::string filename = "boat.3ds";
+        osg::ref_ptr<osg::Node> boat = osgDB::readNodeFile(filename);
 
-        osg::ref_ptr<osg::MatrixTransform> boatTransform = new osg::MatrixTransform;
-        boatTransform->addChild(boat.get());
-        boatTransform->setMatrix(osg::Matrix::translate(osg::Vec3f(0.0f, 160.0f,0.0f)));
-        boatTransform->setUpdateCallback( new BoatPositionCallback(scene->getOceanScene()) );
+        if(boat.valid())
+        {
+            boat->setNodeMask( scene->getOceanScene()->getNormalSceneMask() | 
+                scene->getOceanScene()->getReflectedSceneMask() | 
+                scene->getOceanScene()->getRefractedSceneMask() );
 
-        scene->getOceanScene()->addChild(boatTransform.get());   
+            osg::ref_ptr<osg::MatrixTransform> boatTransform = new osg::MatrixTransform;
+            boatTransform->addChild(boat.get());
+            boatTransform->setMatrix(osg::Matrix::translate(osg::Vec3f(0.0f, 160.0f,0.0f)));
+            boatTransform->setUpdateCallback( new BoatPositionCallback(scene->getOceanScene()) );
+
+            scene->getOceanScene()->addChild(boatTransform.get());   
+        }
+        else
+        {
+            osg::notify(osg::WARN) << "testCollision flag ignored - Could not find: " << filename << std::endl;
+        }
     }
 
     viewer.setSceneData( root );
