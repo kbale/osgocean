@@ -39,6 +39,7 @@
 #include <string>
 #include <vector>
 
+#include <osgOcean/Version>
 #include <osgOcean/OceanScene>
 #include <osgOcean/FFTOceanSurface>
 #include <osgOcean/SiltEffect>
@@ -87,7 +88,13 @@ public:
         title->setFont("fonts/arial.ttf");
         title->setCharacterSize(14);
         title->setLineSpacing(0.4f);
-        title->setText("osgOcean 1.0\nPress 'h' for options");
+
+        std::string versionText = 
+            std::string("osgOcean ") + 
+            std::string(osgOceanGetVersion()) + 
+            std::string("\nPress 'h' for options");
+
+        title->setText(versionText);
         textGeode->addDrawable( title );
 
         _modeText = new osgText::Text;
@@ -682,6 +689,8 @@ public:
 
 int main(int argc, char *argv[])
 {
+    osg::notify(osg::NOTICE) << "osgOcean " << osgOceanGetVersion() << std::endl << std::endl;
+
     osg::ArgumentParser arguments(&argc,argv);
     arguments.getApplicationUsage()->setApplicationName(arguments.getApplicationName());
     arguments.getApplicationUsage()->setDescription(arguments.getApplicationName()+" is an example of osgOcean.");

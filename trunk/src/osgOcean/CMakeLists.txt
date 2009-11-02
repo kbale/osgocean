@@ -61,6 +61,7 @@ SET( LIB_HEADERS
   ${HEADER_PATH}/SiltEffect
   ${HEADER_PATH}/WaterTrochoids
   ${HEADER_PATH}/Export
+  ${HEADER_PATH}/Version
 )
 
 # Adds headers to the "Header Files" group in visual studio
@@ -92,6 +93,7 @@ ADD_LIBRARY(
   ShaderManager.cpp
   SiltEffect.cpp
   WaterTrochoids.cpp
+  Version.cpp
 )
 
 SET_TARGET_PROPERTIES(
