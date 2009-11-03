@@ -4,7 +4,7 @@
 
 == Compiling ==
 
-osgOcean 1.0 is a cross platform library. 
+osgOcean 1.0.1 is a cross platform library. 
 
 Use CMake version 2.6.3 or greater to generate native makefiles or workspaces for your chosen compiler environment.
 
@@ -33,7 +33,7 @@ You will need to specify the include directory and library file of your installe
 Both the library and the example require a set of resource
 files (models/textures) which can be downloaded from here:
 
-<a href="http://osgocean.googlecode.com/files/osgOcean-Resources-1.0.rar">http://osgocean.googlecode.com/files/osgOcean-Resources-1.0.rar</a>
+<a href="http://osgocean.googlecode.com/files/osgOcean-Resources-1.0.1.rar">http://osgocean.googlecode.com/files/osgOcean-Resources-1.0.1.rar</a>
 
 Once you've downloaded them, extract the 'Island' and 'Textures' 
 folders into the resources directory found in the root of the
