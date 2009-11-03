@@ -35,12 +35,11 @@ files (models/textures) which can be downloaded from here:
 
 <a href="http://osgocean.googlecode.com/files/osgOcean-Resources-1.0.1.rar">http://osgocean.googlecode.com/files/osgOcean-Resources-1.0.1.rar</a>
 
-Once you've downloaded them, extract the 'Island' and 'Textures' 
-folders into the resources directory found in the root of the
-source code tree. The install project will copy the relevant
-data files to the bin path like so:
+Once you've downloaded them, extract the 'Island','Textures' and 'Boat' folders into the resources directory found in the root of the source code tree. The install project will copy the relevant data files to the bin path like so:
 
+{{{
 %install_path%/bin/resources/
+}}}
 
 osgOcean uses the osgDB registry to find the resource files.
 By default it adds the following paths to the registry:
@@ -55,8 +54,10 @@ If you wish to move these resources you must update the data file path
 list within the registry yourself. This can be down from outside the 
 library with the following code:
 
+{{{
 osgDB::FilePathList& pathList = osgDB::Registry::instance()->getDataFilePathList();
 pathList.push_back( new_path );
+}}}
 
 == Bugs / Suggestions ==
 
