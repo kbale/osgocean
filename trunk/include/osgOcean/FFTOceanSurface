@@ -103,7 +103,7 @@ namespace osgOcean
 
         osg::ref_ptr<osg::TextureCubeMap> _environmentMap;  /**< Cubemap used for refractions/reflections */
 
-        enum TEXTURE_UNITS{ ENV_MAP=0,REFLECT_MAP=1,REFRACT_MAP=2,NORMAL_MAP=3,FOG_MAP=4,FOAM_MAP=5 };
+        enum TEXTURE_UNITS{ ENV_MAP=0,REFLECT_MAP=1,REFRACT_MAP=2,REFRACTDEPTH_MAP=3,NORMAL_MAP=4,FOG_MAP=5,FOAM_MAP=6 };
 
     public:
         FFTOceanSurface(unsigned int FFTGridSize,
