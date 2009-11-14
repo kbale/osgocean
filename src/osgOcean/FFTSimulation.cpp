@@ -263,7 +263,7 @@ void FFTSimulation::Implementation::computeBaseAmplitudes()
             K.x() = _PI2*x2*oneOverLen;
 
             RandUtils::gaussianRand(real,imag);
-            _baseAmplitudes[y*(_N+1)+x] = complex(real,imag) * sqrt( 0.5 * phillipsSpectrum(K) );
+            _baseAmplitudes[y*(_N+1)+x] = complex(real,imag) * sqrt( 0.5 * (double)phillipsSpectrum(K) );
         }
     }
 }

@@ -67,6 +67,7 @@ namespace osgOcean
 
         int _reflectionUnit;
         int _refractionUnit;
+        int _refractionDepthUnit;
 
         float _aboveWaterFogDensity;
         osg::Vec4f _aboveWaterFogColor;
@@ -445,6 +446,14 @@ namespace osgOcean
             return _normalSceneMask;
         }
 
+        inline osg::ref_ptr<osg::Camera> getReflectionCamera( void ) {
+            return _reflectionCamera;
+        }
+
+        inline osg::ref_ptr<osg::Camera> getRefractionCamera( void ) {
+            return _refractionCamera;
+        }
+        
         inline void setLightID( unsigned int id ){
             _lightID = id;
             _isDirty = true;
@@ -667,7 +676,7 @@ namespace osgOcean
             osg::Vec2f direction );
 
         /** Sets up a camera for a render to FBO pass. */
-        osg::Camera* renderToTexturePass( osg::Texture* textureBuffer );
+        osg::Camera* renderToTexturePass( osg::Texture* textureBuffer, osg::Texture* depthTextureBuffer = NULL );
 
         /** Create geometry for a screen aligned quad. */
         osg::Geode* createScreenQuad( const osg::Vec2s& dims, const osg::Vec2s& texSize );

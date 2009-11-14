@@ -378,7 +378,9 @@ public:
                 // create sky dome and add to ocean scene
                 // set masks so it appears in reflected scene and normal scene
                 _skyDome = new SkyDome( 1900.f, 16, 16, _cubemap.get() );
-                _skyDome->setNodeMask( _oceanScene->getReflectedSceneMask() | _oceanScene->getNormalSceneMask() );
+                _skyDome->setNodeMask( _oceanScene->getReflectedSceneMask() | 
+                                       _oceanScene->getNormalSceneMask() | 
+                                       _oceanScene->getRefractedSceneMask());
 
                 // add a pat to track the camera
                 osg::MatrixTransform* transform = new osg::MatrixTransform;
@@ -421,7 +423,9 @@ public:
                 {
                     _islandSwitch = new osg::Switch;
                     _islandSwitch->addChild( islandModel.get(), true );
-                    _islandSwitch->setNodeMask( _oceanScene->getNormalSceneMask() | _oceanScene->getReflectedSceneMask() | _oceanScene->getRefractedSceneMask() );
+                    _islandSwitch->setNodeMask( _oceanScene->getNormalSceneMask() | 
+                                                _oceanScene->getReflectedSceneMask() | 
+                                                _oceanScene->getRefractedSceneMask() );
                     _oceanScene->addChild( _islandSwitch.get() );
                 }
             }

@@ -42,6 +42,31 @@ namespace
             traverse(node, nv); 
         }
     };
+
+    class RefractionInverseTransformationMatrixCallback : public osg::Uniform::Callback
+    {
+    public:
+        RefractionInverseTransformationMatrixCallback(OceanScene* oceanScene)
+            : _oceanScene (oceanScene)
+        {
+        }
+
+        virtual void operator() ( osg::Uniform* uniform, osg::NodeVisitor* nv )
+        {
+            osg::Matrixd viewMatrix = _oceanScene->getRefractionCamera()->getViewMatrix();
+            osg::Matrixd projectionMatrix = _oceanScene->getRefractionCamera()->getProjectionMatrix();
+
+            osg::Matrixd inverseViewProjectionMatrix = osg::Matrixd::inverse(viewMatrix * projectionMatrix);
+
+            uniform->set(inverseViewProjectionMatrix);
+        }
+    
+    private:
+        osgOcean::OceanScene* _oceanScene;
+
+    };
+
+
 }
 
 #define USE_LOCAL_SHADERS 1
@@ -64,6 +89,7 @@ OceanScene::OceanScene( void ):
     _sunDirection               ( 0, 0, -1 ),
     _reflectionUnit             ( 1 ),
     _refractionUnit             ( 2 ),
+    _refractionDepthUnit        ( 3 ),
     _reflectionSceneMask        ( 0x1 ),   // 1
     _refractionSceneMask        ( 0x2 ),   // 2
     _normalSceneMask            ( 0x4 ),   // 4
@@ -142,6 +168,7 @@ OceanScene::OceanScene( OceanTechnique* technique ):
     _sunDirection               ( 0,0,-1 ),
     _reflectionUnit             ( 1 ),
     _refractionUnit             ( 2 ),
+    _refractionDepthUnit        ( 3 ),
     _reflectionSceneMask        ( 0x1 ),
     _refractionSceneMask        ( 0x2 ),
     _normalSceneMask            ( 0x4 ),
@@ -223,6 +250,7 @@ OceanScene::OceanScene( const OceanScene& copy, const osg::CopyOp& copyop ):
     _screenDims                 ( copy._screenDims ),
     _reflectionUnit             ( copy._reflectionUnit ),
     _refractionUnit             ( copy._refractionUnit ),
+    _refractionDepthUnit        ( copy._refractionDepthUnit ),
     _reflectionSceneMask        ( copy._reflectionSceneMask ),
     _refractionSceneMask        ( copy._refractionSceneMask ),
     _siltMask                   ( copy._siltMask ),
@@ -342,6 +370,13 @@ void OceanScene::init( void )
         _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_EnableRefractions", _enableRefractions ) );
         _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_ReflectionMap", _reflectionUnit ) );    
         _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_RefractionMap", _refractionUnit ) );
+        _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_RefractionDepthMap", _refractionDepthUnit ) );
+        
+        osg::Uniform* refractProjMatrix = new osg::Uniform(osg::Uniform::FLOAT_MAT4, "osgOcean_RefractionInverseTransformation");
+        refractProjMatrix->setUpdateCallback( new RefractionInverseTransformationMatrixCallback(this) );
+        _surfaceStateSet->addUniform( refractProjMatrix, osg::StateAttribute::ON );
+
+        _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_ViewportDimensions", osg::Vec2(_screenDims.x(), _screenDims.y()) ) );
         
         if( _enableReflections )
         {
@@ -372,14 +407,17 @@ void OceanScene::init( void )
 
         if( _enableRefractions )
         {
-            osg::Texture2D* refractionTexture = createTexture2D( _refractionTexSize, GL_RGBA );
+            osg::ref_ptr<osg::Texture2D> refractionTexture = createTexture2D( _refractionTexSize, GL_RGBA );
+            osg::ref_ptr<osg::Texture2D>_refractionDepthTexture = createTexture2D( _refractionTexSize, GL_DEPTH_COMPONENT );
             
-            _refractionCamera=renderToTexturePass( refractionTexture );
+            _refractionCamera=renderToTexturePass( refractionTexture, _refractionDepthTexture);
+            _refractionCamera->setClearDepth( 1.0 );
             _refractionCamera->setClearColor( osg::Vec4( 0.160784, 0.231372, 0.325490, 0.0 ) );
             _refractionCamera->setCullMask( _refractionSceneMask );
             _refractionCamera->setCullCallback( new CameraCullCallback(this) );
 
             _surfaceStateSet->setTextureAttributeAndModes( _refractionUnit, refractionTexture, osg::StateAttribute::ON );
+            _surfaceStateSet->setTextureAttributeAndModes( _refractionDepthUnit, _refractionDepthTexture, osg::StateAttribute::ON );
         }
 
         if( _enableGodRays )
@@ -592,6 +630,26 @@ void OceanScene::update( osg::NodeVisitor& nv )
 
 void OceanScene::preRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surfaceVisible )
 {
+    // Refractions need to be calculated even when the eye is above water 
+    // for the shoreline foam effect and translucency.
+    bool refractionVisible = _enableRefractions;
+    _surfaceStateSet->getUniform("osgOcean_EnableRefractions")->set(refractionVisible);
+
+    // Render refraction if ocean surface is visible.
+    if( _enableRefractions && surfaceVisible && refractionVisible &&
+        _oceanSurface.valid() && _refractionCamera.valid() )
+    {
+        // update refraction camera and render refracted scene
+        _refractionCamera->setViewMatrix( cv.getCurrentCamera()->getViewMatrix() );
+        _refractionCamera->setProjectionMatrix( cv.getCurrentCamera()->getProjectionMatrix() );
+        _refractionCamera->setComputeNearFarMode( osg::Camera::DO_NOT_COMPUTE_NEAR_FAR );
+        cv.pushStateSet(_globalStateSet.get());
+        _refractionCamera->accept( cv );    
+        cv.popStateSet();
+
+        _surfaceStateSet->runUpdateCallbacks(&cv);
+    }
+
     // Above water
     if( eyeAboveWater )
     {
@@ -626,21 +684,6 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bo
     // Below water
     else
     {
-        bool refractionVisible = cv.getEyePoint().z() > _eyeHeightRefractionCutoff - getOceanSurfaceHeight();
-        _surfaceStateSet->getUniform("osgOcean_EnableRefractions")->set(refractionVisible);
-
-        // Render refraction if ocean surface is visible.
-        if( _enableRefractions && surfaceVisible && refractionVisible &&
-            _oceanSurface.valid() && _refractionCamera.valid() )
-        {
-            // update refraction camera and render refracted scene
-            _refractionCamera->setViewMatrix( cv.getCurrentCamera()->getViewMatrix() );
-            _refractionCamera->setProjectionMatrix( cv.getCurrentCamera()->getProjectionMatrix() );
-            cv.pushStateSet(_globalStateSet.get());
-            _refractionCamera->accept( cv );
-            cv.popStateSet();
-        }
-
         if( _enableGodRays && _godrayPreRender.valid() )
         {
             // Render the god rays to texture
@@ -744,18 +787,23 @@ bool OceanScene::isEyeAboveWater( const osg::Vec3& eye )
     return (eye.z() >= getOceanSurfaceHeight());
 }
 
-
-osg::Camera* OceanScene::renderToTexturePass( osg::Texture* textureBuffer )
+osg::Camera* OceanScene::renderToTexturePass( osg::Texture* textureBuffer, osg::Texture* depthTextureBuffer )
 {
     osg::Camera* camera = new osg::Camera;
 
     camera->setClearMask( GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT );
+    camera->setClearDepth( 1.0 );
     camera->setClearColor( osg::Vec4f(0.f, 0.f, 0.f, 1.f) );
     camera->setReferenceFrame( osg::Transform::ABSOLUTE_RF_INHERIT_VIEWPOINT );
     camera->setViewport( 0,0, textureBuffer->getTextureWidth(), textureBuffer->getTextureHeight() );
     camera->setRenderOrder(osg::Camera::PRE_RENDER);
     camera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT);
+
     camera->attach( osg::Camera::COLOR_BUFFER, textureBuffer );
+
+    if (depthTextureBuffer != NULL) {
+        camera->attach( osg::Camera::DEPTH_BUFFER, depthTextureBuffer );
+    }
 
     return camera;
 }

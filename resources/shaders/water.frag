@@ -14,6 +14,7 @@ uniform float osgOcean_FresnelMul;
 uniform samplerCube osgOcean_EnvironmentMap;
 uniform sampler2D   osgOcean_ReflectionMap;
 uniform sampler2D   osgOcean_RefractionMap;
+uniform sampler2D   osgOcean_RefractionDepthMap;
 uniform sampler2D   osgOcean_FoamMap;
 uniform sampler2D   osgOcean_NoiseMap;
 
@@ -24,6 +25,11 @@ uniform vec4  osgOcean_AboveWaterFogColor;
 
 uniform mat4 osg_ViewMatrixInverse;
 
+uniform mat4 osgOcean_RefractionInverseTransformation;
+
+uniform vec2 osgOcean_ViewportDimensions;
+
+uniform float osgOcean_WaterHeight;
 uniform float osgOcean_FoamCapBottom;
 uniform float osgOcean_FoamCapTop;
 
@@ -184,7 +190,42 @@ void main( void )
 		float dotEN = dot(E, N);
 		float dotLN = dot(L, N);
 
+		// Fade out the distortion along the screen edges this reduces artifacts
+		// caused by texture coordinates that are distorted out of the [0, 1] range.
+		// At very close distance to the surface the distortion artifacts still appear.
+		vec2 fade_xy = pow(abs(gl_FragCoord.xy / (osgOcean_ViewportDimensions * 0.5) - 1.0), 10.0);
+
+		float fade = 1.0 - max(fade_xy.x, fade_xy.y);
+
+		vec4 distortedVertex = distortGen(vVertex, fade * N);
+
+		// Calculate the position in world space of the pixel on the ocean floor
+		vec4 aliasing_epsilon = vec4(0.0, 0.005 * distortedVertex.w, 0.0, 0.0) * fade;
+
+		vec4 refraction_ndc = vec4(gl_FragCoord.xy / osgOcean_ViewportDimensions, texture2DProj(osgOcean_RefractionDepthMap, distortedVertex + aliasing_epsilon).x, 1.0);
+		vec4 refraction_screen = refraction_ndc * 2.0 - 1.0;
+		vec4 refraction_world = osgOcean_RefractionInverseTransformation * refraction_screen;
+		refraction_world = refraction_world / refraction_world.w;
+
+		// The vertical distance between the ocean surface and ocean floor,
+		// this calculation is not entirely correct but it works ok
+		float waterHeight = vWorldVertex.z - refraction_world.z;
+
+		// The depth of the ocean behind the pixel as seen from the camera position
+		float waterDepth = distance(vWorldVertex, refraction_world);
+
+		// 
+		float extinction = pow(10.0, waterDepth / -100.0);
+		
+		//
 		vec4 refraction_color = vec4( gl_Color.rgb, 1.0 );
+
+                if(osgOcean_EnableRefractions)
+		{
+		    vec4 refractionmap_color = texture2DProj(osgOcean_RefractionMap, distortedVertex );
+
+		    refraction_color = mix(refraction_color, refractionmap_color, extinction);
+                }
 
 		// To cubemap or not to cubemap that is the question
 		// projected reflection looks pretty nice anyway
@@ -197,7 +238,7 @@ void main( void )
 
 		if(osgOcean_EnableReflections)
 		{
-			env_color = texture2DProj( osgOcean_ReflectionMap, distortGen(vVertex, N) );	
+		    env_color = texture2DProj( osgOcean_ReflectionMap, distortedVertex );	
 		}
 		else
 		{
@@ -212,13 +253,14 @@ void main( void )
 
 		if(osgOcean_EnableCrestFoam)
 		{
-			if( vVertex.z > osgOcean_FoamCapBottom )
+			if( vVertex.z > osgOcean_FoamCapBottom || waterHeight < 7.0)
 			{
-				vec4 foam_color  = texture2D( osgOcean_FoamMap, gl_TexCoord[1].st );
+				vec4 foam_color = texture2D( osgOcean_FoamMap, gl_TexCoord[1].st / 10.0);
 
-				float alpha = alphaHeight( osgOcean_FoamCapBottom, osgOcean_FoamCapTop, vVertex.z ) * (fresnel*2.0);
+				float alpha = max(alphaHeight( osgOcean_FoamCapBottom, osgOcean_FoamCapTop, vVertex.z ) * (fresnel*2.0),
+						  0.8 - clamp(waterHeight / 7.0, 0.0, 0.8));
 
-				final_color = mix( final_color, foam_color, alpha );
+				final_color = final_color + (foam_color * alpha);
 			}
 		}
 
