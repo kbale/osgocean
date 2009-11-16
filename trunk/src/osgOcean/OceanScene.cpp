@@ -397,7 +397,8 @@ void OceanScene::init( void )
 
             _surfaceStateSet->setTextureAttributeAndModes( _reflectionUnit, reflectionTexture.get(), osg::StateAttribute::ON );
 
-            osg::ClipPlane* reflClipPlane = new osg::ClipPlane(0);
+            osg::ClipPlane* reflClipPlane = new osg::ClipPlane();
+            reflClipPlane->setClipPlaneNum(0);
             reflClipPlane->setClipPlane( 0.0, 0.0, 1.0, -getOceanSurfaceHeight() );
             _reflectionClipNode = new osg::ClipNode;
             _reflectionClipNode->addClipPlane( reflClipPlane );
@@ -410,14 +411,14 @@ void OceanScene::init( void )
             osg::ref_ptr<osg::Texture2D> refractionTexture = createTexture2D( _refractionTexSize, GL_RGBA );
             osg::ref_ptr<osg::Texture2D>_refractionDepthTexture = createTexture2D( _refractionTexSize, GL_DEPTH_COMPONENT );
             
-            _refractionCamera=renderToTexturePass( refractionTexture, _refractionDepthTexture);
+            _refractionCamera = renderToTexturePass( refractionTexture.get(), _refractionDepthTexture.get());
             _refractionCamera->setClearDepth( 1.0 );
             _refractionCamera->setClearColor( osg::Vec4( 0.160784, 0.231372, 0.325490, 0.0 ) );
             _refractionCamera->setCullMask( _refractionSceneMask );
             _refractionCamera->setCullCallback( new CameraCullCallback(this) );
 
-            _surfaceStateSet->setTextureAttributeAndModes( _refractionUnit, refractionTexture, osg::StateAttribute::ON );
-            _surfaceStateSet->setTextureAttributeAndModes( _refractionDepthUnit, _refractionDepthTexture, osg::StateAttribute::ON );
+            _surfaceStateSet->setTextureAttributeAndModes( _refractionUnit, refractionTexture.get(), osg::StateAttribute::ON );
+            _surfaceStateSet->setTextureAttributeAndModes( _refractionDepthUnit, _refractionDepthTexture.get(), osg::StateAttribute::ON );
         }
 
         if( _enableGodRays )
@@ -540,7 +541,8 @@ void OceanScene::init( void )
             silt->setParticleSpeed(0.025f);
             silt->setNodeMask(_siltMask);
 
-            osg::ClipPlane* siltClipPlane = new osg::ClipPlane(1);
+            osg::ClipPlane* siltClipPlane = new osg::ClipPlane();
+            siltClipPlane->setClipPlaneNum(1);
             siltClipPlane->setClipPlane( 0.0, 0.0, -1.0, -getOceanSurfaceHeight() );
 
             _siltClipNode = new osg::ClipNode;
@@ -571,8 +573,9 @@ void OceanScene::traverse( osg::NodeVisitor& nv )
 
         if (cv) 
         {
-            if (cv->getCurrentCamera()->getName() == "ShadowCamera" ||
-                cv->getCurrentCamera()->getName() == "AnalysisCamera" )
+            osg::Camera* currentCamera = cv->getCurrentRenderBin()->getStage()->getCamera();
+            if (currentCamera->getName() == "ShadowCamera" ||
+                currentCamera->getName() == "AnalysisCamera" )
                 // Do not do reflections and everything if we're in a shadow pass.
                 osg::Group::traverse(nv);
             else
@@ -630,6 +633,8 @@ void OceanScene::update( osg::NodeVisitor& nv )
 
 void OceanScene::preRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surfaceVisible )
 {
+    osg::Camera* currentCamera = cv.getCurrentRenderBin()->getStage()->getCamera();
+
     // Refractions need to be calculated even when the eye is above water 
     // for the shoreline foam effect and translucency.
     bool refractionVisible = _enableRefractions;
@@ -640,8 +645,8 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bo
         _oceanSurface.valid() && _refractionCamera.valid() )
     {
         // update refraction camera and render refracted scene
-        _refractionCamera->setViewMatrix( cv.getCurrentCamera()->getViewMatrix() );
-        _refractionCamera->setProjectionMatrix( cv.getCurrentCamera()->getProjectionMatrix() );
+        _refractionCamera->setViewMatrix( currentCamera->getViewMatrix() );
+        _refractionCamera->setProjectionMatrix( currentCamera->getProjectionMatrix() );
         _refractionCamera->setComputeNearFarMode( osg::Camera::DO_NOT_COMPUTE_NEAR_FAR );
         cv.pushStateSet(_globalStateSet.get());
         _refractionCamera->accept( cv );    
@@ -661,8 +666,8 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bo
             _oceanSurface.valid() && _reflectionCamera.valid() )
         {
             // update reflection camera and render reflected scene
-            _reflectionCamera->setViewMatrix( _reflectionMatrix * cv.getCurrentCamera()->getViewMatrix() );
-            _reflectionCamera->setProjectionMatrix( cv.getCurrentCamera()->getProjectionMatrix() );
+            _reflectionCamera->setViewMatrix( _reflectionMatrix * currentCamera->getViewMatrix() );
+            _reflectionCamera->setProjectionMatrix( currentCamera->getProjectionMatrix() );
             
             cv.pushStateSet(_globalStateSet.get());
             _reflectionCamera->accept( cv );
@@ -672,8 +677,8 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bo
         if( _enableGlare )
         {
             // set view and projection to match main camera
-            _glarePasses.at(0)->setViewMatrix( cv.getCurrentCamera()->getViewMatrix() );
-            _glarePasses.at(0)->setProjectionMatrix( cv.getCurrentCamera()->getProjectionMatrix() );
+            _glarePasses.at(0)->setViewMatrix( currentCamera->getViewMatrix() );
+            _glarePasses.at(0)->setProjectionMatrix( currentCamera->getProjectionMatrix() );
 
             for( unsigned int i=0; i<_glarePasses.size()-1; ++i )
             {
@@ -687,16 +692,16 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bo
         if( _enableGodRays && _godrayPreRender.valid() )
         {
             // Render the god rays to texture
-            _godrayPreRender->setViewMatrix( cv.getCurrentCamera()->getViewMatrix() );
-            _godrayPreRender->setProjectionMatrix( cv.getCurrentCamera()->getProjectionMatrix() );
+            _godrayPreRender->setViewMatrix( currentCamera->getViewMatrix() );
+            _godrayPreRender->setProjectionMatrix( currentCamera->getProjectionMatrix() );
             _godrayPreRender->accept( cv );
         }
 
         if( _enableDOF )
         {
             // set view and projection to match main camera
-            _dofPasses.at(0)->setViewMatrix( cv.getCurrentCamera()->getViewMatrix() );
-            _dofPasses.at(0)->setProjectionMatrix( cv.getCurrentCamera()->getProjectionMatrix() );
+            _dofPasses.at(0)->setViewMatrix( currentCamera->getViewMatrix() );
+            _dofPasses.at(0)->setProjectionMatrix( currentCamera->getProjectionMatrix() );
 
             // pass the cull visitor down the chain
             for(unsigned int i = 0; i<_dofPasses.size()-1; ++i)
@@ -744,13 +749,14 @@ void OceanScene::cull(osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surface
     {
         // HACK: Make sure masks are set correctly on children... This 
         // assumes that the ocean surface is the only child that should have
-        // the _surfaceMask bit set. Otherwise other children will be
+        // the _surfaceMask bit set, and the silt node is the only child that
+        // should have the _siltMask bit set. Otherwise other children will be
         // rendered twice.
         for (unsigned int i = 0; i < getNumChildren(); ++i)
         {
             osg::Node* child = getChild(i);
-            if (child != _oceanTransform.get())
-                child->setNodeMask((child->getNodeMask() & ~_surfaceMask) | _normalSceneMask);
+            if (child != _oceanTransform.get() && child != _siltClipNode.get())
+                child->setNodeMask((child->getNodeMask() & ~_surfaceMask & ~_siltMask) | _normalSceneMask);
         }
 
         // render ocean surface with reflection / refraction stateset
