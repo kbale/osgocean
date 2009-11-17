@@ -635,6 +635,10 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bo
 {
     osg::Camera* currentCamera = cv.getCurrentRenderBin()->getStage()->getCamera();
 
+    // Update viewport dimensions
+    osg::Viewport* viewport = currentCamera->getViewport();
+    _surfaceStateSet->getUniform("osgOcean_ViewportDimensions")->set( osg::Vec2(viewport->width(), viewport->height()) );
+
     // Refractions need to be calculated even when the eye is above water 
     // for the shoreline foam effect and translucency.
     bool refractionVisible = _enableRefractions;
