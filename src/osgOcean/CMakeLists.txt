@@ -67,6 +67,9 @@ SET( LIB_HEADERS
 # Adds headers to the "Header Files" group in visual studio
 SOURCE_GROUP( "Header Files" ${HEADER_PATH}/*.* )
 
+# Adds shaders to the "Shaders" group in visual studio
+SOURCE_GROUP( "Shaders" FILES ${SHADER_FILES} )
+
 ADD_DEFINITIONS(-DOSGOCEAN_LIBRARY)
 
 INCLUDE_DIRECTORIES (
@@ -94,6 +97,7 @@ ADD_LIBRARY(
   SiltEffect.cpp
   WaterTrochoids.cpp
   Version.cpp
+  ${SHADER_FILES}
 )
 
 SET_TARGET_PROPERTIES(
