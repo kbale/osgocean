@@ -202,7 +202,7 @@ void main( void )
         // Calculate the position in world space of the pixel on the ocean floor
         vec4 aliasing_epsilon = vec4(0.0, 0.005 * distortedVertex.w, 0.0, 0.0) * fade;
 
-        vec4 refraction_ndc = vec4(gl_FragCoord.xy / osgOcean_ViewportDimensions, texture2DProj(osgOcean_RefractionDepthMap, distortedVertex + aliasing_epsilon).x, 1.0);
+        vec4 refraction_ndc = vec4(gl_FragCoord.xy / osgOcean_ViewportDimensions, texture2DProj(osgOcean_RefractionDepthMap, distortGen(vVertex, 0.0 * N) + aliasing_epsilon).x, 1.0);
         vec4 refraction_screen = refraction_ndc * 2.0 - 1.0;
         vec4 refraction_world = osgOcean_RefractionInverseTransformation * refraction_screen;
         refraction_world = refraction_world / refraction_world.w;
