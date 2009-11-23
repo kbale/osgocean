@@ -647,8 +647,16 @@ namespace osgOcean
         /** Post render pass for god rays. */
         osg::Camera* godrayFinalPass( void );
 
-        /** Downsample (1/4 original size) pass for depth of field and glare effect. */
-        osg::Camera* downsamplePass( osg::TextureRectangle* inputTexture, osg::TextureRectangle* outputTexture, bool isGlareEffect );
+        /** 
+        * Downsample (1/4 original size) pass for depth of field and glare effect. 
+        * colorBuffer refers to the main frame buffer color image
+        * auxBuffer refers to the luminance buffer (glare) or depth buffer (dof).
+        */
+        osg::Camera* downsamplePass( 
+            osg::TextureRectangle* colorBuffer,
+            osg::TextureRectangle* auxBuffer,
+            osg::TextureRectangle* outputTexture, 
+            bool isGlareEffect );
 
         /** Gaussian blur passes for the depth of field effect.
           * One pass is required for each axis.
@@ -656,7 +664,11 @@ namespace osgOcean
         osg::Camera* gaussianPass( osg::TextureRectangle* inputTexture, osg::TextureRectangle* outputTexture, bool isXAxis );
 
         /** Combine original FBO with downsampled blur image. */
-        osg::Camera* dofCombinerPass( osg::TextureRectangle* fullscreenTexture, osg::TextureRectangle* blurTexture, osg::TextureRectangle* outputTexture );
+        osg::Camera* dofCombinerPass( 
+            osg::TextureRectangle* fullscreenTexture, 
+            osg::TextureRectangle* fullDepthTexture,
+            osg::TextureRectangle* blurTexture, 
+            osg::TextureRectangle* outputTexture );
 
         /** Post render pass displays combined DOF buffer */
         osg::Camera* dofFinalPass( osg::TextureRectangle* combinedTexture );
@@ -676,7 +688,12 @@ namespace osgOcean
             osg::Vec2f direction );
 
         /** Sets up a camera for a render to FBO pass. */
-        osg::Camera* renderToTexturePass( osg::Texture* textureBuffer, osg::Texture* depthTextureBuffer = NULL );
+        osg::Camera* renderToTexturePass( osg::Texture* textureBuffer );
+
+        /** Sets up a camera for a render MRT FBO pass. */
+        osg::Camera* multipleRenderTargetPass( 
+            osg::Texture* texture0, osg::Camera::BufferComponent buffer0, 
+            osg::Texture* texture1, osg::Camera::BufferComponent buffer1 );
 
         /** Create geometry for a screen aligned quad. */
         osg::Geode* createScreenQuad( const osg::Vec2s& dims, const osg::Vec2s& texSize );

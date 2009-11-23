@@ -14,5 +14,5 @@ void main(void)
 
 	vec4 streak = streakColor1+streakColor2+streakColor3+streakColor4;
 
-	gl_FragColor = vec4( streak.rgb+fullColor.rgb, 1.0);;
+	gl_FragColor = streak+fullColor; 
 }

@@ -79,9 +79,10 @@ osg::ref_ptr<osg::Program> SkyDome::createShader(void)
             "\n"
             "void main(void)\n"
             "{\n"
-            "    vec3 tex = vec3(vTexCoord.x, vTexCoord.y, -vTexCoord.z);\n"
-            "    gl_FragColor = textureCube( uEnvironmentMap, tex.xzy );\n"
-            "  gl_FragColor.a = 0.0;\n"
+            "   vec3 texcoord = vec3(vTexCoord.x, vTexCoord.y, -vTexCoord.z);\n"
+            "   gl_FragData[0] = textureCube( uEnvironmentMap, texcoord.xzy );\n"
+            "   gl_FragData[0].a = 0.0;\n"
+            "   gl_FragData[1] = vec4(0.0);\n"
             "}\n";
 
         program->setName( "sky_dome_shader" );

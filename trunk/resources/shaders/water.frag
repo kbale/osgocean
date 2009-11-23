@@ -46,13 +46,15 @@ mat4 worldObjectMatrix;
 
 const float shininess = 2000.0;
 
+
 vec4 distortGen( vec4 v, vec3 N )
 {
     // transposed
-    const mat4 mr = mat4( 0.5, 0.0, 0.0, 0.0,
-                          0.0, 0.5, 0.0, 0.0,
-                          0.0, 0.0, 0.5, 0.0,
-                          0.5, 0.5, 0.5, 1.0 );
+    const mat4 mr = 
+        mat4( 0.5, 0.0, 0.0, 0.0,
+              0.0, 0.5, 0.0, 0.0,
+              0.0, 0.0, 0.5, 0.0,
+              0.5, 0.5, 0.5, 1.0 );
 
     mat4 texgen_matrix = mr * gl_ProjectionMatrix * gl_ModelViewMatrix;
 
@@ -207,10 +209,11 @@ void main( void )
         vec4 refraction_world = osgOcean_RefractionInverseTransformation * refraction_screen;
         refraction_world = refraction_world / refraction_world.w;
 
+#ifdef SHORELINE_FOAM
         // The vertical distance between the ocean surface and ocean floor,
         // this calculation is not entirely correct but it works ok
         float waterHeight = vWorldVertex.z - refraction_world.z;
-
+#endif
         // The depth of the ocean behind the pixel as seen from the camera position
         float waterDepth = distance(vWorldVertex, refraction_world);
 
@@ -253,6 +256,7 @@ void main( void )
 
         if(osgOcean_EnableCrestFoam)
         {
+#ifdef SHORELINE_FOAM
             if( vVertex.z > osgOcean_FoamCapBottom || waterHeight < 7.0)
             {
                 vec4 foam_color = texture2D( osgOcean_FoamMap, gl_TexCoord[1].st / 10.0);
@@ -262,19 +266,29 @@ void main( void )
 
                 final_color = final_color + (foam_color * alpha);
             }
+#else
+            if( vVertex.z > osgOcean_FoamCapBottom )
+            {
+                vec4 foam_color = texture2D( osgOcean_FoamMap, gl_TexCoord[1].st / 10.0);
+                float alpha = alphaHeight( osgOcean_FoamCapBottom, osgOcean_FoamCapTop, vVertex.z ) * (fresnel*2.0);
+                final_color = final_color + (foam_color * alpha);
+            }
+#endif
         }
+
 
         // exp2 fog
         float fogFactor = computeFogFactor( osgOcean_AboveWaterFogDensity, gl_FogFragCoord );
 
         final_color = mix( osgOcean_AboveWaterFogColor, final_color, fogFactor );
 
-        gl_FragColor = final_color;
-
         if(osgOcean_EnableGlare)
         {
-            gl_FragColor.a = luminance(lumColor);
+            float lum = luminance(lumColor);
+            gl_FragData[1] = vec4(lum);
         }
+
+        gl_FragData[0] = final_color;
     }
     else
     {
@@ -320,10 +334,11 @@ void main( void )
 
         if(osgOcean_EnableDOF)
         {
-            final_color.a = computeDepthBlur( gl_FogFragCoord, osgOcean_DOF_Focus, osgOcean_DOF_Near, osgOcean_DOF_Far, osgOcean_DOF_Clamp );
+            float depthBlur = computeDepthBlur( gl_FogFragCoord, osgOcean_DOF_Focus, osgOcean_DOF_Near, osgOcean_DOF_Far, osgOcean_DOF_Clamp );
+            gl_FragData[1] = vec4(depthBlur);
         }
 
-        gl_FragColor = final_color;
+        gl_FragData[0] = final_color;
     }
 }
 

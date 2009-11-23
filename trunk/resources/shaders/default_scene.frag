@@ -89,12 +89,14 @@ void main(void)
 
 		float fogFactor = computeFogFactor( osgOcean_UnderwaterFogDensity, gl_FogFragCoord );
 
-		final_color = mix( osgOcean_UnderwaterFogColor, final_color, fogFactor );
-
+        // write to depth buffer (actually a GL_LUMINANCE)
 		if(osgOcean_EnableDOF)
         {
-			final_color.a = computeDepthBlur(gl_FogFragCoord, osgOcean_DOF_Focus, osgOcean_DOF_Near, osgOcean_DOF_Far, osgOcean_DOF_Clamp);
+			gl_FragData[1] = computeDepthBlur(gl_FogFragCoord, osgOcean_DOF_Focus, osgOcean_DOF_Near, osgOcean_DOF_Far, osgOcean_DOF_Clamp);
         }
+
+        // color buffer
+        gl_FragData[0] = mix( osgOcean_UnderwaterFogColor, final_color, fogFactor );
 	}
     // Above water
 	else
@@ -104,11 +106,16 @@ void main(void)
 		float fogFactor = computeFogFactor( osgOcean_AboveWaterFogDensity, gl_FogFragCoord );
 		final_color = mix( osgOcean_AboveWaterFogColor, final_color, fogFactor );
 
-		if(osgOcean_EnableGlare)
+        // write to luminance buffer
+        // might not need the IF here, glsl compiler doesn't complain if 
+        // you try and write to a FragData index that doesn't exist. But since
+        // Mac GLSL support seems so fussy I'll leave it in.
+        if(osgOcean_EnableGlare)
         {
-			final_color.a = 0.0;
+			gl_FragData[1] = vec4(0.0);
         }
-	}
 
-	gl_FragColor = final_color;
+        // write to color buffer
+        gl_FragData[0] = final_color;
+	}
 }
