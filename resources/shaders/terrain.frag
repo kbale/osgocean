@@ -98,22 +98,25 @@ void main(void)
 		fogFactor = computeFogFactor( osgOcean_UnderwaterFogDensity, gl_FogFragCoord );
 		fogColor = osgOcean_UnderwaterFogColor;
 
+        // depth buffer
 		if(osgOcean_EnableDOF)
-			alpha = computeDepthBlur( gl_FogFragCoord, osgOcean_DOF_Focus, osgOcean_DOF_Near, osgOcean_DOF_Far, osgOcean_DOF_Clamp );
-		else
-			alpha = final_color.a;
+        {
+			float depthBlur = computeDepthBlur( gl_FogFragCoord, osgOcean_DOF_Focus, osgOcean_DOF_Near, osgOcean_DOF_Far, osgOcean_DOF_Clamp );
+            gl_FragData[1] = vec4(depthBlur);
+        }
 	}
 	else
 	{
 		fogFactor = computeFogFactor( osgOcean_AboveWaterFogDensity, gl_FogFragCoord );
 		fogColor = osgOcean_AboveWaterFogColor;
 		
+        // luminance buffer
 		if(osgOcean_EnableGlare)
-			alpha = 0.0;
-		else
-			alpha = final_color.a;
+        {
+            gl_FragData[1] = vec4(0.0);
+        }
 	}
 
-	gl_FragColor = mix( fogColor, final_color, fogFactor );
-	gl_FragColor.a = alpha;
+    // color buffer
+    gl_FragData[0] = mix( fogColor, final_color, fogFactor );
 }
