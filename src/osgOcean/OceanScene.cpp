@@ -393,7 +393,7 @@ void OceanScene::init( void )
             _reflectionCamera->setCullMask( _reflectionSceneMask );
             _reflectionCamera->setCullCallback( new CameraCullCallback(this) );
             _reflectionCamera->getOrCreateStateSet()->setMode( GL_CLIP_PLANE0+0, osg::StateAttribute::ON );
-            _reflectionCamera->getOrCreateStateSet()->setMode( GL_CULL_FACE, osg::StateAttribute::OFF );
+            _reflectionCamera->getOrCreateStateSet()->setMode( GL_CULL_FACE, osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE );
 
             _surfaceStateSet->setTextureAttributeAndModes( _reflectionUnit, reflectionTexture.get(), osg::StateAttribute::ON );
 
