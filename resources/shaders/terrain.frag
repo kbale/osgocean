@@ -8,6 +8,7 @@ uniform float osgOcean_DOF_Clamp;
 uniform bool osgOcean_EnableGlare;
 uniform bool osgOcean_EnableDOF;
 uniform bool osgOcean_EyeUnderwater;
+uniform bool osgOcean_EnableUnderwaterScattering;
 
 uniform float osgOcean_UnderwaterFogDensity;
 uniform float osgOcean_AboveWaterFogDensity;
@@ -82,7 +83,6 @@ void main(void)
 
 	vec3 bump = (bumpColor.xyz*2.0)-1.0;
 
-	float alpha = 0.0;
 	float fogFactor = 0.0;
 	vec4 fogColor;
 
@@ -93,7 +93,10 @@ void main(void)
 	if(osgOcean_EyeUnderwater && vWorldVertex.z < osgOcean_WaterHeight+2.0)
 	{
 		// mix in underwater light
-		final_color.rgb = final_color.rgb * vExtinction + vInScattering;
+        if( osgOcean_EnableUnderwaterScattering )
+        {
+		    final_color.rgb = final_color.rgb * vExtinction + vInScattering;
+        }
 
 		fogFactor = computeFogFactor( osgOcean_UnderwaterFogDensity, gl_FogFragCoord );
 		fogColor = osgOcean_UnderwaterFogColor;

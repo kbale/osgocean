@@ -34,47 +34,44 @@ void main(void)
     // pixel size of low resolution image
     vec2 pixelSizeLow = 4.0 * pixelSizeHigh;
 
-	vec4 color = texture2DRect( osgOcean_FullColourMap, gl_TexCoord[0] );	// fetch center tap
-//	float centerDepth = color.a; // save its depth
+    vec4 color = texture2DRect( osgOcean_FullColourMap, gl_TexCoord[0] );	// fetch center tap
+    //	float centerDepth = color.a; // save its depth
     float centerDepth = texture2DRect( osgOcean_FullDepthMap, gl_TexCoord[0] ).r; // save its depth
 
     // convert depth into blur radius in pixels
-	float discRadius = abs(centerDepth * vMaxCoC.y - vMaxCoC.x);
+    float discRadius = abs(centerDepth * vMaxCoC.y - vMaxCoC.x);
 
-	// compute disc radius on low-res image
-	float discRadiusLow = discRadius * radiusScale;
+    // compute disc radius on low-res image
+    float discRadiusLow = discRadius * radiusScale;
 
-	vec4 colorAccum = vec4(0.0);
+    vec4 colorAccum = vec4(0.0);
     float depthAccum = 0.0;
 
 	for(int t = 0; t < NUM_TAPS; t++)
 	{
-		// fetch low-res tap
-		vec2 coordLow = gl_TexCoord[1].st + ( osgOcean_LowRes * (pixelSizeLow * poisson[t] * discRadiusLow) );
-		vec4 tapLow = texture2DRect( osgOcean_BlurMap, coordLow );
+        vec2 coordHigh = gl_TexCoord[0].st + ( osgOcean_ScreenRes * (pixelSizeHigh * poisson[t] * discRadius    ));
+        vec2 coordLow  = gl_TexCoord[1].st + ( osgOcean_LowRes *    (pixelSizeLow  * poisson[t] * discRadiusLow ));
 
-		// fetch high-res tap
-		vec2 coordHigh = gl_TexCoord[0].st + ( osgOcean_ScreenRes * (pixelSizeHigh * poisson[t] * discRadius) );
-		
-        vec4 tapHigh       = texture2DRect( osgOcean_FullColourMap, coordHigh );
+        // fetch low-res tap
+        vec4 tapLow = texture2DRect( osgOcean_BlurMap, coordLow );
+
+        // fetch high-res tap
+        vec4 tapHigh = texture2DRect( osgOcean_FullColourMap, coordHigh );
+        
         float tapHighDepth = texture2DRect( osgOcean_FullDepthMap,  coordHigh ).r;
 
-		// put tap blurriness into [0, 1] range
-		//float tapBlur = abs(tapHigh.a * 2.0 - 1.0);
+        // put tap blurriness into [0, 1] range
         float tapBlur = abs(tapHighDepth * 2.0 - 1.0);
 
-		// mix low- and hi-res taps based on tap blurriness
-		vec4 tapColor = mix(tapHigh, tapLow, tapBlur);
+        // mix low- and hi-res taps based on tap blurriness
+        vec4 tapColor = mix(tapHigh, tapLow, tapBlur);
 
-		// apply leaking reduction: lower weight for taps that are
-		// closer than the center tap and in focus
-		//tap.a = (tap.a >= centerDepth) ? 1.0 : abs(tap.a * 2.0 - 1.0);
+        // apply leaking reduction: lower weight for taps that are
+        // closer than the center tap and in focus
         float tapDepth = (tapHighDepth >= centerDepth) ? 1.0 : abs(tapHighDepth * 2.0 - 1.0);
 
-		// accumulate
-		//color.rgb += tap.rgb * tap.a;
+        // accumulate
         colorAccum += tapColor * tapDepth;
-		//color.a += tap.a;
         depthAccum += tapDepth;
 	}
 
