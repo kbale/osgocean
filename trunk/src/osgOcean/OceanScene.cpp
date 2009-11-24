@@ -461,7 +461,7 @@ void OceanScene::init( void )
             osg::TextureRectangle* fullScreenTexture   = createTextureRectangle( _screenDims, GL_RGBA );
             osg::TextureRectangle* fullScreenLuminance = createTextureRectangle( _screenDims, GL_LUMINANCE );
 
-            osg::Camera* fullPass = multipleRenderTargetPass( fullScreenTexture, osg::Camera::COLOR_BUFFER0,
+            osg::Camera* fullPass = multipleRenderTargetPass( fullScreenTexture,   osg::Camera::COLOR_BUFFER0,
                                                               fullScreenLuminance, osg::Camera::COLOR_BUFFER1 );
 
             fullPass->setCullCallback( new PrerenderCameraCullCallback(this) );
@@ -474,11 +474,11 @@ void OceanScene::init( void )
             
             // Gaussian blur 1
             osg::TextureRectangle* gaussianTexture_1 = createTextureRectangle( lowResDims, GL_RGBA );
-            _dofPasses.push_back(gaussianPass(downsizedTexture, gaussianTexture_1, true ) );
+            _dofPasses.push_back( gaussianPass(downsizedTexture, gaussianTexture_1, true ) );
 
             // Gaussian blur 2
             osg::TextureRectangle* gaussianTexture_2 = createTextureRectangle( lowResDims, GL_RGBA );
-            _dofPasses.push_back(gaussianPass(gaussianTexture_1, gaussianTexture_2, false ) );
+            _dofPasses.push_back( gaussianPass(gaussianTexture_1, gaussianTexture_2, false ) );
 
             // Combiner
             osg::TextureRectangle* combinedTexture = createTextureRectangle( _screenDims, GL_RGBA );
@@ -874,24 +874,25 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
     static const char downsample_fragment[] =
         "uniform sampler2DRect osgOcean_ColorTexture;\n"
         "\n"
+        "const vec2 s1 = vec2(-1, 1);\n"
+        "const vec2 s2 = vec2( 1, 1);\n"
+        "const vec2 s3 = vec2( 1,-1);\n"
+        "const vec2 s4 = vec2(-1,-1);\n"
+        "\n"
         "void main( void )\n"
         "{\n"
         "	vec2 texCoordSample = vec2(0.0);\n"
         "\n"
-        "	texCoordSample.x = gl_TexCoord[0].x - 1;\n"
-        "	texCoordSample.y = gl_TexCoord[0].y + 1;\n"
+        "	texCoordSample = gl_TexCoord[0].st + s1;\n"
         "	vec4 color = texture2DRect(osgOcean_ColorTexture, texCoordSample);\n"
         "\n"
-        "	texCoordSample.x = gl_TexCoord[0].x + 1;\n"
-        "	texCoordSample.y = gl_TexCoord[0].y + 1;\n"
+        "	texCoordSample = gl_TexCoord[0].st + s2;\n"
         "	color += texture2DRect(osgOcean_ColorTexture, texCoordSample);\n"
         "\n"
-        "	texCoordSample.x = gl_TexCoord[0].x + 1;\n"
-        "	texCoordSample.y = gl_TexCoord[0].y - 1;\n"
+        "	texCoordSample = gl_TexCoord[0].st + s3;\n"
         "	color += texture2DRect(osgOcean_ColorTexture, texCoordSample);\n"
         "\n"
-        "	texCoordSample.x = gl_TexCoord[0].x - 1;\n"
-        "	texCoordSample.y = gl_TexCoord[0].y - 1;\n"
+        "	texCoordSample = gl_TexCoord[0].st + s4;\n"
         "	color += texture2DRect(osgOcean_ColorTexture, texCoordSample);\n"
         "\n"
         "	gl_FragColor = color * 0.25;\n"
@@ -911,27 +912,27 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
         "{\n"
         "	vec2 texCoordSample = vec2(0.0);\n"
         "\n"
-        "    texCoordSample = gl_TexCoord[0].st + s1;\n"
+        "   texCoordSample = gl_TexCoord[0].st + s1;\n"
         "	vec4 color = texture2DRect(osgOcean_ColorTexture, texCoordSample);\n"
         "	float lum  = texture2DRect(osgOcean_LuminanceTexture, texCoordSample).r;\n"
         "\n"
         "	texCoordSample = gl_TexCoord[0].st + s2;\n"
         "	color += texture2DRect(osgOcean_ColorTexture, texCoordSample);\n"
-        "    lum   += texture2DRect(osgOcean_LuminanceTexture, texCoordSample).r;\n"
+        "   lum   += texture2DRect(osgOcean_LuminanceTexture, texCoordSample).r;\n"
         "\n"
         "	texCoordSample = gl_TexCoord[0].st + s3;\n"
         "	color += texture2DRect(osgOcean_ColorTexture, texCoordSample);\n"
-        "    lum   += texture2DRect(osgOcean_LuminanceTexture, texCoordSample).r;\n"
+        "   lum   += texture2DRect(osgOcean_LuminanceTexture, texCoordSample).r;\n"
         "\n"
         "	texCoordSample = gl_TexCoord[0].st +s4;\n"
         "	color += texture2DRect(osgOcean_ColorTexture, texCoordSample);\n"
-        "    lum   += texture2DRect(osgOcean_LuminanceTexture, texCoordSample).r;\n"
+        "   lum   += texture2DRect(osgOcean_LuminanceTexture, texCoordSample).r;\n"
         "\n"
         "	color = color*0.25;\n"
-        "    lum = lum*0.25;\n"
+        "   lum = lum*0.25;\n"
         "\n"
-        "    // only want very high luminance values to pass otherwise\n"
-        "    // we get streaks all over the scene\n"
+        "   // only want very high luminance values to pass otherwise\n"
+        "   // we get streaks all over the scene\n"
         "	if(lum >= osgOcean_GlareThreshold)\n"
         "		gl_FragColor = color;\n"
         "	else\n"
@@ -1104,47 +1105,44 @@ osg::Camera* OceanScene::dofCombinerPass(osg::TextureRectangle* fullscreenTextur
         "    // pixel size of low resolution image\n"
         "    vec2 pixelSizeLow = 4.0 * pixelSizeHigh;\n"
         "\n"
-        "	vec4 color = texture2DRect( osgOcean_FullColourMap, gl_TexCoord[0] );	// fetch center tap\n"
-        "//	float centerDepth = color.a; // save its depth\n"
+        "    vec4 color = texture2DRect( osgOcean_FullColourMap, gl_TexCoord[0] );	// fetch center tap\n"
+        "    //	float centerDepth = color.a; // save its depth\n"
         "    float centerDepth = texture2DRect( osgOcean_FullDepthMap, gl_TexCoord[0] ).r; // save its depth\n"
         "\n"
         "    // convert depth into blur radius in pixels\n"
-        "	float discRadius = abs(centerDepth * vMaxCoC.y - vMaxCoC.x);\n"
+        "    float discRadius = abs(centerDepth * vMaxCoC.y - vMaxCoC.x);\n"
         "\n"
-        "	// compute disc radius on low-res image\n"
-        "	float discRadiusLow = discRadius * radiusScale;\n"
+        "    // compute disc radius on low-res image\n"
+        "    float discRadiusLow = discRadius * radiusScale;\n"
         "\n"
-        "	vec4 colorAccum = vec4(0.0);\n"
+        "    vec4 colorAccum = vec4(0.0);\n"
         "    float depthAccum = 0.0;\n"
         "\n"
         "	for(int t = 0; t < NUM_TAPS; t++)\n"
         "	{\n"
-        "		// fetch low-res tap\n"
-        "		vec2 coordLow = gl_TexCoord[1].st + ( osgOcean_LowRes * (pixelSizeLow * poisson[t] * discRadiusLow) );\n"
-        "		vec4 tapLow = texture2DRect( osgOcean_BlurMap, coordLow );\n"
+        "        vec2 coordHigh = gl_TexCoord[0].st + ( osgOcean_ScreenRes * (pixelSizeHigh * poisson[t] * discRadius    ));\n"
+        "        vec2 coordLow  = gl_TexCoord[1].st + ( osgOcean_LowRes *    (pixelSizeLow  * poisson[t] * discRadiusLow ));\n"
         "\n"
-        "		// fetch high-res tap\n"
-        "		vec2 coordHigh = gl_TexCoord[0].st + ( osgOcean_ScreenRes * (pixelSizeHigh * poisson[t] * discRadius) );\n"
-        "		\n"
-        "        vec4 tapHigh       = texture2DRect( osgOcean_FullColourMap, coordHigh );\n"
+        "        // fetch low-res tap\n"
+        "        vec4 tapLow = texture2DRect( osgOcean_BlurMap, coordLow );\n"
+        "\n"
+        "        // fetch high-res tap\n"
+        "        vec4 tapHigh = texture2DRect( osgOcean_FullColourMap, coordHigh );\n"
+        "        \n"
         "        float tapHighDepth = texture2DRect( osgOcean_FullDepthMap,  coordHigh ).r;\n"
         "\n"
-        "		// put tap blurriness into [0, 1] range\n"
-        "		//float tapBlur = abs(tapHigh.a * 2.0 - 1.0);\n"
+        "        // put tap blurriness into [0, 1] range\n"
         "        float tapBlur = abs(tapHighDepth * 2.0 - 1.0);\n"
         "\n"
-        "		// mix low- and hi-res taps based on tap blurriness\n"
-        "		vec4 tapColor = mix(tapHigh, tapLow, tapBlur);\n"
+        "        // mix low- and hi-res taps based on tap blurriness\n"
+        "        vec4 tapColor = mix(tapHigh, tapLow, tapBlur);\n"
         "\n"
-        "		// apply leaking reduction: lower weight for taps that are\n"
-        "		// closer than the center tap and in focus\n"
-        "		//tap.a = (tap.a >= centerDepth) ? 1.0 : abs(tap.a * 2.0 - 1.0);\n"
+        "        // apply leaking reduction: lower weight for taps that are\n"
+        "        // closer than the center tap and in focus\n"
         "        float tapDepth = (tapHighDepth >= centerDepth) ? 1.0 : abs(tapHighDepth * 2.0 - 1.0);\n"
         "\n"
-        "		// accumulate\n"
-        "		//color.rgb += tap.rgb * tap.a;\n"
+        "        // accumulate\n"
         "        colorAccum += tapColor * tapDepth;\n"
-        "		//color.a += tap.a;\n"
         "        depthAccum += tapDepth;\n"
         "	}\n"
         "\n"
@@ -1162,8 +1160,8 @@ osg::Camera* OceanScene::dofCombinerPass(osg::TextureRectangle* fullscreenTextur
 
     osg::StateSet* ss = new osg::StateSet;
     ss->setTextureAttributeAndModes( 0, fullscreenTexture, osg::StateAttribute::ON );
-    ss->setTextureAttributeAndModes( 1, fullDepthTexture, osg::StateAttribute::ON );
-    ss->setTextureAttributeAndModes( 2, blurTexture, osg::StateAttribute::ON );
+    ss->setTextureAttributeAndModes( 1, fullDepthTexture,  osg::StateAttribute::ON );
+    ss->setTextureAttributeAndModes( 2, blurTexture,       osg::StateAttribute::ON );
 
     ss->setAttributeAndModes( ShaderManager::instance().createProgram("dof_combiner", dof_composite_vertex, dof_composite_fragment, !USE_LOCAL_SHADERS ), osg::StateAttribute::ON );
 
@@ -1275,11 +1273,11 @@ osg::Camera* OceanScene::glarePass(osg::TextureRectangle* streakInput,
     return glarePass;
 }
 
-osg::Camera* OceanScene::glareCombinerPass(osg::TextureRectangle* fullscreenTexture,
-                                                         osg::TextureRectangle* glareTexture1,
-                                                         osg::TextureRectangle* glareTexture2,
-                                                         osg::TextureRectangle* glareTexture3,
-                                                         osg::TextureRectangle* glareTexture4 )
+osg::Camera* OceanScene::glareCombinerPass( osg::TextureRectangle* fullscreenTexture,
+                                            osg::TextureRectangle* glareTexture1,
+                                            osg::TextureRectangle* glareTexture2,
+                                            osg::TextureRectangle* glareTexture3,
+                                            osg::TextureRectangle* glareTexture4 )
 {
 #if USE_LOCAL_SHADERS
     static const char glare_composite_vertex[] = 
@@ -1436,7 +1434,7 @@ osg::Program* OceanScene::createDefaultSceneShader(void)
         "	vec4 worldVertex = (osg_ViewMatrixInverse*gl_ModelViewMatrix) * gl_Vertex;\n"
         "\n"
         "	if (osgOcean_EnableUnderwaterScattering)\n"
-        "           computeScattering( osgOcean_Eye, worldVertex.xyz, vExtinction, vInScattering);\n"
+        "       computeScattering( osgOcean_Eye, worldVertex.xyz, vExtinction, vInScattering);\n"
         "\n"
         "	vWorldHeight = worldVertex.z;\n"
         "}\n";
@@ -1459,6 +1457,7 @@ osg::Program* OceanScene::createDefaultSceneShader(void)
         "uniform bool osgOcean_EnableGlare;\n"
         "uniform bool osgOcean_EnableDOF;\n"
         "uniform bool osgOcean_EyeUnderwater;\n"
+        "uniform bool osgOcean_EnableUnderwaterScattering;\n"
         "// -------------------\n"
         "\n"
         "uniform sampler2D uTextureMap;\n"
@@ -1515,40 +1514,42 @@ osg::Program* OceanScene::createDefaultSceneShader(void)
         "\n"
         "void main(void)\n"
         "{\n"
-        "	vec4 textureColor = texture2D( uTextureMap, gl_TexCoord[0].st );\n"
+        "    vec4 final_color;\n"
         "\n"
-        "	vec4 final_color;\n"
-        "\n"
-        "	float alpha;\n"
+        "    vec4 textureColor = texture2D( uTextureMap, gl_TexCoord[0].st );\n"
         "\n"
         "    // Underwater\n"
-        "	// +2 tweak here as waves peak above average wave height,\n"
-        "	// and surface fog becomes visible.\n"
-        "	if(osgOcean_EyeUnderwater && vWorldHeight < osgOcean_WaterHeight+2.0 )\n"
-        "	{\n"
-        "		final_color = lighting( textureColor );\n"
+        "    // +2 tweak here as waves peak above average wave height,\n"
+        "    // and surface fog becomes visible.\n"
+        "    if(osgOcean_EyeUnderwater && vWorldHeight < osgOcean_WaterHeight+2.0 )\n"
+        "    {\n"
+        "        final_color = lighting( textureColor );\n"
         "\n"
         "        // mix in underwater light\n"
-        "		final_color.rgb = final_color.rgb * vExtinction + vInScattering;\n"
+        "        if(osgOcean_EnableUnderwaterScattering)\n"
+        "        {\n"
+        "            final_color.rgb = final_color.rgb * vExtinction + vInScattering;\n"
+        "        }\n"
         "\n"
-        "		float fogFactor = computeFogFactor( osgOcean_UnderwaterFogDensity, gl_FogFragCoord );\n"
+        "        float fogFactor = computeFogFactor( osgOcean_UnderwaterFogDensity, gl_FogFragCoord );\n"
         "\n"
         "        // write to depth buffer (actually a GL_LUMINANCE)\n"
-        "		if(osgOcean_EnableDOF)\n"
+        "        if(osgOcean_EnableDOF)\n"
         "        {\n"
-        "			gl_FragData[1] = computeDepthBlur(gl_FogFragCoord, osgOcean_DOF_Focus, osgOcean_DOF_Near, osgOcean_DOF_Far, osgOcean_DOF_Clamp);\n"
+        "            float depth = computeDepthBlur(gl_FogFragCoord, osgOcean_DOF_Focus, osgOcean_DOF_Near, osgOcean_DOF_Far, osgOcean_DOF_Clamp);\n"
+        "            gl_FragData[1] = vec4(depth);\n"
         "        }\n"
         "\n"
         "        // color buffer\n"
         "        gl_FragData[0] = mix( osgOcean_UnderwaterFogColor, final_color, fogFactor );\n"
-        "	}\n"
+        "    }\n"
         "    // Above water\n"
-        "	else\n"
-        "	{\n"
+        "    else\n"
+        "    {\n"
         "        final_color = lighting( textureColor );\n"
         "\n"
-        "		float fogFactor = computeFogFactor( osgOcean_AboveWaterFogDensity, gl_FogFragCoord );\n"
-        "		final_color = mix( osgOcean_AboveWaterFogColor, final_color, fogFactor );\n"
+        "        float fogFactor = computeFogFactor( osgOcean_AboveWaterFogDensity, gl_FogFragCoord );\n"
+        "        final_color = mix( osgOcean_AboveWaterFogColor, final_color, fogFactor );\n"
         "\n"
         "        // write to luminance buffer\n"
         "        // might not need the IF here, glsl compiler doesn't complain if \n"
@@ -1556,12 +1557,12 @@ osg::Program* OceanScene::createDefaultSceneShader(void)
         "        // Mac GLSL support seems so fussy I'll leave it in.\n"
         "        if(osgOcean_EnableGlare)\n"
         "        {\n"
-        "			gl_FragData[1] = vec4(0.0);\n"
+        "            gl_FragData[1] = vec4(0.0);\n"
         "        }\n"
         "\n"
         "        // write to color buffer\n"
         "        gl_FragData[0] = final_color;\n"
-        "	}\n"
+        "    }\n"
         "}\n";
 #else
     static const char default_scene_vertex[]   = "default_scene.vert";

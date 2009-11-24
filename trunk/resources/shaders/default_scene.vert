@@ -5,6 +5,7 @@ uniform float osgOcean_WaterHeight;
 uniform vec3 osgOcean_Eye;
 uniform vec3 osgOcean_UnderwaterAttenuation;
 uniform vec4 osgOcean_UnderwaterDiffuse;
+uniform bool osgOcean_EnableUnderwaterScattering;
 // -----------------
 
 varying vec3 vExtinction;
@@ -41,7 +42,8 @@ void main(void)
 
 	vec4 worldVertex = (osg_ViewMatrixInverse*gl_ModelViewMatrix) * gl_Vertex;
 
-	computeScattering( osgOcean_Eye, worldVertex.xyz, vExtinction, vInScattering);
+    if (osgOcean_EnableUnderwaterScattering)
+        computeScattering( osgOcean_Eye, worldVertex.xyz, vExtinction, vInScattering);
 
 	vWorldHeight = worldVertex.z;
 }

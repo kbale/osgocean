@@ -366,11 +366,12 @@ public:
                 _oceanScene->setUnderwaterFog(0.002f,  _waterFogColors[_sceneType] );
                 _oceanScene->setUnderwaterDiffuse( _underwaterDiffuse[_sceneType] );
                 _oceanScene->setUnderwaterAttenuation( _underwaterAttenuations[_sceneType] );
-
+                
                 _oceanScene->setSunDirection( sunDir );
                 _oceanScene->enableGodRays(true);
                 _oceanScene->enableSilt(true);
                 _oceanScene->enableUnderwaterDOF(true);
+                _oceanScene->enableUnderwaterScattering(true);
                 _oceanScene->enableDistortion(true);
                 _oceanScene->enableGlare(true);
                 _oceanScene->setGlareAttenuation(0.8f);
