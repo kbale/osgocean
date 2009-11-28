@@ -819,7 +819,6 @@ osg::Camera* OceanScene::renderToTexturePass( osg::Texture* textureBuffer )
     camera->setClearColor( osg::Vec4f(0.f, 0.f, 0.f, 1.f) );
     camera->setReferenceFrame( osg::Transform::ABSOLUTE_RF_INHERIT_VIEWPOINT );
     camera->setViewport( 0,0, textureBuffer->getTextureWidth(), textureBuffer->getTextureHeight() );
-    camera->setRenderOrder(osg::Camera::PRE_RENDER);
     camera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT);
     camera->attach( osg::Camera::COLOR_BUFFER, textureBuffer );
 
@@ -836,9 +835,7 @@ osg::Camera* OceanScene::multipleRenderTargetPass(osg::Texture* texture0, osg::C
     camera->setClearColor( osg::Vec4f(0.f, 0.f, 0.f, 1.f) );
     camera->setReferenceFrame( osg::Transform::ABSOLUTE_RF_INHERIT_VIEWPOINT );
     camera->setViewport( 0,0, texture0->getTextureWidth(), texture0->getTextureHeight() );
-    camera->setRenderOrder(osg::Camera::PRE_RENDER);
     camera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT);
-
     camera->attach( buffer0, texture0 );
     camera->attach( buffer1, texture1 );
 
