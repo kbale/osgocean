@@ -961,7 +961,6 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
     ss->setTextureAttributeAndModes( 0, colorBuffer, osg::StateAttribute::ON );
     ss->addUniform( new osg::Uniform( "osgOcean_ColorTexture", 0 ) );
 
-
     osg::Geode* downSizedQuad = createScreenQuad( lowResDims, _screenDims );
     downSizedQuad->setStateSet(ss);
 
@@ -1199,9 +1198,9 @@ osg::Camera* OceanScene::dofFinalPass( osg::TextureRectangle* combinedTexture )
 }
 
 osg::Camera* OceanScene::glarePass(osg::TextureRectangle* streakInput, 
-                                              osg::TextureRectangle* steakOutput, 
-                                              int pass, 
-                                              osg::Vec2f direction )
+                                   osg::TextureRectangle* steakOutput, 
+                                   int pass, 
+                                   osg::Vec2f direction )
 {
 #if USE_LOCAL_SHADERS
     static const char streak_vertex[] =
