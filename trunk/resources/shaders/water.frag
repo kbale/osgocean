@@ -195,9 +195,10 @@ void main( void )
         // Fade out the distortion along the screen edges this reduces artifacts
         // caused by texture coordinates that are distorted out of the [0, 1] range.
         // At very close distance to the surface the distortion artifacts still appear.
-        vec2 fade_xy = pow(abs(gl_FragCoord.xy / (osgOcean_ViewportDimensions * 0.5) - 1.0), 10.0);
+		float fade_x   = pow(abs(gl_FragCoord.x / (osgOcean_ViewportDimensions.x * 0.5) - 1.0), 10.0);\n"
+		float fade_y   = pow(abs(gl_FragCoord.y / (osgOcean_ViewportDimensions.y * 0.5) - 1.0), 10.0);\n"
 
-        float fade = 1.0 - max(fade_xy.x, fade_xy.y);
+        float fade = 1.0 - max(fade_x, fade_y);
 
         vec4 distortedVertex = distortGen(vVertex, fade * N);
 
