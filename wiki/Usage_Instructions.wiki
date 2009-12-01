@@ -28,6 +28,27 @@ osgOcean needs to be linked against a Fast Fourier Transform library. You can ch
 
 You will need to specify the include directory and library file of your installed and compiled FFT library when building the project. FFTW offers precompiled binaries for Windows, though it requires that you generate the import libraries before being able to use it (see <a href="http://www.fftw.org/install/windows.html">http://www.fftw.org/install/windows.html</a>). FFTSS needs to be compiled, but it is painless as VC7 project files are provided in the win32 subdirectory of the source archive. You only need to compile the release version.
 
+== Building osgOcean ==
+
+=== Windows ===
+
+On Windows, you run the CMake GUI. At the top you will have a field "Where is the source code ?", point that to the base osgOcean directory (the one that contains src/, include/, resources/, etc.). Then in "Where to build the binaries?", I suggest you point it to a build/ subdirectory  under that same osgOcean directory (which you will create). Then click Configure, fill in any paths that are missing (FFTSS and OSG include and library paths probably), set CMAKE_INSTALL_PREFIX to for example your osgOcean base directory, click Configure again and then (if there is no error) Generate.
+
+Then you can open the generated osgOcean.sln file (which will be in build/) in Visual Studio and build it, and then run the oceanExample.
+
+=== Linux ===
+
+On Linux, do this:
+
+cd <the osgOcean base directory>
+mkdir build
+cd build
+ccmake ..
+
+Then press C for configure, fill in any paths that are missing (FFTSS and OSG include and library paths probably), set CMAKE_INSTALL_PREFIX to for example your osgOcean base directory, press C again and then (if there is no error) G for generate.
+
+Then you can run make from the build directory and it will compile osgOcean. You can run make install, that will copy the binaries into osgOcean/bin and osgOcean/lib. Then to run the oceanExample you'd have to add osgOcean/lib to your LD_LIBRARY_PATH (as well as your osg lib directory).
+
 == Resources ==
 
 Both the library and the example require a set of resource
