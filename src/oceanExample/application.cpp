@@ -355,6 +355,7 @@ public:
                 _oceanScene->setLightID(0);
                 _oceanScene->enableReflections(true);
                 _oceanScene->enableRefractions(true);
+                _oceanScene->enableHeightmap(true);
 
                 // Set the size of _oceanCylinder which follows the camera underwater. 
                 // This cylinder prevents the clear from being visible past the far plane 
@@ -426,7 +427,9 @@ public:
                     _islandSwitch->addChild( islandModel.get(), true );
                     _islandSwitch->setNodeMask( _oceanScene->getNormalSceneMask() | 
                                                 _oceanScene->getReflectedSceneMask() | 
-                                                _oceanScene->getRefractedSceneMask() );
+                                                _oceanScene->getRefractedSceneMask()  |
+                                                _oceanScene->getHeightmapMask());
+
                     _oceanScene->addChild( _islandSwitch.get() );
                 }
             }
@@ -485,7 +488,7 @@ public:
 
         _oceanScene->setSunDirection( sunDir );
 
-        _light->setPosition( osg::Vec4f(_sunPositions[_sceneType],1.f) );
+        _light->setPosition( osg::Vec4f(_sunPositions[_sceneType], 1.f) );
         _light->setDiffuse( _sunDiffuse[_sceneType] ) ;
 
         if(_islandSwitch.valid() )
@@ -519,7 +522,7 @@ public:
         osg::Program* program = osgOcean::ShaderManager::instance().createProgram("terrain", terrain_vertex, terrain_fragment, true);
         program->addBindAttribLocation("aTangent", 6);
 #endif
-        island->setNodeMask( _oceanScene->getNormalSceneMask() | _oceanScene->getReflectedSceneMask() | _oceanScene->getRefractedSceneMask() );
+        island->setNodeMask( _oceanScene->getNormalSceneMask() | _oceanScene->getReflectedSceneMask() | _oceanScene->getRefractedSceneMask() | _oceanScene->getHeightmapMask());
         island->getStateSet()->addUniform( new osg::Uniform( "uTextureMap", 0 ) );
 
 #ifdef USE_CUSTOM_SHADER
