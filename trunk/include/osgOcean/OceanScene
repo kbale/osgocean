@@ -60,6 +60,7 @@ namespace osgOcean
         bool _enableDistortion;
         bool _enableUnderwaterScattering;
         bool _enableDefaultShader;
+        bool _enableHeightmap;
 
         osg::Vec2s _reflectionTexSize;
         osg::Vec2s _refractionTexSize;
@@ -68,6 +69,7 @@ namespace osgOcean
         int _reflectionUnit;
         int _refractionUnit;
         int _refractionDepthUnit;
+        int _heightmapUnit;
 
         float _aboveWaterFogDensity;
         osg::Vec4f _aboveWaterFogColor;
@@ -81,6 +83,7 @@ namespace osgOcean
 
         osg::ref_ptr<osg::Camera> _reflectionCamera;
         osg::ref_ptr<osg::Camera> _refractionCamera;
+        osg::ref_ptr<osg::Camera> _heightmapCamera;
         osg::ref_ptr<osg::Camera> _godrayPreRender;
         osg::ref_ptr<osg::Camera> _godrayPostRender;
 
@@ -105,6 +108,7 @@ namespace osgOcean
 
         unsigned int _reflectionSceneMask;
         unsigned int _refractionSceneMask;
+        unsigned int _heightmapMask;
         unsigned int _surfaceMask;
         unsigned int _normalSceneMask;
         unsigned int _siltMask;
@@ -208,6 +212,15 @@ namespace osgOcean
 
         inline bool areRefractionsEnabled() const{
             return _enableRefractions;
+        }
+
+        inline void enableHeightmap( bool enable ){
+            _enableHeightmap = enable;
+            _isDirty = true;
+        }
+
+        inline bool isHeightmapEnabled() const {
+            return _enableHeightmap;
         }
 
         inline void setEyeHeightRefractionCutoff( float cutoff ){
@@ -438,6 +451,10 @@ namespace osgOcean
             return _refractionSceneMask;
         }
 
+        inline unsigned int getHeightmapMask( void ) const{
+            return _heightmapMask;
+        }
+
         inline unsigned int getOceanSurfaceMask( void ) const{
             return _surfaceMask;
         }
@@ -454,6 +471,10 @@ namespace osgOcean
             return _refractionCamera;
         }
         
+        inline osg::ref_ptr<osg::Camera> getHeightmapCamera( void ) {
+            return _heightmapCamera;
+        }
+
         inline void setLightID( unsigned int id ){
             _lightID = id;
             _isDirty = true;
