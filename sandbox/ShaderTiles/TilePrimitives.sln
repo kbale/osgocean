@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TilePrimitives", "TilePrimitives\TilePrimitives.vcproj", "{6CFDC070-04FB-4EB7-905D-BF871BCC23A5}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ShaderTest", "ShaderTest\ShaderTest.vcproj", "{E2E1AA13-A435-48F3-92F7-14A8E3EB257E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6CFDC070-04FB-4EB7-905D-BF871BCC23A5}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6CFDC070-04FB-4EB7-905D-BF871BCC23A5}.Debug|Win32.Build.0 = Debug|Win32
+		{6CFDC070-04FB-4EB7-905D-BF871BCC23A5}.Release|Win32.ActiveCfg = Release|Win32
+		{6CFDC070-04FB-4EB7-905D-BF871BCC23A5}.Release|Win32.Build.0 = Release|Win32
+		{E2E1AA13-A435-48F3-92F7-14A8E3EB257E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E2E1AA13-A435-48F3-92F7-14A8E3EB257E}.Debug|Win32.Build.0 = Debug|Win32
+		{E2E1AA13-A435-48F3-92F7-14A8E3EB257E}.Release|Win32.ActiveCfg = Release|Win32
+		{E2E1AA13-A435-48F3-92F7-14A8E3EB257E}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
