@@ -20,8 +20,8 @@ SET( SHADER_FILES
   ${osgOcean_SOURCE_DIR}/resources/shaders/streak.frag
   ${osgOcean_SOURCE_DIR}/resources/shaders/glare_composite.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/glare_composite.frag
-  ${osgOcean_SOURCE_DIR}/resources/shaders/downsample_glare.frag
 
+  ${osgOcean_SOURCE_DIR}/resources/shaders/downsample_glare.frag
   ${osgOcean_SOURCE_DIR}/resources/shaders/downsample.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/downsample.frag
 
@@ -36,6 +36,9 @@ SET( SHADER_FILES
 
   ${osgOcean_SOURCE_DIR}/resources/shaders/default_scene.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/default_scene.frag
+  
+  ${osgOcean_SOURCE_DIR}/resources/shaders/heightmap.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/heightmap.frag
 )
 
 
