@@ -1,3 +1,5 @@
+#extension GL_ARB_texture_rectangle : enable
+
 uniform sampler2DRect osgOcean_ColorBuffer;
 uniform sampler2DRect osgOcean_StreakBuffer1;
 uniform sampler2DRect osgOcean_StreakBuffer2;

@@ -1,3 +1,5 @@
+#extension GL_ARB_texture_rectangle : enable
+
 uniform sampler2DRect osgOcean_FullColourMap;    // full resolution image
 uniform sampler2DRect osgOcean_FullDepthMap;     // full resolution depth map
 uniform sampler2DRect osgOcean_BlurMap;          // downsampled and filtered image

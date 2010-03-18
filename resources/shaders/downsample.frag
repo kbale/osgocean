@@ -1,3 +1,5 @@
+#extension GL_ARB_texture_rectangle : enable
+
 uniform sampler2DRect osgOcean_ColorTexture;
 
 const vec2 s1 = vec2(-1, 1);
