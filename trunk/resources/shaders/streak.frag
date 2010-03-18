@@ -1,3 +1,5 @@
+#extension GL_ARB_texture_rectangle : enable
+
 #define NUM_SAMPLES 4
 
 uniform sampler2DRect osgOcean_Buffer;

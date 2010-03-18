@@ -1,3 +1,5 @@
+#extension GL_ARB_texture_rectangle : enable
+
 uniform sampler2DRect osgOcean_ColorTexture;
 uniform sampler2DRect osgOcean_LuminanceTexture;
 uniform float osgOcean_GlareThreshold;
