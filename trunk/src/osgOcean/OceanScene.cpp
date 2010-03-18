@@ -925,6 +925,8 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
         "}\n";
 
     static const char downsample_fragment[] =
+        "#extension GL_ARB_texture_rectangle : enable"
+        "\n"
         "uniform sampler2DRect osgOcean_ColorTexture;\n"
         "\n"
         "const vec2 s1 = vec2(-1, 1);\n"
@@ -952,6 +954,8 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
         "}\n";
 
     static const char downsample_glare_fragment[] = 
+        "#extension GL_ARB_texture_rectangle : enable"
+        "\n"
         "uniform sampler2DRect osgOcean_ColorTexture;\n"
         "uniform sampler2DRect osgOcean_LuminanceTexture;\n"
         "uniform float osgOcean_GlareThreshold;\n"
@@ -1037,6 +1041,8 @@ osg::Camera* OceanScene::gaussianPass( osg::TextureRectangle* inputTexture, osg:
         "\n";
 
     static const char gaussian1_fragment[] = 
+        "#extension GL_ARB_texture_rectangle : enable"
+        "\n"
         "uniform sampler2DRect osgOcean_GaussianTexture;\n"
         "\n"
         "void main( void )\n"
@@ -1056,6 +1062,8 @@ osg::Camera* OceanScene::gaussianPass( osg::TextureRectangle* inputTexture, osg:
         "}\n";
 
     static const char gaussian2_fragment[] = 
+        "#extension GL_ARB_texture_rectangle : enable"
+        "\n"
         "uniform sampler2DRect osgOcean_GaussianTexture;\n"
         "\n"
         "void main( void )\n"
@@ -1121,6 +1129,8 @@ osg::Camera* OceanScene::dofCombinerPass(osg::TextureRectangle* fullscreenTextur
         "}\n";
 
     static const char dof_composite_fragment[] = 
+        "#extension GL_ARB_texture_rectangle : enable"
+        "\n"
         "uniform sampler2DRect osgOcean_FullColourMap;    // full resolution image\n"
         "uniform sampler2DRect osgOcean_FullDepthMap;     // full resolution depth map\n"
         "uniform sampler2DRect osgOcean_BlurMap;          // downsampled and filtered image\n"
@@ -1264,6 +1274,8 @@ osg::Camera* OceanScene::glarePass(osg::TextureRectangle* streakInput,
         "}\n";
 
     static const char streak_fragment[] = 
+        "#extension GL_ARB_texture_rectangle : enable"
+        "\n"
         "#define NUM_SAMPLES 4\n"
         "\n"
         "uniform sampler2DRect osgOcean_Buffer;\n"
@@ -1342,6 +1354,8 @@ osg::Camera* OceanScene::glareCombinerPass( osg::TextureRectangle* fullscreenTex
         "}\n";
 
     static const char glare_composite_fragment[] = 
+        "#extension GL_ARB_texture_rectangle : enable"
+        "\n"
         "uniform sampler2DRect osgOcean_ColorBuffer;\n"
         "uniform sampler2DRect osgOcean_StreakBuffer1;\n"
         "uniform sampler2DRect osgOcean_StreakBuffer2;\n"
