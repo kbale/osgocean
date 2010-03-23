@@ -43,11 +43,22 @@ varying vec4 vWorldVertex;
 varying vec3 vWorldViewDir;
 varying vec3 vWorldNormal;
 
+varying float height;
+
 mat4 worldObjectMatrix;
 
 const float shininess = 2000.0;
 
-varying float height;
+// Extinction level for red, green and blue light in ocean water
+// (maybe this should be changed into a user configurable shader uniform?)
+// Values are taken from "Rendering Water as Post-process Effect", Wojciech Toman
+// http://www.gamedev.net/reference/programming/features/ppWaterRender/
+// vec4 colorExtinction = vec4(4.5, 75.0, 300.0, 1.0) * 5.0;
+const vec4 oneOverColorExtinction = vec4(1.0/22.5, 1.0/375.0, 1.0/1500, 1.0/5.0);
+
+// The amount of light extinction,
+// higher values means that less light is transmitted through the water
+const float oneOverLightExtinction = 1.0/60.0;
 
 vec4 distortGen( vec4 v, vec3 N )
 {
@@ -200,7 +211,7 @@ void main( void )
         vec2 fade_xy = pow(abs(gl_FragCoord.xy / (osgOcean_ViewportDimensions.xy * 0.5) - 1.0), 10.0);
         float fade = 1.0 - max(fade_xy.x , fade_xy.y);
 
-        vec4 distortedVertex = distortGen(vVertex, fade * N);
+        vec4 distortedVertex = distortGen(vVertex, N*fade);
 
         // Calculate the position in world space of the pixel on the ocean floor
         vec4 refraction_ndc = vec4(gl_FragCoord.xy / osgOcean_ViewportDimensions, texture2DProj(osgOcean_RefractionDepthMap, distortGen(vVertex, 0.0 * N)).x, 1.0);
@@ -223,21 +234,11 @@ void main( void )
         if(osgOcean_EnableRefractions)
         {
             vec4 refractionmap_color = texture2DProj(osgOcean_RefractionMap, distortedVertex );
-
-            // The amount of light extinction,
-            // higher values means that less light is transmitted through the water
-            float lightExtinction = 60.0;
-
-            vec4 waterColor = mix(refractionmap_color, refraction_color, clamp(pow(waterDepth / lightExtinction, 0.3), 0.0, 1.0));
+			
+            vec4 waterColor = mix(refractionmap_color, refraction_color, clamp(pow(waterDepth * oneOverLightExtinction, 0.3), 0.0, 1.0));
 
 #if SHORETOSINUS
-            // Extinction level for red, green and blue light in ocean water
-            // (maybe this should be changed into a user configurable shader uniform?)
-            // Values are taken from "Rendering Water as Post-process Effect", Wojciech Toman
-            // http://www.gamedev.net/reference/programming/features/ppWaterRender/
-            vec4 colorExtinction = vec4(4.5, 75.0, 300.0, 1.0) * 5.0;
-
-            refraction_color = mix(waterColor, refraction_color, clamp(waterHeight / colorExtinction, 0.0, 1.0));
+            refraction_color = mix(waterColor, refraction_color, clamp(waterHeight * oneOverColorExtinction, 0.0, 1.0));
 #else
             refraction_color = waterColor;
 #endif
