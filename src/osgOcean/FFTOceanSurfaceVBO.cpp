@@ -27,17 +27,17 @@ using namespace osgOcean;
 #define USE_LOCAL_SHADERS 1
 
 FFTOceanSurfaceVBO::FFTOceanSurfaceVBO( unsigned int FFTGridSize,
-                                  float resolution,
-                                  unsigned int numTiles, 
-                                  const osg::Vec2f& windDirection,
-                                  float windSpeed,
-                                  float depth,
-                                  float reflectionDamping,
-                                  float waveScale,
-                                  bool isChoppy,
-                                  float choppyFactor,
-                                  float animLoopTime,
-                                  unsigned int numFrames ):
+                                        float resolution,
+                                        unsigned int numTiles, 
+                                        const osg::Vec2f& windDirection,
+                                        float windSpeed,
+                                        float depth,
+                                        float reflectionDamping,
+                                        float waveScale,
+                                        bool isChoppy,
+                                        float choppyFactor,
+                                        float animLoopTime,
+                                        unsigned int numFrames ):
 
     _tileSize       ( FFTGridSize ),
 
@@ -422,7 +422,7 @@ bool FFTOceanSurfaceVBO::updateLevels(const osg::Vec3f& eye)
       
       if(x_offset != 0 || y_offset != 0)
       {
-         std::cerr << "Surface Move." << std::endl;
+         //std::cerr << "Surface Move." << std::endl;
          
          while ((x_offset != 0) || (y_offset != 0))
          {
@@ -431,7 +431,7 @@ bool FFTOceanSurfaceVBO::updateLevels(const osg::Vec3f& eye)
                osg::Vec3f offset;
                _startPos.x() -= (int)_tileResolution;
                
-               for(int r = 0; r < _numTiles; ++r)
+               for(int r = 0; r < (int)_numTiles; ++r)
                {
                   std::vector< osg::ref_ptr<osgOcean::MipmapGeometryVBO> >& row = _oceanGeom.at(r);
                   
@@ -450,7 +450,7 @@ bool FFTOceanSurfaceVBO::updateLevels(const osg::Vec3f& eye)
                osg::Vec3f offset;
                _startPos.x() += (int)_tileResolution;
                
-               for(int r = 0; r < _numTiles; ++r)
+               for(int r = 0; r < (int)_numTiles; ++r)
                {
                   std::vector< osg::ref_ptr<osgOcean::MipmapGeometryVBO> >& row = _oceanGeom.at(r);
                   
@@ -474,7 +474,7 @@ bool FFTOceanSurfaceVBO::updateLevels(const osg::Vec3f& eye)
                
                osg::Vec3f offset;
                
-               for(int c = 0; c < _numTiles; c++ )
+               for(int c = 0; c < (int)_numTiles; c++ )
                {
                   offset.x() = _startPos.x() + c *(int) _tileResolution;
                   offset.y() = _startPos.y()-( (_numTiles-1)*(int)_tileResolution );
@@ -493,7 +493,7 @@ bool FFTOceanSurfaceVBO::updateLevels(const osg::Vec3f& eye)
                
                osg::Vec3f offset;
                
-               for(int c = 0; c < _numTiles; c++ )
+               for(int c = 0; c < (int)_numTiles; c++ )
                {
                   offset.x() = _startPos.x() + c * (int)_tileResolution;
                   offset.y() = _startPos.y();

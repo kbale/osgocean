@@ -162,33 +162,49 @@ int main(int argc, char *argv[])
     osgOcean::ShaderManager::instance().enableShaders(!disableShaders);
 
     osg::ref_ptr<osgOcean::OceanTechnique> oceanSurface; 
+    oceanSurface->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
 
     if (useVBO)
     {
-        osg::notify(osg::NOTICE) << "Using VBO" << std::endl;
-        oceanSurface = new osgOcean::FFTOceanSurfaceVBO( tileSize, resolution, numTiles, 
-                                                         windDirection, windSpeed, depth, 
-                                                         reflectionDamping, scale, 
-                                                         isChoppy, choppyFactor, 10.f, 256 );  
+        osg::notify(osg::NOTICE) << "Using VBO Ocean Technique" << std::endl;
+
+        osgOcean::FFTOceanSurfaceVBO* oceanSurfaceVBO 
+            = new osgOcean::FFTOceanSurfaceVBO( tileSize, resolution, numTiles, 
+                                                windDirection, windSpeed, depth, 
+                                                reflectionDamping, scale, 
+                                                isChoppy, choppyFactor, 10.f, 256 );
+        
+        oceanSurfaceVBO->setFoamBottomHeight( 2.2f );
+        oceanSurfaceVBO->setFoamTopHeight( 3.0f );
+        oceanSurfaceVBO->enableCrestFoam( true );
+        oceanSurfaceVBO->setLightColor( intColor( 105,138,174 ));
+        // Make the ocean surface track with the main camera position, giving the illusion
+        // of an endless ocean surface.
+        oceanSurfaceVBO->enableEndlessOcean(isEndlessOcean);
+
+        oceanSurface = oceanSurfaceVBO;
     }
     else
     {
-        osg::notify(osg::NOTICE) << "NOT USING VBO" << std::endl;
-        oceanSurface = new osgOcean::FFTOceanSurface( tileSize, resolution, numTiles, 
-                                                      windDirection, windSpeed, depth, 
-                                                      reflectionDamping, scale, 
-                                                      isChoppy, choppyFactor, 10.f, 256 );  
+        osg::notify(osg::NOTICE) << "NOT Using VBO Ocean Technique" << std::endl;
+
+        osgOcean::FFTOceanSurface* oceanSurfaceFFT 
+            = new osgOcean::FFTOceanSurface( tileSize, resolution, numTiles, 
+                                             windDirection, windSpeed, depth, 
+                                             reflectionDamping, scale, 
+                                             isChoppy, choppyFactor, 10.f, 256 );
+
+        oceanSurfaceFFT->setFoamBottomHeight( 2.2f );
+        oceanSurfaceFFT->setFoamTopHeight( 3.0f );
+        oceanSurfaceFFT->enableCrestFoam( true );
+        oceanSurfaceFFT->setLightColor( intColor( 105,138,174 ));
+        // Make the ocean surface track with the main camera position, giving the illusion
+        // of an endless ocean surface.
+        oceanSurfaceFFT->enableEndlessOcean(isEndlessOcean);
+
+        oceanSurface = oceanSurfaceFFT;
     }
     
-    oceanSurface->setFoamBottomHeight( 2.2f );
-    oceanSurface->setFoamTopHeight( 3.0f );
-    oceanSurface->enableCrestFoam( true );
-    oceanSurface->setLightColor( intColor( 105,138,174 ));
-    // Make the ocean surface track with the main camera position, giving the illusion
-    // of an endless ocean surface.
-    oceanSurface->enableEndlessOcean(isEndlessOcean);
-    oceanSurface->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
-
     osgOcean::ShaderManager::instance().setGlobalDefinition("osgOcean_LightID", 0); 
 
     osg::Vec3f eye(0.f,0.f,20.f);
@@ -199,17 +215,12 @@ int main(int argc, char *argv[])
     flight->setHomePosition( osg::Vec3f(0.f,0.f,20.f), osg::Vec3f(0.f,0.f,20.f)+osg::Vec3f(0.f,1.f,0.f), osg::Vec3f(0,0,1) );
     viewer.setCameraManipulator( flight.get() );
 
-    //osgGA::TrackballManipulator* tb = new osgGA::TrackballManipulator;
-    //tb->setHomePosition( eye, centre, up );
-    //viewer.setCameraManipulator(tb);
-    
     viewer.getCamera()->setViewMatrixAsLookAt( eye, centre, up    );
 
-    viewer.addEventHandler(oceanSurface->getEventHandler());
-
+    viewer.addEventHandler( oceanSurface->getEventHandler() );
     viewer.addEventHandler( new osgGA::StateSetManipulator( viewer.getCamera()->getOrCreateStateSet() ) );
 
-    viewer.setSceneData(oceanSurface.get()); 
+    viewer.setSceneData( oceanSurface.get() ); 
 
     viewer.realize();
 
