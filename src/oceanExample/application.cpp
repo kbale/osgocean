@@ -42,6 +42,7 @@
 #include <osgOcean/Version>
 #include <osgOcean/OceanScene>
 #include <osgOcean/FFTOceanSurface>
+#include <osgOcean/FFTOceanSurfaceVBO>
 #include <osgOcean/SiltEffect>
 #include <osgOcean/ShaderManager>
 
@@ -246,7 +247,7 @@ private:
     osg::ref_ptr<osg::Group> _scene;
 
     osg::ref_ptr<osgOcean::OceanScene> _oceanScene;
-    osg::ref_ptr<osgOcean::FFTOceanSurface> _oceanSurface;
+    osg::ref_ptr<osgOcean::OceanTechnique> _oceanSurface;
     osg::ref_ptr<osg::TextureCubeMap> _cubemap;
     osg::ref_ptr<SkyDome> _skyDome;
         
@@ -272,7 +273,8 @@ public:
                 float scale = 1e-8,
                 bool  isChoppy = true,
                 float choppyFactor = -2.5f,
-                float crestFoamHeight = 2.2f ):
+                float crestFoamHeight = 2.2f,
+                bool  useVBO=false ):
         _sceneType(CLEAR)
     {
         _cubemapDirs.push_back( "sky_clear" );
@@ -307,7 +309,7 @@ public:
         _sunDiffuse.push_back( intColor( 251, 251, 161 ) );
         _sunDiffuse.push_back( intColor( 191, 191, 191 ) );
 
-        build(windDirection, windSpeed, depth, reflectionDamping, scale, isChoppy, choppyFactor, crestFoamHeight);
+        build(windDirection, windSpeed, depth, reflectionDamping, scale, isChoppy, choppyFactor, crestFoamHeight, useVBO);
     }
 
     void build( const osg::Vec2f& windDirection,
@@ -317,7 +319,8 @@ public:
                 float waveScale,
                 bool  isChoppy,
                 float choppyFactor,
-                float crestFoamHeight )
+                float crestFoamHeight,
+                bool  useVBO )
     {
         {
             ScopedTimer buildSceneTimer("Building scene... \n", osg::notify(osg::NOTICE));
@@ -332,8 +335,28 @@ public:
             // Set up surface
             {
                 ScopedTimer oceanSurfaceTimer("  . Generating ocean surface: ", osg::notify(osg::NOTICE));
-                _oceanSurface = new osgOcean::FFTOceanSurface( 64, 256, 17, 
-                    windDirection, windSpeed, depth, reflectionDamping, waveScale, isChoppy, choppyFactor, 10.f, 256 );  
+                
+                if (useVBO)
+                {
+                    _oceanSurface = 
+                        new osgOcean::FFTOceanSurfaceVBO( 
+                            64, 256, 17, 
+                            windDirection, 
+                            windSpeed, depth, 
+                            reflectionDamping, 
+                            waveScale, isChoppy, 
+                            choppyFactor, 10.f, 256 );
+                }
+                else
+                {
+                    _oceanSurface = 
+                        new osgOcean::FFTOceanSurface( 
+                            64, 256, 17,  
+                            windDirection, 
+                            windSpeed, depth, 
+                            reflectionDamping, waveScale, 
+                            isChoppy, choppyFactor, 10.f, 256 );  
+                }
 
                 _oceanSurface->setEnvironmentMap( _cubemap.get() );
                 _oceanSurface->setFoamBottomHeight( 2.2f );
@@ -764,6 +787,9 @@ int main(int argc, char *argv[])
     bool disableShaders = false;
     if (arguments.read("--disableShaders")) disableShaders = true;
 
+    bool useVBO = false;
+    if (arguments.read("--vbo")) useVBO = true;
+
     osg::ref_ptr<osg::Node> loadedModel = osgDB::readNodeFiles(arguments);
 
     // any option left unread are converted into errors to write out later.
@@ -783,7 +809,7 @@ int main(int argc, char *argv[])
     osg::ref_ptr<TextHUD> hud = new TextHUD;
 
     osgOcean::ShaderManager::instance().enableShaders(!disableShaders);
-    osg::ref_ptr<SceneModel> scene = new SceneModel(windDirection, windSpeed, depth, reflectionDamping, scale, isChoppy, choppyFactor, crestFoamHeight);
+    osg::ref_ptr<SceneModel> scene = new SceneModel(windDirection, windSpeed, depth, reflectionDamping, scale, isChoppy, choppyFactor, crestFoamHeight, useVBO);
     
     if (disableShaders)
     {
@@ -821,8 +847,11 @@ int main(int argc, char *argv[])
         loadedModel->setNodeMask( scene->getOceanScene()->getNormalSceneMask() | 
                                   scene->getOceanScene()->getReflectedSceneMask() | 
                                   scene->getOceanScene()->getRefractedSceneMask() );
+
         scene->getOceanScene()->addChild(loadedModel.get());
     }
+
+    viewer.addEventHandler( new osgGA::StateSetManipulator( viewer.getCamera()->getOrCreateStateSet() ) );
 
     if (testCollision)
     {

@@ -19,7 +19,7 @@
 #include <osgOcean/Export>
 #include <osgOcean/OceanTechnique>
 #include <osgOcean/FFTSimulation>
-#include <osgOcean/MipmapGeometry> 
+#include <osgOcean/MipmapGeometryVBO> 
 #include <osgOcean/OceanTile> 
 
 #include <osg/Timer>
@@ -45,14 +45,14 @@ namespace osgOcean
     * Uses a modified geomipmapping alogorithm to provide level of detail.
     * LOD is managed automatically within the update and cull traversals.
     */
-    class OSGOCEAN_EXPORT FFTOceanSurface : public OceanTechnique
+    class OSGOCEAN_EXPORT FFTOceanSurfaceVBO : public OceanTechnique
     {
     private:
         unsigned int _tileSize;             /**< Size of FFT grid 2^n ie 128,64,32 etc. */
         unsigned int _noiseTileSize;        /**< Size of Noise FFT grid */
         float        _tileResolution;       /**< Size of tile in world width/height. */
         float        _tileResInv;           /**< 1 / _tileResoltion; */
-        unsigned int _noiseTileRes;         /**< Size of noise tile in world width/height. */
+        float         _noiseTileRes;         /**< Size of noise tile in world width/height. */
         unsigned int _numTiles;             /**< Number of tiles on width/height. */
         unsigned int _totalPoints;          /**< Total number of points on width/height. */ 
         float        _pointSpacing;         /**< Spacing between points in real world. */
@@ -95,18 +95,18 @@ namespace osgOcean
 
         std::vector<float> _minDist;        /**< Minimum distances used for mipmap selection */
 
-        std::vector< std::vector<OceanTile> > _mipmapData;                            /**< Wave tile data. */
-        std::vector< std::vector< osg::ref_ptr<MipmapGeometry> > > _oceanGeom;        /**< Geometry tiles. */
+        std::vector<OceanTile> _mipmapData;                                              /**< Wave tile data. */
+        std::vector< std::vector< osg::ref_ptr<MipmapGeometryVBO> > > _oceanGeom;        /**< Geometry tiles. */
         
         osg::ref_ptr<osg::Vec3Array> _activeVertices;       /**< Active vertex buffer. */
         osg::ref_ptr<osg::Vec3Array> _activeNormals;        /**< Active normal buffer. */
 
         osg::ref_ptr<osg::TextureCubeMap> _environmentMap;  /**< Cubemap used for refractions/reflections */
 
-        enum TEXTURE_UNITS{ ENV_MAP=0,REFLECT_MAP=1,REFRACT_MAP=2,REFRACTDEPTH_MAP=3,NORMAL_MAP=4,FOG_MAP=5,FOAM_MAP=6 };
+        enum TEXTURE_UNITS{ ENV_MAP=0,REFLECT_MAP=1,REFRACT_MAP=2,NORMAL_MAP=3,FOG_MAP=4,FOAM_MAP=5 };
 
     public:
-        FFTOceanSurface(unsigned int FFTGridSize,
+        FFTOceanSurfaceVBO(unsigned int FFTGridSize,
             float resolution,
             unsigned int numTiles, 
             const osg::Vec2f& windDirection,
@@ -119,20 +119,20 @@ namespace osgOcean
             float animLoopTime,
             unsigned int numFrames );
 
-        FFTOceanSurface( const FFTOceanSurface& copy, 
+        FFTOceanSurfaceVBO( const FFTOceanSurfaceVBO& copy, 
             const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY );
 
         virtual const char* libraryName() const { return "osgOcean"; }
-        virtual const char* className() const { return "FFTOceanSurface"; }
-        virtual bool isSameKindAs(const osg::Object* obj) const { return dynamic_cast<const FFTOceanSurface*>(obj) != 0; }
+        virtual const char* className() const { return "FFTOceanSurfaceVBO"; }
+        virtual bool isSameKindAs(const osg::Object* obj) const { return dynamic_cast<const FFTOceanSurfaceVBO*>(obj) != 0; }
 
     protected:
-        ~FFTOceanSurface(void);
+        ~FFTOceanSurfaceVBO(void);
 
         /** This class overrides OceanTechnique::EventHandler to provide 
          *  support for manipulating this particular subclass of 
          *  OceanTechnique. Note that the method signatures are identical, 
-         *  and that the FFTOceanSurface will be accessed through the base 
+         *  and that the FFTOceanSurfaceVBO will be accessed through the base 
          *  class OceanTechnique pointer.
          */
         class EventHandler : public OceanTechnique::EventHandler
@@ -184,52 +184,9 @@ namespace osgOcean
         */
         void createOceanTiles( void );
 
-        /**
-        * Computes and assigns mipmap primitives to the geometry.
-        */
-        void computePrimitives( void );
+        void updateVertices(unsigned int frame);
 
-        /**
-        * Copies vertices needs for the tiles into _activeVertices array.
-        */
-        void computeVertices( unsigned int frame );
-        
-        /**
-        * Checks for any changes in mipmap resolution based on eye position.
-        * @return true if any updates have occured.
-        */
-        bool updateMipmaps( const osg::Vec3f& eye, unsigned int frame );
-
-        /**
-        * Adds primitives for main body of vertices.
-        */
-        void addMainBody( MipmapGeometry* cTile );
-
-        /**
-        * Adds primitives for the right skirt.
-        */
-        void addRightBorder ( MipmapGeometry* cTile, MipmapGeometry* xTile );
-
-        /**
-        * Adds primitives for the bottom skirt.
-        */
-        void addBottomBorder( MipmapGeometry* cTile, MipmapGeometry* yTile );
-
-        /**
-        * Adds primitives for the corner piece.
-        */
-        void addCornerPatch( MipmapGeometry* cTile, MipmapGeometry* xTile, MipmapGeometry* yTile, MipmapGeometry* xyTile );
-
-        /**
-        * Adds primitives for main body of the lowest resolution tile (2x2 vertices).
-        * This is a special case treated similar to a corner piece.
-        */
-        void addMaxDistMainBody( MipmapGeometry* cTile, MipmapGeometry* xTile, MipmapGeometry* yTile, MipmapGeometry* xyTile );
-
-        /**
-        * Adds primitives for edge of the lowest resolution tile (2x2 vertices).
-        */
-        void addMaxDistEdge( MipmapGeometry* cTile, MipmapGeometry* xTile, MipmapGeometry* yTile );
+        bool updateLevels(const osg::Vec3f& eye);
 
         /**
         * Compute noise coordinates for the fragment shader.
@@ -238,7 +195,7 @@ namespace osgOcean
         * @param speed Speed of movement(m/s).
         * @parem time Simulation Time.
         */
-        osg::Vec3f computeNoiseCoords(float noiseSize, const osg::Vec2f& movement, float speed, float time);
+        osg::Vec3f computeNoiseCoords(float noiseSize, const osg::Vec2f& movement, float speed, double time);
 
         /**
         * Creates a custom DOT3 noise map for the ocean surface.
@@ -259,7 +216,7 @@ namespace osgOcean
         /** 
         * Convenience method for retrieving mipmap geometry from _oceanGeom. 
         */
-        inline MipmapGeometry* getTile( unsigned int x, unsigned int y ){    
+        inline MipmapGeometryVBO* getTile( unsigned int x, unsigned int y ){    
             return _oceanGeom.at(y).at(x).get();
         }
 
@@ -454,7 +411,7 @@ namespace osgOcean
         virtual OceanTechnique::EventHandler* getEventHandler()
         {
             if (!_eventHandler.valid())
-                 _eventHandler = new FFTOceanSurface::EventHandler(this);
+                 _eventHandler = new FFTOceanSurfaceVBO::EventHandler(this);
             return _eventHandler.get();
         }
 
@@ -468,7 +425,7 @@ namespace osgOcean
         class OSGOCEAN_EXPORT OceanDataType: public osg::Referenced
         {
         private:
-            osgOcean::FFTOceanSurface& _oceanSurface;
+            osgOcean::FFTOceanSurfaceVBO& _oceanSurface;
             const unsigned int _NUMFRAMES;
             osg::Vec3f _eye;
             float _time;
@@ -479,13 +436,13 @@ namespace osgOcean
             osg::Timer_t _newTime;
 
         public:
-            OceanDataType(    FFTOceanSurface& ocean, unsigned int numFrames, unsigned int fps );
+            OceanDataType(    FFTOceanSurfaceVBO& ocean, unsigned int numFrames, unsigned int fps );
             OceanDataType( const OceanDataType& copy, const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY );
             
             inline void setEye( const osg::Vec3f& eye ){ _eye = eye;    }
             
             /**
-            * @see FFTOceanSurface::update();
+            * @see FFTOceanSurfaceVBO::update();
             */
             void updateOcean(void);
         };

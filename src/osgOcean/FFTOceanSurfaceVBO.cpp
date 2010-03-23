@@ -15,17 +15,18 @@
 * http://www.gnu.org/copyleft/lesser.txt.
 */
 
-#include <osgOcean/FFTOceanSurface>
+#include <osgOcean/FFTOceanSurfaceVBO>
 #include <osgOcean/ShaderManager>
 #include <osg/io_utils>
-#include <osg/Math>
 #include <osg/Material>
+#include <osg/Math>
+#include <osgDB/WriteFile>
 
 using namespace osgOcean;
 
 #define USE_LOCAL_SHADERS 1
 
-FFTOceanSurface::FFTOceanSurface( unsigned int FFTGridSize,
+FFTOceanSurfaceVBO::FFTOceanSurfaceVBO( unsigned int FFTGridSize,
                                   float resolution,
                                   unsigned int numTiles, 
                                   const osg::Vec2f& windDirection,
@@ -39,13 +40,14 @@ FFTOceanSurface::FFTOceanSurface( unsigned int FFTGridSize,
                                   unsigned int numFrames ):
 
     _tileSize       ( FFTGridSize ),
+
     _noiseTileSize  ( FFTGridSize ),
     _tileResolution ( resolution ),
     _tileResInv     ( 1.f / float(resolution) ),
     _noiseTileRes   ( resolution ),
     _numTiles       ( numTiles ),
     _totalPoints    ( _tileSize * _numTiles + 1 ),
-    _pointSpacing   ( _tileResolution / _tileSize ),
+    _pointSpacing   ( ((float)_tileResolution) / _tileSize ),
     _windDirection  ( windDirection ),
     _noiseWindDir   ( windDirection ),
     _windSpeed      ( windSpeed ),
@@ -88,8 +90,8 @@ FFTOceanSurface::FFTOceanSurface( unsigned int FFTGridSize,
     setCullCallback( new OceanAnimationCallback );
     setUpdateCallback( new OceanAnimationCallback );
 
-    osg::notify(osg::INFO) << "Minimum Distances: " << std::endl;
     _minDist.clear();
+    osg::notify(osg::INFO) << "Minimum Distances: " << std::endl;
 
     for(unsigned int d = 0; d < _numLevels; ++d)
     {
@@ -98,9 +100,11 @@ FFTOceanSurface::FFTOceanSurface( unsigned int FFTGridSize,
         osg::notify(osg::INFO) << d << ": " << sqrt(_minDist.back()) << std::endl;
     }
 
+    osg::notify(osg::INFO) << "FFTOceanSurfaceVBO::createOceanTiles() Complete." << std::endl;
+
 }
 
-FFTOceanSurface::FFTOceanSurface( const FFTOceanSurface& copy, const osg::CopyOp& copyop ):
+FFTOceanSurfaceVBO::FFTOceanSurfaceVBO( const FFTOceanSurfaceVBO& copy, const osg::CopyOp& copyop ):
     OceanTechnique  ( copy, copyop ),
     _tileSize       ( copy._tileSize ),
     _noiseTileSize  ( copy._noiseTileSize ),
@@ -146,30 +150,30 @@ FFTOceanSurface::FFTOceanSurface( const FFTOceanSurface& copy, const osg::CopyOp
     _lightColor     ( copy._lightColor )
 {}
 
-FFTOceanSurface::~FFTOceanSurface(void)
+FFTOceanSurfaceVBO::~FFTOceanSurfaceVBO(void)
 {
 }
 
-void FFTOceanSurface::build( void )
+void FFTOceanSurfaceVBO::build( void )
 {
-    osg::notify(osg::INFO) << "FFTOceanSurface::build()" << std::endl;
+    osg::notify(osg::INFO) << "FFTOceanSurfaceVBO::build()" << std::endl;
 
     computeSea( _NUMFRAMES );
     createOceanTiles();
-    computeVertices(0);
-    computePrimitives();
+    updateLevels(osg::Vec3f(0.0f, 0.0f, 0.0f));
+    updateVertices(0);
 
     initStateSet();
 
     _isDirty =  false;
     _isStateDirty = false;
 
-    osg::notify(osg::INFO) << "FFTOceanSurface::build() Complete." << std::endl;
+    osg::notify(osg::INFO) << "FFTOceanSurfaceVBO::build() Complete." << std::endl;
 }
 
-void FFTOceanSurface::initStateSet( void )
+void FFTOceanSurfaceVBO::initStateSet( void )
 {
-    osg::notify(osg::INFO) << "FFTOceanSurface::initStateSet()" << std::endl;
+    osg::notify(osg::INFO) << "FFTOceanSurfaceVBO::initStateSet()" << std::endl;
     _stateset=new osg::StateSet;
 
     // Note that we will only set the textures in the state set if shaders are
@@ -179,12 +183,9 @@ void FFTOceanSurface::initStateSet( void )
 
     // Environment map    
     _stateset->addUniform( new osg::Uniform("osgOcean_EnvironmentMap", ENV_MAP ) );
-    
     if (ShaderManager::instance().areShadersEnabled())
-    {
-       _stateset->setTextureAttributeAndModes( ENV_MAP, _environmentMap.get(), 
-            osg::StateAttribute::ON | osg::StateAttribute::PROTECTED);
-    }
+       _stateset->setTextureAttributeAndModes( ENV_MAP, _environmentMap.get(), osg::StateAttribute::ON
+                                                                                   | osg::StateAttribute::PROTECTED);
     
     // Foam
     _stateset->addUniform( new osg::Uniform("osgOcean_EnableCrestFoam", _useCrestFoam ) );
@@ -196,12 +197,9 @@ void FFTOceanSurface::initStateSet( void )
     if( _useCrestFoam )
     {
         osg::Texture2D* foam_tex = createTexture("sea_foam.png", osg::Texture::REPEAT );
-        
-        if ( ShaderManager::instance().areShadersEnabled() )
-        {
-            _stateset->setTextureAttributeAndModes( FOAM_MAP, foam_tex, 
-                osg::StateAttribute::ON | osg::StateAttribute::PROTECTED);
-        }
+        if (ShaderManager::instance().areShadersEnabled())
+           _stateset->setTextureAttributeAndModes( FOAM_MAP, foam_tex, osg::StateAttribute::ON |
+                                                   osg::StateAttribute::PROTECTED);
     }
 
     // Noise
@@ -214,8 +212,8 @@ void FFTOceanSurface::initStateSet( void )
 
     if (ShaderManager::instance().areShadersEnabled())
     {
-        _stateset->setTextureAttributeAndModes( NORMAL_MAP, noiseMap.get(), 
-            osg::StateAttribute::ON | osg::StateAttribute::PROTECTED);
+        _stateset->setTextureAttributeAndModes( NORMAL_MAP, noiseMap.get(), osg::StateAttribute::ON |
+                                                                            osg::StateAttribute::PROTECTED);
     }
 
     // Colouring
@@ -244,10 +242,10 @@ void FFTOceanSurface::initStateSet( void )
 
     _isStateDirty = false;
 
-    osg::notify(osg::INFO) << "FFTOceanSurface::initStateSet() Complete." << std::endl;
+    osg::notify(osg::INFO) << "FFTOceanSurfaceVBO::initStateSet() Complete." << std::endl;
 }
 
-osg::ref_ptr<osg::Texture2D> FFTOceanSurface::createNoiseMap(unsigned int size, 
+osg::ref_ptr<osg::Texture2D> FFTOceanSurfaceVBO::createNoiseMap(unsigned int size, 
                                                              const osg::Vec2f& windDir, 
                                                              float windSpeed,                                         
                                                              float waveScale,
@@ -264,9 +262,9 @@ osg::ref_ptr<osg::Texture2D> FFTOceanSurface::createNoiseMap(unsigned int size,
     return oceanTile.createNormalMap();
 }
 
-void FFTOceanSurface::computeSea( unsigned int totalFrames )
+void FFTOceanSurfaceVBO::computeSea( unsigned int totalFrames )
 {
-    osg::notify(osg::INFO) << "FFTOceanSurface::computeSea("<<totalFrames<<")" << std::endl;
+    osg::notify(osg::INFO) << "FFTOceanSurfaceVBO::computeSea("<<totalFrames<<")" << std::endl;
     osg::notify(osg::INFO) << "Mipmap Levels: " << _numLevels << std::endl;
     osg::notify(osg::INFO) << "Highest Resolution: " << _tileSize << std::endl;
 
@@ -294,118 +292,66 @@ void FFTOceanSurface::computeSea( unsigned int totalFrames )
         if(_isChoppy)
             FFTSim.computeDisplacements( _choppyFactor, displacements.get() );
 
-        _mipmapData[frame].resize( _numLevels );
-
         // Level 0
-        _mipmapData[frame][0] = OceanTile( heights.get(), _tileSize, _pointSpacing, displacements.get() );
+        _mipmapData[frame] = OceanTile( heights.get(), _tileSize, _pointSpacing, displacements.get(), true );
 
-        _averageHeight += _mipmapData[frame][0].getAverageHeight();
-
-        // Levels 1 -> Max Level
-        for(unsigned int level = 1; level < _numLevels-1; ++level )
-        {
-            OceanTile& lastTile = _mipmapData[frame][level-1];
-
-            _mipmapData[frame][level] = OceanTile( lastTile, _tileSize >> level, _tileSize/(_tileSize>>level)*_pointSpacing );
-        }
-
-        // Used for lowest resolution tile
-        osg::ref_ptr<osg::FloatArray> zeroHeights = new osg::FloatArray(4);
-        zeroHeights->at(0) = 0.f;
-        zeroHeights->at(1) = 0.f;
-        zeroHeights->at(2) = 0.f;
-        zeroHeights->at(3) = 0.f;
-
-        _mipmapData[frame][_numLevels-1] = OceanTile( zeroHeights.get(), 1, _tileSize/(_tileSize>>(_numLevels-1))*_pointSpacing );
+        _averageHeight += _mipmapData[frame].getAverageHeight();
     }
-
     _averageHeight /= (float)totalFrames;
 
     osg::notify(osg::INFO) << "Average Height: " << _averageHeight << std::endl;
-    osg::notify(osg::INFO) << "FFTOceanSurface::computeSea() Complete." << std::endl;
+    osg::notify(osg::INFO) << "FFTOceanSurfaceVBO::computeSea() Complete." << std::endl;
 }
 
-void FFTOceanSurface::createOceanTiles( void )
+void FFTOceanSurfaceVBO::createOceanTiles( void )
 {
-    osg::notify(osg::INFO) << "FFTOceanSurface::createOceanTiles()" << std::endl;
+    osg::notify(osg::INFO) << "FFTOceanSurfaceVBO::createOceanTiles()" << std::endl;
     osg::notify(osg::INFO) << "Total tiles: " << _numTiles*_numTiles << std::endl;
-    osg::notify(osg::INFO) << "Init level: " << _numLevels-2 << std::endl;
-
-    MipmapGeometry::BORDER_TYPE border = MipmapGeometry::BORDER_NONE;
 
     // Clear previous data if it exists
-    _numVertices = 0;
-    _newNumVertices = 0;
     _oceanGeom.clear();
-    _activeVertices->clear();
-    _activeNormals->clear();
 
-    if(getNumDrawables()>0)
-        removeDrawables(0, getNumDrawables());
-
-    _oceanGeom.resize( _numTiles );
-
-    osg::ref_ptr<osg::Vec4Array> colours = new osg::Vec4Array;
-    colours->push_back( osg::Vec4f(1.f, 1.f,1.f,1.f) );
+    removeDrawables(0, getNumDrawables());
 
     for(int y = 0; y < (int)_numTiles; ++y )
     {
+        std::vector< osg::ref_ptr<osgOcean::MipmapGeometryVBO> > tileRow(_numTiles);
         for(int x = 0; x < (int)_numTiles; ++x )
         {
-            if(x == _numTiles-1 && y == _numTiles-1)
-                border = MipmapGeometry::BORDER_XY;
-            else if(x == _numTiles-1)        
-                border = MipmapGeometry::BORDER_X;
-            else if(y==_numTiles-1)
-                border = MipmapGeometry::BORDER_Y;
-            else 
-                border = MipmapGeometry::BORDER_NONE;
+            int centreX = -((int)(_numTiles*(int)_tileResolution))/2;
+            int centreY =  ((int)(_numTiles*(int)_tileResolution))/2;
+            osg::Vec3f offset( centreX+x*(int)_tileResolution, centreY-y*(int)_tileResolution, 0.f ); 
 
-            MipmapGeometry* patch = new MipmapGeometry( _numLevels-2, _numLevels, 0, border );
+            osgOcean::MipmapGeometryVBO* tile = new osgOcean::MipmapGeometryVBO( _numLevels, _tileResolution );
+//            tile->setVertexArray( _activeVertices );
+//            tile->setNormalArray( _activeNormals );
+            tile->setOffset( offset );
 
-            patch->setUseDisplayList( false );
-            patch->setVertexArray( _activeVertices.get() );
-            patch->setNormalArray( _activeNormals.get() );
-            patch->setColorArray    ( colours.get() );
-            patch->setNormalBinding( osg::Geometry::BIND_PER_VERTEX );
-            patch->setColorBinding( osg::Geometry::BIND_OVERALL );
-            patch->setDataVariance( osg::Object::DYNAMIC );
-            patch->setIdx( _numVertices );
+            osg::BoundingBoxf bb;
 
-            addDrawable( patch );
+            bb.xMin() = (int)offset.x();
+            bb.xMax() = (int)offset.x()+(int)_tileResolution;
 
-            _oceanGeom[y].push_back( patch );
+            bb.yMin() = (int)offset.y()-(int)_tileResolution;
+            bb.yMax() = (int)offset.y();
 
-            unsigned int verts = 0;
-            unsigned int s = 2;
+            bb.zMin() = (int)-15.f;
+            bb.zMax() = (int)15.f;
  
-            verts = s * s;
+            tile->setInitialBound(bb);
+            
+            tileRow.at(x)=tile;
 
-            if(x == _numTiles-1 )                       // If on right border add extra column
-                verts += s;
-            if(y == _numTiles-1 )                       // If on bottom border add extra row
-                verts += s;
-            if(x == _numTiles-1 && y == _numTiles-1)    // If corner piece add corner vertex
-                verts += 1;
+            addDrawable( tile );
 
-            _numVertices += verts;
         }
+        _oceanGeom.push_back(tileRow);
     }
 
-    osg::notify(osg::INFO) << "Vertices needed: " << _numVertices << std::endl;
-
-    _activeVertices->resize( _numVertices );
-    _activeNormals->resize( _numVertices );
-
-// Correct dMin calculations for geomipmap distances. Not used at the moment
-//    float T = (2.0f * TRESHOLD) / VRES;
-//    float A = 1.0f / (float)tan(FOV / 2.0f);
-//    float C = A / T;
-
-    osg::notify(osg::INFO) << "FFTOceanSurface::createOceanTiles() Complete." << std::endl;
+    return;
 }
 
-void FFTOceanSurface::setMinDistances(std::vector<float> &minDist  )
+void FFTOceanSurfaceVBO::setMinDistances(std::vector<float> &minDist  )
 {
     if (_numLevels != minDist.size())
     {
@@ -417,68 +363,221 @@ void FFTOceanSurface::setMinDistances(std::vector<float> &minDist  )
     }
     _minDist.clear();
 
+    osg::notify(osg::INFO) << "setting Minimum Distances: " << std::endl;
+
     for(unsigned int d = 0; d < _numLevels; ++d)
+    {
         _minDist.push_back( minDist[d] * minDist[d] );
+        osg::notify(osg::INFO) << d << ": " << sqrt(_minDist.back()) << std::endl;
+    }
 }
 
-void FFTOceanSurface::computeVertices( unsigned int frame )
-{
-    // Only resize vertex/normal arrays if more are needed
-    if(_newNumVertices > _numVertices )
-    {
-        osg::notify(osg::INFO) << "Resizing vertex array from " << _numVertices << "to " << _newNumVertices << std::endl;
-        _numVertices = _newNumVertices;
-        _activeVertices->resize(_numVertices);
-        _activeNormals->resize(_numVertices);
-    }
+static int count = 0;
 
+void FFTOceanSurfaceVBO::updateVertices(unsigned int frame)
+{
 #ifdef OSGOCEAN_TIMING
     osg::Timer_t startTime;
     osg::Timer_t endTime;
     startTime = osg::Timer::instance()->tick();
-#endif /*OSGOCEAN_TIMING*/
+#endif /*OSTOCEAN_TIMING*/
 
-    osg::Vec3f tileOffset,vertexOffset,vertex;
-    
-    unsigned int ptr = 0;
+    osg::Vec3f tileOffset;
 
-    const std::vector<OceanTile>& curData = _mipmapData[frame];
+    const OceanTile& data = _mipmapData[frame];
 
     for(unsigned int y = 0; y < _numTiles; ++y )
-    {    
-        tileOffset.y() = _startPos.y() - y*_tileResolution;
-
+    {
         for(unsigned int x = 0; x < _numTiles; ++x )
         {
-            tileOffset.x() = _startPos.x() + x*_tileResolution;
-
-            MipmapGeometry* tile = getTile(x,y);
-            const OceanTile& data = curData[ tile->getLevel() ];
-
-            for(unsigned int row = 0; row < tile->getColLen(); ++row )
-            {
-                vertexOffset.y() = data.getSpacing()*-float(row) + tileOffset.y();
-
-                for(unsigned int col = 0; col < tile->getRowLen(); ++col )
-                {
-                    vertexOffset.x() = data.getSpacing()*float(col) + tileOffset.x();
-
-                    (*_activeVertices)[ptr] = data.getVertex(col,row) + vertexOffset;
-                    (*_activeNormals) [ptr] = data.getNormal(col,row);
-                    ++ptr;
-                }
-            }
+            MipmapGeometryVBO* tile = getTile(x,y);
+            tile->updateFrame(data.getVertices(), data.getNormals());
         }
     }
-    
+
 #ifdef OSGOCEAN_TIMING
     endTime = osg::Timer::instance()->tick();
     double dt = osg::Timer::instance()->delta_m(startTime, endTime);
-    fprintf(stderr, "computeVertices() time = %lf\n", dt);
+    fprintf(stderr, "updateVertices() time = %lf\n", dt);
 #endif /*OSGOCEAN_TIMING*/
 }
 
-void FFTOceanSurface::update( unsigned int frame, const double& dt, const osg::Vec3f& eye )
+bool FFTOceanSurfaceVBO::updateLevels(const osg::Vec3f& eye)
+{
+   int x_offset = 0;
+   int y_offset = 0;
+
+   if(_isEndless)
+   {
+      float xMin = _startPos.x();
+      float yMin = _startPos.y()-(_tileResolution*_numTiles);
+      
+      x_offset = (int) ( (eye.x()-xMin) / _tileResolution );
+      y_offset = (int) ( (eye.y()-yMin) / _tileResolution );
+      
+      x_offset -= ((int)_numTiles)/2;
+      y_offset -= ((int)_numTiles)/2;
+//      std::cerr <<  "Offset: " << x_offset << "," << y_offset << std::endl;
+//      std::cerr <<  "Start: " << _startPos.x() << "," << _startPos.y() << std::endl;
+      
+      if(x_offset != 0 || y_offset != 0)
+      {
+         std::cerr << "Surface Move." << std::endl;
+         
+         while ((x_offset != 0) || (y_offset != 0))
+         {
+            if(x_offset < 0)
+            {
+               osg::Vec3f offset;
+               _startPos.x() -= (int)_tileResolution;
+               
+               for(int r = 0; r < _numTiles; ++r)
+               {
+                  std::vector< osg::ref_ptr<osgOcean::MipmapGeometryVBO> >& row = _oceanGeom.at(r);
+                  
+                  offset.x() = _startPos.x();
+                  offset.y() = _startPos.y()-r*(int)_tileResolution;
+                  offset.z() = 0;
+                  
+                  row.insert( row.begin(), row.back() );   // insert the 
+                  row.pop_back(); 
+                  row.front()->setOffset( offset );         // change offset
+               }
+               ++x_offset;
+            }
+            else if (x_offset > 0)
+            {
+               osg::Vec3f offset;
+               _startPos.x() += (int)_tileResolution;
+               
+               for(int r = 0; r < _numTiles; ++r)
+               {
+                  std::vector< osg::ref_ptr<osgOcean::MipmapGeometryVBO> >& row = _oceanGeom.at(r);
+                  
+                  offset.x() = _startPos.x() + ( (_numTiles-1)*(int)_tileResolution );
+                  offset.y() = _startPos.y()-r*(int)_tileResolution;
+                  offset.z() = 0;
+                  
+                  row.insert( row.end(), row.front() );
+                  row.erase( row.begin() );
+                  row.back()->setOffset( offset );
+               } 
+               --x_offset;                  
+            }
+            
+            if(y_offset < 0)
+            {
+               _startPos.y() -= (int)_tileResolution;
+
+               _oceanGeom.insert( _oceanGeom.end(), _oceanGeom.front() );
+               _oceanGeom.erase( _oceanGeom.begin() );
+               
+               osg::Vec3f offset;
+               
+               for(int c = 0; c < _numTiles; c++ )
+               {
+                  offset.x() = _startPos.x() + c *(int) _tileResolution;
+                  offset.y() = _startPos.y()-( (_numTiles-1)*(int)_tileResolution );
+                  offset.z() = 0;
+                  
+                  _oceanGeom.back().at(c)->setOffset(offset);
+               }
+               ++y_offset;
+            }
+            else if(y_offset > 0)
+            {
+               _startPos.y() += (int)_tileResolution;
+
+               _oceanGeom.insert( _oceanGeom.begin(), _oceanGeom.back() );
+               _oceanGeom.pop_back();
+               
+               osg::Vec3f offset;
+               
+               for(int c = 0; c < _numTiles; c++ )
+               {
+                  offset.x() = _startPos.x() + c * (int)_tileResolution;
+                  offset.y() = _startPos.y();
+                  offset.z() = 0;
+                  
+                  _oceanGeom.front().at(c)->setOffset(offset);
+               }
+               --y_offset;
+            }
+         }
+      }
+   }
+   
+   unsigned updates=0;
+   
+   for(int r = _numTiles-1; r>=0; --r )
+   {
+      for(int c = _numTiles-1; c>=0; --c )
+      {
+         osgOcean::MipmapGeometryVBO* curGeom = _oceanGeom.at(r).at(c);
+         osg::Vec3f centre = curGeom->getBound().center();
+         
+         float distanceToTile2 = (centre-eye).length2();
+         
+         unsigned mipmapLevel = 0;
+         unsigned rightLevel  = 0;
+         unsigned belowLevel  = 0;
+         
+         for( unsigned int m = 0; m < _minDist.size(); ++m )
+         {
+            if( distanceToTile2 > _minDist.at(m) )
+               mipmapLevel = m;
+         }
+         
+         if( c != _numTiles-1 && r != _numTiles-1 ){
+            osgOcean::MipmapGeometryVBO* rightGeom = _oceanGeom.at(r).at(c+1);
+            osgOcean::MipmapGeometryVBO* belowGeom = _oceanGeom.at(r+1).at(c);
+            rightLevel = rightGeom->getLevel();
+            belowLevel = belowGeom->getLevel();
+         }
+         else 
+         {
+            if( c != _numTiles-1 ){
+               osgOcean::MipmapGeometryVBO* rightGeom = _oceanGeom.at(r).at(c+1);
+               rightLevel = rightGeom->getLevel();
+            }
+            else{
+               rightLevel = mipmapLevel;
+            }
+            
+            if( r != _numTiles-1 ){
+               osgOcean::MipmapGeometryVBO* belowGeom = _oceanGeom.at(r+1).at(c);
+               belowLevel = belowGeom->getLevel();
+            }
+            else{
+               belowLevel = mipmapLevel;
+            }
+         }
+
+         if( curGeom->updatePrimitives(mipmapLevel,rightLevel,belowLevel) )
+            updates++;
+      }
+   }
+
+#ifdef OSGOCEAN_MIPMAP
+   if (updates > 0)
+   {
+        std::cerr <<  "Updates: " << updates << std::endl;
+        for(int r = _numTiles-1; r>=0; --r )
+        {
+           for(int c = _numTiles-1; c>=0; --c )
+           {
+              fprintf(stderr, "%d", _oceanGeom.at(r).at(c)->getLevel());
+           }
+           fprintf(stderr, "\n");
+        }
+   }
+#endif /*OSGOCEAN_MIPMAP*/
+
+   return updates > 0;
+}
+
+
+void FFTOceanSurfaceVBO::update( unsigned int frame, const double& dt, const osg::Vec3f& eye )
 {
     if(_isDirty)
         build();
@@ -486,7 +585,7 @@ void FFTOceanSurface::update( unsigned int frame, const double& dt, const osg::V
         initStateSet();
 
     getStateSet()->getUniform("osgOcean_EyePosition")->set(eye);
-    
+
     if (_isAnimating)
     {
         static double time = 0.0;
@@ -495,22 +594,22 @@ void FFTOceanSurface::update( unsigned int frame, const double& dt, const osg::V
         getStateSet()->getUniform("osgOcean_NoiseCoords0")->set( computeNoiseCoords( 32.f, osg::Vec2f( 2.f, 4.f), 2.f, time ) );
         getStateSet()->getUniform("osgOcean_NoiseCoords1")->set( computeNoiseCoords( 8.f,  osg::Vec2f(-4.f, 2.f), 1.f, time ) );
 
-        if( updateMipmaps( eye, frame ) )
+        if (updateLevels(eye))
         {
-            computeVertices( frame );
-            computePrimitives();
-        }
-        else if( frame != _oldFrame )
+           updateVertices(frame);
+        } 
+        else if (frame != _oldFrame)
         {
-            computeVertices( frame );
+              updateVertices(frame);
         }
     }
 
     _oldFrame = frame;
 }
 
-float FFTOceanSurface::getSurfaceHeightAt(float x, float y, osg::Vec3f* normal)
+float FFTOceanSurfaceVBO::getSurfaceHeightAt(float x, float y, osg::Vec3f* normal)
 {
+
     if(_isDirty)
         build();
 
@@ -530,10 +629,10 @@ float FFTOceanSurface::getSurfaceHeightAt(float x, float y, osg::Vec3f* normal)
     // Test if the tile is valid 
     if(ix < _numTiles && iy < _numTiles)
     {
-        const OceanTile& data = _mipmapData[_oldFrame][0];
+        const OceanTile& data = _mipmapData[_oldFrame];
 
-        float tile_x = oceanX - ix * _tileResolution;
-        float tile_y = oceanY - iy * _tileResolution;
+        float tile_x = oceanX - ix * (int) _tileResolution;
+        float tile_y = oceanY - iy * (int) _tileResolution;
 
         if (normal != 0)
         {
@@ -546,596 +645,11 @@ float FFTOceanSurface::getSurfaceHeightAt(float x, float y, osg::Vec3f* normal)
     return 0.0f;
 }
 
-bool FFTOceanSurface::updateMipmaps( const osg::Vec3f& eye, unsigned int frame )
-{
-    static unsigned int count = 0;
 
-    bool updated = false;
-
-    _newNumVertices = 0;
-
-    int tileSize = _tileResolution+1;
-
-    int x_offset = 0;
-    int y_offset = 0;
-
-    if(_isEndless)
-    {
-        float xMin = _startPos.x();
-        float yMin = _startPos.y() - (float)((_tileResolution+1)*_numTiles);
-
-        x_offset = (int) ( (eye.x()-xMin) / (float)_tileResolution );
-        y_offset = (int) ( (eye.y()-yMin) / (float)_tileResolution );
-
-        x_offset -= _numTiles/2;
-        y_offset -= _numTiles/2;
-
-        _startPos.x() += (float)(x_offset * tileSize); 
-        _startPos.y() += (float)(y_offset * tileSize); 
-    }
-
-    for( unsigned int y = 0; y < _numTiles; ++y)
-    {
-        for( unsigned int x = 0; x < _numTiles; ++x)
-        {
-            osg::Vec3f newbound = getTile(x,y)->getBound().center();
-            newbound.x() += (float)(x_offset * tileSize);
-            newbound.y() += (float)(y_offset * tileSize);
-
-            osg::Vec3f distanceToTile = newbound - eye;
-            
-            unsigned int mipmapLevel = 0;
-               
-            for( unsigned int m = 0; m < _minDist.size(); ++m )
-            {
-                if( distanceToTile.length2() > _minDist.at(m) )
-                    mipmapLevel = m;
-            }
-
-            if( getTile(x,y)->getLevel() != mipmapLevel )
-                updated = true;
-
-            getTile(x,y)->setLevel( mipmapLevel );
-            getTile(x,y)->setIdx( _newNumVertices );
-
-            unsigned int verts = 0;
-            unsigned int size = getTile(x,y)->getResolution();
-
-            verts = size * size;
-
-            if(x == _numTiles-1 )
-                verts += size;
-            if(y == _numTiles-1 )
-                verts += size;
-            if(x == _numTiles-1 && y == _numTiles-1)
-                verts += 1;
-
-            _newNumVertices += verts;
-        }
-    }
-
-#ifdef OSGOCEAN_MIPMAP
-    if (updated)
-    {
-        for(int r=_numTiles-1; r>=0; --r )
-        {
-            for(int c=_numTiles-1; c>=0; --c )
-            {
-               fprintf(stderr, "%d", getTile(c,r)->getLevel());
-            }
-            fprintf(stderr, "\n");
-        }
-    }
-#endif /*OSGOCEAN_MIPMAP*/
-
-    return updated;    
-}
-               
-void FFTOceanSurface::computePrimitives( void )
-{
-    int x1 = 0;
-    int y1 = 0;
-    int size = 0;
-
-    osg::notify(osg::DEBUG_INFO) << "FFTOceanSurface::computePrimitives()\n" << std::endl;
-
-    for(unsigned int y = 0; y < _numTiles; ++y)
-    {
-        osg::notify(osg::DEBUG_INFO) << std::endl;
-
-        for(unsigned int x = 0; x < _numTiles; ++x )
-        {
-            osg::notify(osg::DEBUG_INFO) <<getTile(x,y)->getLevel() << " ";
-
-            x+1 > _numTiles-1 ? x1 = _numTiles-1 : x1 = x+1;
-            y+1 > _numTiles-1 ? y1 = _numTiles-1 : y1 = y+1;
-
-            MipmapGeometry* cTile  = getTile(x, y);    // Current tile
-            MipmapGeometry* xTile  = getTile(x1,y);    // Right Tile
-            MipmapGeometry* yTile  = getTile(x, y1);   // Bottom Tile
-            MipmapGeometry* xyTile = getTile(x1,y1);   // Bottom right Tile
-
-            // First clear old primitive sets
-            cTile->removePrimitiveSet(0, cTile->getNumPrimitiveSets() );
-
-            if(cTile->getResolution()!=1)
-            {
-                addMainBody(cTile);
-
-                if( x < _numTiles-1 )
-                    addRightBorder( cTile, xTile );
-                  
-                if( y < _numTiles-1 )
-                    addBottomBorder( cTile, yTile );
-
-                addCornerPatch( cTile, xTile, yTile, xyTile );
-            }
-            else
-            {
-                if(cTile->getBorder() == MipmapGeometry::BORDER_NONE )
-                    addMaxDistMainBody( cTile, xTile, yTile, xyTile );
-                else
-                    addMaxDistEdge(cTile,xTile,yTile);
-            }
-        }
-    }
-
-    // Make sure the bounds are updated now that we've changed the topology.
-    dirtyBound();
-}
-
-void FFTOceanSurface::addMainBody( MipmapGeometry* cTile )
-{
-    unsigned int degenX = cTile->getRowLen()-1;
-    unsigned int degenY = cTile->getColLen()-1;
-
-    unsigned int numDegens = (cTile->getColLen()-1)*2-2;
-    unsigned int stripSize = (cTile->getRowLen()*2)*(cTile->getColLen()-1) + numDegens;
-    unsigned int i = 0;
-               
-    // Generate 1 tristrip using degen triangles
-    osg::DrawElementsUInt* strip = new osg::DrawElementsUInt( osg::PrimitiveSet::TRIANGLE_STRIP, stripSize );
-               
-    for( unsigned int row = 0; row < cTile->getColLen()-1; ++row )
-    {
-        for( unsigned int col = 0; col < cTile->getRowLen(); ++col )
-        {
-            (*strip)[i]   = cTile->getIndex( col, row   );
-            (*strip)[i+1] = cTile->getIndex( col, row+1 );
-            i+=2;
-              
-            if( col == degenX && row+1 != degenY )
-            {
-                (*strip)[i]   = cTile->getIndex( col, row+1 );
-                (*strip)[i+1] = cTile->getIndex( 0,   row+1 );
-                i+=2;
-            }
-        }
-    }
-
-    cTile->addPrimitiveSet( strip );
-}
-
-void FFTOceanSurface::addMaxDistEdge(  MipmapGeometry* cTile, MipmapGeometry* xTile, MipmapGeometry* yTile )
-{
-    if( cTile->getBorder() == MipmapGeometry::BORDER_X )
-    {
-        osg::DrawElementsUInt* strip = new osg::DrawElementsUInt( osg::PrimitiveSet::TRIANGLE_STRIP, 4 );
-
-        (*strip)[0] = cTile->getIndex ( 0, 0 );
-        (*strip)[1] = yTile->getIndex ( 0, 0 );
-        (*strip)[2] = cTile->getIndex ( 1, 0 );
-        (*strip)[3] = yTile->getIndex ( 1, 0 );
-
-        cTile->addPrimitiveSet( strip );
-    }
-    else if( cTile->getBorder() == MipmapGeometry::BORDER_Y )
-    {
-        osg::DrawElementsUInt* strip = new osg::DrawElementsUInt( osg::PrimitiveSet::TRIANGLE_STRIP, 4 );
-   
-        (*strip)[0] = cTile->getIndex ( 0, 0 );
-        (*strip)[1] = cTile->getIndex ( 0, 1 );
-        (*strip)[2] = xTile->getIndex ( 0, 0 );
-        (*strip)[3] = xTile->getIndex ( 0, 1 );
-   
-        cTile->addPrimitiveSet( strip );
-    }
-    else if( cTile->getBorder() == MipmapGeometry::BORDER_XY )
-    {
-        osg::DrawElementsUInt* strip = new osg::DrawElementsUInt( osg::PrimitiveSet::TRIANGLE_STRIP, 4 );
-
-        (*strip)[0] = cTile->getIndex ( 0, 0 );
-        (*strip)[1] = cTile->getIndex ( 0, 1 );
-        (*strip)[2] = cTile->getIndex ( 1, 0 );
-        (*strip)[3] = cTile->getIndex ( 1, 1 );
-
-        cTile->addPrimitiveSet( strip );
-    }
-}
-
-void FFTOceanSurface::addMaxDistMainBody(  MipmapGeometry* cTile, MipmapGeometry* xTile, MipmapGeometry* yTile, MipmapGeometry* xyTile )
-      {
-    int x_points = xTile->getResolution() / cTile->getResolution();
-    int y_points = yTile->getResolution() / cTile->getResolution(); 
-         
-    // same res bottom and right
-    if( x_points == 1 && y_points == 1)
-    {
-        osg::DrawElementsUInt* strip = new osg::DrawElementsUInt( osg::PrimitiveSet::TRIANGLE_STRIP, 4 );
-         
-        (*strip)[0] = cTile->getIndex ( 0, 0 );
-        (*strip)[1] = yTile->getIndex ( 0, 0 );
-        (*strip)[2] = xTile->getIndex ( 0, 0 );
-        (*strip)[3] = xyTile->getIndex( 0, 0 );
-         
-        cTile->addPrimitiveSet( strip );
-    }
-    // high res below same res right
-    else if( x_points == 1 && y_points == 2 )
-    {
-        osg::DrawElementsUInt* fan = new osg::DrawElementsUInt( osg::PrimitiveSet::TRIANGLE_FAN, 5 );
-
-        (*fan)[0] = xTile->getIndex ( 0, 0 );
-        (*fan)[1] = cTile->getIndex ( 0, 0 );
-        (*fan)[2] = yTile->getIndex ( 0, 0 );
-        (*fan)[3] = yTile->getIndex ( 1, 0 );
-        (*fan)[4] = xyTile->getIndex( 0, 0 );
-
-        cTile->addPrimitiveSet( fan );
-    }
-    // same res below high res below
-    else if( x_points == 2 && y_points == 1 )
-    {
-        osg::DrawElementsUInt* fan = new osg::DrawElementsUInt( osg::PrimitiveSet::TRIANGLE_FAN, 5 );
-         
-        (*fan)[0] = cTile->getIndex ( 0, 0 );
-        (*fan)[1] = yTile->getIndex ( 0, 0 );
-        (*fan)[2] = xyTile->getIndex( 0, 0 );
-        (*fan)[3] = xTile->getIndex ( 0, 1 );
-        (*fan)[4] = xTile->getIndex ( 0, 0 );
-
-        cTile->addPrimitiveSet( fan );
-    }
-    // high res below and right
-    else if( x_points == 2 && y_points == 2 )
-    {
-        osg::DrawElementsUInt* fan = new osg::DrawElementsUInt( osg::PrimitiveSet::TRIANGLE_FAN, 6 );
-
-        (*fan)[0] = cTile->getIndex ( 0, 0 );
-        (*fan)[1] = yTile->getIndex ( 0, 0 );
-        (*fan)[2] = yTile->getIndex ( 1, 0 );
-        (*fan)[3] = xyTile->getIndex( 0, 0 );
-        (*fan)[4] = xTile->getIndex ( 0, 1 );
-        (*fan)[5] = xTile->getIndex ( 0, 0 );
-
-        cTile->addPrimitiveSet( fan );
-    }
-}
-            
-void FFTOceanSurface::addRightBorder( MipmapGeometry* cTile, MipmapGeometry* xTile )
-{
-    unsigned int endCol = cTile->getRowLen() - 1;
-
-    // Same level to the right
-    if( cTile->getLevel() == xTile->getLevel() )
-    {
-        //  3   2
-        //
-        //  0   1
-
-        for(unsigned int r = 0; r < cTile->getColLen()-1; ++r)    
-        {
-            osg::DrawElementsUInt* fan = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 4);
-
-            (*fan)[0] = cTile->getIndex( endCol, r+1 );        
-            (*fan)[1] = xTile->getIndex( 0,      r+1 );        
-            (*fan)[2] = xTile->getIndex( 0,      r   );        
-            (*fan)[3] = cTile->getIndex( endCol, r   );        
-
-            cTile->addPrimitiveSet( fan );
-        }
-    }
-    // low res to the right
-    else if( cTile->getLevel() < xTile->getLevel() )
-    {
-        unsigned int diff = cTile->getResolution() / xTile->getResolution(); 
-        unsigned int cPts = diff + 1;        
-        unsigned int start = 0;
-
-        //  1   0
-        //  2
-        //  3   4
-        
-        for(unsigned int r = 0; r < xTile->getColLen()-1; ++r )
-        {
-            osg::DrawElementsUInt* fan = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 0);
-            fan->reserve( cPts+2 );    
-
-            fan->push_back( xTile->getIndex( 0, r ) );
-
-            start = r*diff;
-
-            for(unsigned int i = 0; i < cPts; ++i)
-            {
-                fan->push_back( cTile->getIndex( endCol, start+i ) );
-            }
-         
-            fan->push_back( xTile->getIndex( 0, r+1 ) );
-
-            cTile->addPrimitiveSet( fan );
-        }
-    }
-    // high res to the right
-    else if( cTile->getLevel() > xTile->getLevel() )
-    {
-        unsigned int diff = xTile->getResolution() / cTile->getResolution(); 
-        unsigned int xPts = diff + 1;    
-        unsigned int start = 0;
-
-        //  4       3
-        //          2
-        //  0       1
-
-        for(unsigned int r = 0; r < cTile->getColLen()-1; ++r )
-        {
-            osg::DrawElementsUInt* fan = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 0);
-            fan->reserve( xPts+2 );    
-
-            fan->push_back( cTile->getIndex( endCol, r+1 ) );
-
-            start = (r+1)*diff;
-
-            for(unsigned int i = 0; i < xPts; ++i )
-            {
-                fan->push_back( xTile->getIndex( 0, start-i ) );
-            }
-
-            fan->push_back( cTile->getIndex( endCol, r ) );
-
-            cTile->addPrimitiveSet( fan );
-        }
-    }
-}
-
-void FFTOceanSurface::addBottomBorder( MipmapGeometry* cTile, MipmapGeometry* yTile )
-{
-    unsigned int endRow = cTile->getColLen() - 1;
-
-    // Same res below
-    if( cTile->getLevel() == yTile->getLevel() )
-    {
-        unsigned int i = 0; 
-
-        osg::DrawElementsUInt* fan = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_STRIP, cTile->getRowLen()*2);
-
-        for(unsigned int c = 0; c < cTile->getRowLen(); ++c)
-        {
-            (*fan)[i]   = cTile->getIndex( c, endRow );    // 0        2
-            (*fan)[i+1] = yTile->getIndex( c, 0      );    // 1        3
-            i+=2;
-        }
-
-        cTile->addPrimitiveSet( fan );
-    }
-    // lower res below
-    else if( cTile->getLevel() < yTile->getLevel() )
-    {
-        unsigned int diff = cTile->getResolution() / yTile->getResolution(); 
-        unsigned int cPts = diff + 1;
-        unsigned int start = 0;
-
-        // 4    3   2
-        //
-        // 0        1
-
-        for(unsigned int c = 0; c < yTile->getRowLen()-1; ++c)
-        {
-            osg::DrawElementsUInt* fan = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 0);
-            fan->reserve( cPts+2 );
-
-            fan->push_back( yTile->getIndex( c,   0 ) );
-            fan->push_back( yTile->getIndex( c+1, 0 ) );
-
-            start = (c+1)*diff;
-
-            for( unsigned int i = 0; i < cPts; ++i )
-            {
-                fan->push_back( cTile->getIndex( start-i, endRow ) );
-            }
-
-            cTile->addPrimitiveSet( fan );
-        }
-    }
-    // Higher res below
-    else if( cTile->getLevel() > yTile->getLevel() )
-    {
-        unsigned int diff = yTile->getResolution() / cTile->getResolution(); 
-        unsigned int yPts = diff + 1;        
-        unsigned int start = 0;
-
-        //  1       0
-        //
-        // 2    3   4
-
-        for(unsigned int c = 0; c < cTile->getRowLen()-1; ++c)
-        {
-            osg::DrawElementsUInt* fan = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 0);
-            fan->reserve( yPts+2 );
-
-            fan->push_back( cTile->getIndex( c+1, endRow ) );
-            fan->push_back( cTile->getIndex( c,   endRow ) );
-
-            start = c*diff;
-
-            for( unsigned int i = 0; i < yPts; ++i )
-            {
-                fan->push_back( yTile->getIndex( start+i, 0 ) );
-            }
-
-            cTile->addPrimitiveSet( fan );
-        } 
-    }
-}
-
-void FFTOceanSurface::addCornerPatch( MipmapGeometry* cTile, MipmapGeometry* xTile, MipmapGeometry* yTile, MipmapGeometry* xyTile )
-{
-    // CORNER PATCH
-    // ------------
-
-    int x_points = xTile->getResolution() / cTile->getResolution();
-    int y_points = yTile->getResolution() / cTile->getResolution(); 
-
-    unsigned int curSize   = cTile->getResolution()-1;
-    unsigned int botSize   = yTile->getResolution()-1;
-    unsigned int rightSize = xTile->getResolution()-1;
-
-    if( cTile->getBorder() == MipmapGeometry::BORDER_NONE )
-    {
-        // Low res bottom
-        if( y_points == 0 )
-        {
-            // Low res right
-            if( x_points == 0 )
-            {
-                osg::DrawElementsUInt* fan = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 6);
-
-                (*fan)[0] = cTile->getIndex ( curSize,   curSize   ); // 5    4
-                (*fan)[1] = cTile->getIndex ( curSize-1, curSize   ); //    
-                (*fan)[2] = yTile->getIndex ( botSize,   0         ); // 1    0    
-                (*fan)[3] = xyTile->getIndex( 0,         0         ); // 
-                (*fan)[4] = xTile->getIndex ( 0,         rightSize ); // 2         3
-                (*fan)[5] = cTile->getIndex ( curSize,   curSize-1 );    
-
-                cTile->addPrimitiveSet( fan );
-            }
-            // same res right
-            else if( x_points == 1 )
-            {
-                osg::DrawElementsUInt* fan = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 5);
-
-                (*fan)[0] = yTile->getIndex ( botSize,   0         );    //
-                (*fan)[1] = xyTile->getIndex( 0,         0         );    //           4    3    2
-                (*fan)[2] = xTile->getIndex ( 0,         rightSize );    //
-                (*fan)[3] = cTile->getIndex ( curSize,   curSize   );    // 0         1
-                (*fan)[4] = cTile->getIndex ( curSize-1, curSize   );    //
-
-                cTile->addPrimitiveSet( fan );
-            }
-            // high res right
-            else if( x_points == 2 )
-            {
-                osg::DrawElementsUInt* fan = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 6);
-
-                (*fan)[0] = yTile->getIndex    ( botSize,   0           );    // 5    4    3
-                (*fan)[1] = xyTile->getIndex    ( 0,        0           );    //
-                (*fan)[2] = xTile->getIndex    ( 0,         rightSize   );    //           2
-                (*fan)[3] = xTile->getIndex    ( 0,         rightSize-1 );    //    
-                (*fan)[4] = cTile->getIndex    ( curSize,   curSize     );    // 0         1
-                (*fan)[5] = cTile->getIndex    ( curSize-1, curSize     );    
-
-                cTile->addPrimitiveSet( fan );
-            }
-        }
-        // same res bottom
-        else if( y_points == 1 )
-        {
-            // Low res right
-            if( x_points == 0 )
-            {
-                osg::DrawElementsUInt* fan = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 7);
-
-                (*fan)[0] = cTile->getIndex ( curSize,   curSize   ); //      6    5
-                (*fan)[1] = cTile->getIndex ( curSize-1, curSize   ); //    
-                (*fan)[2] = yTile->getIndex ( botSize-1, 0         ); // 1         0    
-                (*fan)[3] = yTile->getIndex ( botSize,   0         ); // 
-                (*fan)[4] = xyTile->getIndex( 0,         0         ); //           2    3    4
-                (*fan)[5] = xTile->getIndex ( 0,         rightSize );
-                (*fan)[6] = cTile->getIndex ( curSize,   curSize-1 );    
-
-                cTile->addPrimitiveSet( fan );
-            }
-            // same res right
-            else if( x_points == 1 )
-            {
-                osg::DrawElementsUInt* strip = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_STRIP, 6);
-
-                (*strip)[0] = cTile->getIndex ( curSize-1, curSize   ); // 0    2    4
-                (*strip)[1] = yTile->getIndex ( botSize-1, 0         ); //    
-                (*strip)[2] = cTile->getIndex ( curSize,   curSize   ); //      1    3    5
-                (*strip)[3] = yTile->getIndex ( botSize,   0         ); // 
-                (*strip)[4] = xTile->getIndex ( 0,         rightSize );    
-                (*strip)[5] = xyTile->getIndex( 0,         0         );
-
-                cTile->addPrimitiveSet( strip );
-            }
-            // high res right
-            else if( x_points == 2 )
-            {
-                osg::DrawElementsUInt* fan = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 7);
-
-                (*fan)[0] = cTile->getIndex ( curSize,   curSize     ); // 1    0    6
-                (*fan)[1] = cTile->getIndex ( curSize-1, curSize     ); //    
-                (*fan)[2] = yTile->getIndex ( botSize-1, 0           ); //                5
-                (*fan)[3] = yTile->getIndex ( botSize,   0           ); //
-                (*fan)[4] = xyTile->getIndex( 0,         0           ); //      2    3    4
-                (*fan)[5] = xTile->getIndex ( 0,         rightSize   );
-                (*fan)[6] = xTile->getIndex ( 0,         rightSize-1 );
-
-                cTile->addPrimitiveSet( fan );
-            }
-        }
-        // high res bottom
-        else if( y_points == 2 )
-        {
-            // Low res right
-            if( x_points == 0 )
-            {
-                osg::DrawElementsUInt* fan = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 6);
-
-                (*fan)[0] = xTile->getIndex( 0,         rightSize );    // 1         0
-                (*fan)[1] = cTile->getIndex( curSize,   curSize-1 );    //
-                (*fan)[2] = cTile->getIndex( curSize,   curSize   );    // 2            
-                (*fan)[3] = yTile->getIndex( botSize-1, 0         );    //
-                (*fan)[4] = yTile->getIndex( botSize,   0         );    // 3    4    5
-                (*fan)[5] = xyTile->getIndex( 0,        0         );                    
-
-                cTile->addPrimitiveSet( fan );
-            }
-            // same res right
-            if( x_points == 1 )
-            {
-                osg::DrawElementsUInt* fan = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 5);
-
-                (*fan)[0] = xTile->getIndex ( 0,         rightSize );    // 1         0
-                (*fan)[1] = cTile->getIndex ( curSize,   curSize   );    //    
-                (*fan)[2] = yTile->getIndex ( botSize-1, 0         );    // 
-                (*fan)[3] = yTile->getIndex ( botSize,   0         );    // 2    3    4
-                (*fan)[4] = xyTile->getIndex( 0,         0         );                    
-
-                cTile->addPrimitiveSet( fan );
-            }
-            // high res right
-            if( x_points == 2 )
-            {
-                osg::DrawElementsUInt* fan = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 6);
-
-                (*fan)[0] = cTile->getIndex ( curSize,   curSize     );    //    
-                (*fan)[1] = yTile->getIndex ( botSize-1, 0           );    // 0         5
-                (*fan)[2] = yTile->getIndex ( botSize,   0           );    // 
-                (*fan)[3] = xyTile->getIndex( 0,         0           );    //           4
-                (*fan)[4] = xTile->getIndex ( 0,         rightSize   );    //
-                (*fan)[5] = xTile->getIndex ( 0,         rightSize-1 );    // 1    2    3            
-
-                cTile->addPrimitiveSet( fan );
-            }
-        }
-    }
-}
-
-osg::Vec3f FFTOceanSurface::computeNoiseCoords(float noiseSize, const osg::Vec2f& movement, float speed, float time )
+osg::Vec3f FFTOceanSurfaceVBO::computeNoiseCoords(float noiseSize, const osg::Vec2f& movement, float speed, double time )
 {
     float length = noiseSize*movement.length();
-    float totalTime = length / speed;    
+    double totalTime = length / speed;    
     float tileScale = _tileResInv * noiseSize;
 
     osg::Vec2f velocity = movement * speed / length;
@@ -1144,7 +658,7 @@ osg::Vec3f FFTOceanSurface::computeNoiseCoords(float noiseSize, const osg::Vec2f
     return osg::Vec3f( pos, tileScale );
 }
 
-osg::Texture2D* FFTOceanSurface::createTexture(const std::string& name, osg::Texture::WrapMode wrap)
+osg::Texture2D* FFTOceanSurfaceVBO::createTexture(const std::string& name, osg::Texture::WrapMode wrap)
 {
     osg::Texture2D* tex = new osg::Texture2D();
 
@@ -1157,9 +671,8 @@ osg::Texture2D* FFTOceanSurface::createTexture(const std::string& name, osg::Tex
     return tex;
 }
 
-osg::Program* FFTOceanSurface::createShader(void)
+osg::Program* FFTOceanSurfaceVBO::createShader(void)
 {
-
 #if USE_LOCAL_SHADERS
     static const char ocean_surface_vertex[] = 
 
@@ -1219,6 +732,7 @@ osg::Program* FFTOceanSurface::createShader(void)
         "{\n"
         "    // Transform the vertex\n"
         "    vec4 inputVertex = gl_Vertex;\n"
+        "    inputVertex.xyz += gl_Color.xyz;\n"
         "    gl_Position = gl_ModelViewProjectionMatrix * inputVertex;\n"
         "\n"
         "    // Blend the wave into a sinus curve near the shore\n"
@@ -1229,10 +743,14 @@ osg::Program* FFTOceanSurface::createShader(void)
         "    \n"
         "    height = pow(clamp(1.0 - texture2D(osgOcean_Heightmap, clamp(screenCoords * 0.5 + 0.5, 0.0, 1.0)).x, 0.0, 1.0), 32.0);\n"
         "\n"
-        "    inputVertex = vec4(gl_Vertex.x, \n"
-        "                       gl_Vertex.y, \n"
-        "                       mix(gl_Vertex.z, sin(osg_FrameTime), height),\n"
-        "                       gl_Vertex.w);\n"
+//        "    inputVertex = vec4(gl_Vertex.x, \n"
+//        "                       gl_Vertex.y, \n"
+//        "                       mix(gl_Vertex.z, sin(osg_FrameTime), height),\n"
+//        "                       gl_Vertex.w);\n"
+        "    inputVertex = vec4(inputVertex.x, \n"
+        "                       inputVertex.y, \n"
+        "                       mix(inputVertex.z, sin(osg_FrameTime), height),\n"
+        "                       inputVertex.w);\n"
         "\n"
         "    gl_Position = gl_ModelViewProjectionMatrix * inputVertex;\n"
         "#endif\n"
@@ -1248,7 +766,7 @@ osg::Program* FFTOceanSurface::createShader(void)
         "    vec4 waveColorDiff = osgOcean_WaveTop-osgOcean_WaveBot;\n"
         "\n"
         "    gl_FrontColor = waveColorDiff *\n"
-        "        clamp((gl_Vertex.z + osgOcean_EyePosition.z) * 0.1111111 + vNormal.z - 0.4666667, 0.0, 1.0) + osgOcean_WaveBot;\n"
+        "        clamp((inputVertex.z + osgOcean_EyePosition.z) * 0.1111111 + vNormal.z - 0.4666667, 0.0, 1.0) + osgOcean_WaveBot;\n"
         "\n"
         "    // -------------------------------------------------------------\n"
         "\n"
@@ -1256,20 +774,20 @@ osg::Program* FFTOceanSurface::createShader(void)
         "    mat3 modelMatrix3x3 = get3x3Matrix( modelMatrix );\n"
         "\n"
         "    // world space\n"
-        "    vWorldVertex = modelMatrix * gl_Vertex;\n"
+        "    vWorldVertex = modelMatrix * inputVertex;\n"
         "    vWorldNormal = modelMatrix3x3 * gl_Normal;\n"
         "    vWorldViewDir = vWorldVertex.xyz - osgOcean_EyePosition.xyz;\n"
         "\n"
         "    // ------------- Texture Coords ---------------------------------\n"
         "\n"
         "    // Normal Map Coords\n"
-        "    gl_TexCoord[0].xy = ( gl_Vertex.xy * osgOcean_NoiseCoords0.z + osgOcean_NoiseCoords0.xy );\n"
-        "    gl_TexCoord[0].zw = ( gl_Vertex.xy * osgOcean_NoiseCoords1.z + osgOcean_NoiseCoords1.xy );\n"
+        "    gl_TexCoord[0].xy = ( inputVertex.xy * osgOcean_NoiseCoords0.z + osgOcean_NoiseCoords0.xy );\n"
+        "    gl_TexCoord[0].zw = ( inputVertex.xy * osgOcean_NoiseCoords1.z + osgOcean_NoiseCoords1.xy );\n"
         "    gl_TexCoord[0].y = -gl_TexCoord[0].y;\n"
         "    gl_TexCoord[0].w = -gl_TexCoord[0].w;\n"
         "\n"
         "    // Foam coords\n"
-        "    gl_TexCoord[1].st = gl_Vertex.xy * osgOcean_FoamScale;\n"
+        "    gl_TexCoord[1].st = inputVertex.xy * osgOcean_FoamScale;\n"
         "\n"
         "    // Fog coords\n"
         "    gl_FogFragCoord = gl_Position.z;\n"
@@ -1333,9 +851,9 @@ osg::Program* FFTOceanSurface::createShader(void)
         "    // transposed\n"
         "    const mat4 mr =\n"
         "        mat4( 0.5, 0.0, 0.0, 0.0,\n"
-        "              0.0, 0.5, 0.0, 0.0,\n"
-        "              0.0, 0.0, 0.5, 0.0,\n"
-        "              0.5, 0.5, 0.5, 1.0 );\n"
+        "                                 0.0, 0.5, 0.0, 0.0,\n"
+        "                                 0.0, 0.0, 0.5, 0.0,\n"
+        "                                 0.5, 0.5, 0.5, 1.0 );\n"
         "\n"
         "    mat4 texgen_matrix = mr * gl_ProjectionMatrix * gl_ModelViewMatrix;\n"
         "\n"
@@ -1383,7 +901,7 @@ osg::Program* FFTOceanSurface::createShader(void)
         "vec4 computeCubeMapColor( vec3 N, vec4 V, vec3 E )\n"
         "{\n"
         "    mat3 worldObjectMat3x3 = getLinearPart( worldObjectMatrix );\n"
-        "    vec4 world_pos = worldObjectMatrix *  V;\n"
+        "    vec4 world_pos    = worldObjectMatrix *  V;\n"
         "\n"
         "    vec3 normal = normalize( worldObjectMat3x3 * N );\n"
         "    vec3 eye = normalize( world_pos.xyz - E );\n"
@@ -1528,7 +1046,7 @@ osg::Program* FFTOceanSurface::createShader(void)
         "        //vec4 env_color = computeCubeMapColor(N, vWorldVertex, osgOcean_EyePosition);\n"
         "\n"
         "        float fresnel = calcFresnel(dotEN, osgOcean_FresnelMul );\n"
-        "\n"
+        "        \n"
         "        vec4 env_color;\n"
         "\n"
         "        if(osgOcean_EnableReflections)\n"
@@ -1539,7 +1057,7 @@ osg::Program* FFTOceanSurface::createShader(void)
         "        {\n"
         "            env_color = gl_LightSource[osgOcean_LightID].diffuse;            \n"
         "        }\n"
-        "\n"
+        "        \n"
         "        final_color = mix(refraction_color, env_color, fresnel) + specular_color;\n"
         "\n"
         "        // Store the color here to compute luminance later, we don't want \n"
@@ -1607,19 +1125,19 @@ osg::Program* FFTOceanSurface::createShader(void)
         "        if(osgOcean_EnableRefractions)\n"
         "        {\n"
         "            // if alpha is 1.0 then it's a sky pixel\n"
-        "            if(refractColor.a == 1.0 )\n"
-        "            {\n"
-        "               vec4 env_color = texture2DProj( osgOcean_RefractionMap, distortGen(vVertex, N) );\n"
-        "               refractColor.rgb = mix( refractColor.rgb, env_color.rgb, env_color.a );\n"
-        "            }\n"
+        "                       if(refractColor.a == 1.0 )\n"
+        "                       {\n"
+        "                vec4 env_color = texture2DProj( osgOcean_RefractionMap, distortGen(vVertex, N) );\n"
+        "                               refractColor.rgb = mix( refractColor.rgb, env_color.rgb, env_color.a );\n"
+        "                       }\n"
         "        }\n"
         "\n"
         "        // if it's not refracting in, add a bit of highlighting with fresnel\n"
-        "        if( refractColor.a == 0.0 )\n"
-        "        {\n"
-        "           float fresnel = calcFresnel( dot(E, N), 0.7 );\n"
-        "           refractColor.rgb = osgOcean_UnderwaterFogColor.rgb*fresnel + (1.0-fresnel)* refractColor.rgb;\n"
-        "        }\n"
+        "               if( refractColor.a == 0.0 )\n"
+        "               {\n"
+        "                       float fresnel = calcFresnel( dot(E, N), 0.7 );\n"
+        "            refractColor.rgb = osgOcean_UnderwaterFogColor.rgb*fresnel + (1.0-fresnel)* refractColor.rgb;\n"
+        "               }\n"
         "\n"
         "        float fogFactor = computeFogFactor( osgOcean_UnderwaterFogDensity, gl_FogFragCoord );\n"
         "        final_color = mix( osgOcean_UnderwaterFogColor, refractColor, fogFactor );\n"
@@ -1643,9 +1161,9 @@ osg::Program* FFTOceanSurface::createShader(void)
     return program;
 }
 
-void FFTOceanSurface::addResourcePaths(void)
+void FFTOceanSurfaceVBO::addResourcePaths(void)
 {
-    const std::string shaderPath  = "resources/shaders/";
+    const std::string shaderPath = "resources/shaders/";
     const std::string texturePath = "resources/textures/";
 
     osgDB::FilePathList& pathList = osgDB::Registry::instance()->getDataFilePathList();
@@ -1673,7 +1191,7 @@ void FFTOceanSurface::addResourcePaths(void)
 //     Callback implementation
 // -------------------------------
 
-FFTOceanSurface::OceanDataType::OceanDataType( FFTOceanSurface& ocean, unsigned int numFrames, unsigned int fps ):
+FFTOceanSurfaceVBO::OceanDataType::OceanDataType( FFTOceanSurfaceVBO& ocean, unsigned int numFrames, unsigned int fps ):
     _oceanSurface( ocean ),
     _NUMFRAMES   ( numFrames ),
     _time        ( 0.f ),
@@ -1684,7 +1202,7 @@ FFTOceanSurface::OceanDataType::OceanDataType( FFTOceanSurface& ocean, unsigned 
     _newTime     ( 0 )
 {}
 
-FFTOceanSurface::OceanDataType::OceanDataType( const OceanDataType& copy, const osg::CopyOp& copyop ):
+FFTOceanSurfaceVBO::OceanDataType::OceanDataType( const OceanDataType& copy, const osg::CopyOp& copyop ):
     _oceanSurface( copy._oceanSurface ),
     _NUMFRAMES   ( copy._NUMFRAMES ),
     _eye         ( copy._eye ),
@@ -1696,7 +1214,7 @@ FFTOceanSurface::OceanDataType::OceanDataType( const OceanDataType& copy, const 
     _newTime     ( copy._newTime )
 {}
 
-void FFTOceanSurface::OceanDataType::updateOcean( void )
+void FFTOceanSurfaceVBO::OceanDataType::updateOcean( void )
 {
     _oldTime = _newTime;
     _newTime = osg::Timer::instance()->tick();
@@ -1717,7 +1235,7 @@ void FFTOceanSurface::OceanDataType::updateOcean( void )
     _oceanSurface.update( _frame, dt, _eye );
 }
 
-void FFTOceanSurface::OceanAnimationCallback::operator()(osg::Node* node, osg::NodeVisitor* nv)
+void FFTOceanSurfaceVBO::OceanAnimationCallback::operator()(osg::Node* node, osg::NodeVisitor* nv)
 {
     osg::ref_ptr<OceanDataType> oceanData = dynamic_cast<OceanDataType*> ( node->getUserData() );
 
@@ -1738,13 +1256,13 @@ void FFTOceanSurface::OceanAnimationCallback::operator()(osg::Node* node, osg::N
 }
 
 
-FFTOceanSurface::EventHandler::EventHandler(OceanTechnique* oceanSurface):
+FFTOceanSurfaceVBO::EventHandler::EventHandler(OceanTechnique* oceanSurface):
     OceanTechnique::EventHandler(oceanSurface),
     _autoDirty(true)
 {
 }
 
-bool FFTOceanSurface::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object* object, osg::NodeVisitor* nv)
+bool FFTOceanSurfaceVBO::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object* object, osg::NodeVisitor* nv)
 {
     // Call parent class's handle().
     OceanTechnique::EventHandler::handle(ea, aa, object, nv);
@@ -1757,7 +1275,7 @@ bool FFTOceanSurface::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osg
         case(osgGA::GUIEventAdapter::KEYUP):
         {
             // Downcast to the concrete class we're interested in.
-            FFTOceanSurface* fftSurface = dynamic_cast<FFTOceanSurface*>(_oceanSurface);
+            FFTOceanSurfaceVBO* fftSurface = dynamic_cast<FFTOceanSurfaceVBO*>(_oceanSurface);
             if (!fftSurface) return false;
 
             // Crest foam
@@ -1823,7 +1341,7 @@ bool FFTOceanSurface::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osg
             // Print out all current settings to the console.
             if (ea.getKey() == 'P')
             {
-                osg::notify(osg::NOTICE) << "Current FFTOceanSurface settings are:" << std::endl;
+                osg::notify(osg::NOTICE) << "Current FFTOceanSurfaceVBO settings are:" << std::endl;
                 osg::notify(osg::NOTICE) << "  Endless ocean " << (fftSurface->isEndlessOceanEnabled()? "enabled" : "disabled") << std::endl;
                 osg::notify(osg::NOTICE) << "  Crest foam " << (fftSurface->isCrestFoamEnabled()? "enabled" : "disabled") << std::endl;
                 osg::notify(osg::NOTICE) << "  Choppy waves " << (fftSurface->isChoppy()? "enabled" : "disabled") << std::endl;
@@ -1843,7 +1361,7 @@ bool FFTOceanSurface::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osg
 }
 
 /** Get the keyboard and mouse usage of this manipulator.*/
-void FFTOceanSurface::EventHandler::getUsage(osg::ApplicationUsage& usage) const
+void FFTOceanSurfaceVBO::EventHandler::getUsage(osg::ApplicationUsage& usage) const
 {
     // Add parent class's keys too.
     OceanTechnique::EventHandler::getUsage(usage);

@@ -39,6 +39,7 @@ namespace osgOcean
         float _spacing;                         /**< Vertex spacing. */
         float _maxDelta;                        /**< Max change in height between levels */
         float _averageHeight;                   /**< Average height (z) of vertices */
+        bool  _useVBO;                          /**< Add relative position to tile placement */
         
     public:
         /** 
@@ -56,7 +57,8 @@ namespace osgOcean
         OceanTile( osg::FloatArray* heights, 
                    const unsigned int resolution, 
                    const float spacing,
-                   osg::Vec2Array* displacements = NULL);
+                   osg::Vec2Array* displacements = NULL,
+                   bool useVBO = false);
 
         /** 
         * Down sampling constructor.
@@ -82,6 +84,14 @@ namespace osgOcean
         */
         osg::ref_ptr<osg::Texture2D> createNormalMap( void );
 
+        inline osg::Vec3Array *getVertices( void ) const
+        {
+            return _vertices.get();
+        }
+        inline osg::Vec3Array *getNormals( void ) const
+        {
+            return _normals.get();
+        }
         inline const osg::Vec3f& getVertex( unsigned int x, unsigned int y ) const    {
             return _vertices->at( x + y * _rowLength );
         }
