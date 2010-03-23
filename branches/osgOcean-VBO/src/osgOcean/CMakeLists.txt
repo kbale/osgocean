@@ -41,7 +41,6 @@ SET( SHADER_FILES
   ${osgOcean_SOURCE_DIR}/resources/shaders/heightmap.frag
 )
 
-
 SET( TEXTURE_FILES
   ${osgOcean_SOURCE_DIR}/resources/textures/sea_foam.png
   ${osgOcean_SOURCE_DIR}/resources/textures/sun_glare.png
@@ -51,10 +50,12 @@ SET( LIB_HEADERS
   ${HEADER_PATH}/Cylinder
   ${HEADER_PATH}/DistortionSurface
   ${HEADER_PATH}/FFTOceanSurface
+  ${HEADER_PATH}/FFTOceanSurfaceVBO
   ${HEADER_PATH}/FFTSimulation
   ${HEADER_PATH}/GodRays
   ${HEADER_PATH}/GodRayBlendSurface
   ${HEADER_PATH}/MipmapGeometry
+  ${HEADER_PATH}/MipmapGeometryVBO
   ${HEADER_PATH}/OceanScene
   ${HEADER_PATH}/OceanTechnique
   ${HEADER_PATH}/OceanTile
@@ -88,10 +89,12 @@ ADD_LIBRARY(
   Cylinder.cpp
   DistortionSurface.cpp
   FFTOceanSurface.cpp
+  FFTOceanSurfaceVBO.cpp
   FFTSimulation.cpp
   GodRays.cpp
   GodRayBlendSurface.cpp
   MipmapGeometry.cpp
+  MipmapGeometryVBO.cpp
   OceanScene.cpp
   OceanTechnique.cpp
   OceanTile.cpp

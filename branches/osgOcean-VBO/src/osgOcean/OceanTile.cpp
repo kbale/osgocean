@@ -37,7 +37,8 @@ OceanTile::OceanTile( void ):
 OceanTile::OceanTile( osg::FloatArray* heights, 
                       unsigned int resolution, 
                       const float spacing, 
-                      osg::Vec2Array* displacements ):
+                      osg::Vec2Array* displacements,
+                      bool useVBO):
 
     _resolution ( resolution ),
     _rowLength  ( _resolution + 1 ),
@@ -45,7 +46,8 @@ OceanTile::OceanTile( osg::FloatArray* heights,
     _vertices   ( new osg::Vec3Array ),
     _normals    ( new osg::Vec3Array(_numVertices) ),
     _spacing    ( spacing ),
-    _maxDelta   ( 0.f )
+    _maxDelta   ( 0.f ),
+    _useVBO     ( useVBO )
 {
     _vertices->reserve( _numVertices );
 
@@ -58,7 +60,7 @@ OceanTile::OceanTile( osg::FloatArray* heights,
     ++count;
 #endif
 
-    float x1,y1;
+    unsigned int x1,y1;
     float sumHeights = 0.f;
     osg::Vec3f v;
 
@@ -72,11 +74,22 @@ OceanTile::OceanTile( osg::FloatArray* heights,
 
             unsigned int ptr = array_pos(x1,y1,_resolution);
 
+            if (_useVBO) 
+            {
+                v.x() = x * spacing;
+                v.y() = -y * spacing;
+            }
+            else
+            {
+                v.x() = 0.0;
+                v.y() = 0.0;
+            }
             if (displacements)      // Displacements are optional, default value is NULL
             {
-                v.x() = displacements->at(ptr).x();
-                v.y() = displacements->at(ptr).y();
+                v.x() = v.x() + displacements->at(ptr).x();
+                v.y() = v.y() + displacements->at(ptr).y();
             }
+
             v.z() = heights->at( ptr );
 
 #ifdef DEBUG_DATA
@@ -193,22 +206,50 @@ void OceanTile::computeNormals( void )
     // normals for tiles of the same resolution
     // Using first row as last row and first column as last column.
 
-    osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array( (_resolution+2)*(_resolution+2) );
+    osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array( (_rowLength+2)*(_rowLength+2) );
 
-    for( int y = -1; y < (int)_resolution; ++y )
+    for( int y = -1; y < (int)_rowLength; ++y )
     {    
-        y1 = y % _resolution;
-        y2 = (y+1) % _resolution;
+        y1 = (y+_rowLength) % _rowLength;
+        y2 = (y+1) % _rowLength;
 
-        for( int x = -1; x < (int)_resolution; ++x )
+        for( int x = -1; x < (int)_rowLength; ++x )
         {
-            x1 = x % _resolution;
-            x2 = (x+1) % _resolution;
+            x1 = (x+_rowLength) % _rowLength;
+            x2 = (x+1) % _rowLength;
 
-            a =      getVertex(x1, y1);        //      a|   /|c
-            b = s2 + getVertex(x1, y2);        //       |  / |
-            c = s3 + getVertex(x2, y1);        //       | /  |
-            d = s4 + getVertex(x2, y2);        //      b|/   |d
+            a = getVertex(x1, y1);        //      a|   /|c
+            b = getVertex(x1, y2);        //       |  / |
+            c = getVertex(x2, y1);        //       | /  |
+            d = getVertex(x2, y2);        //      b|/   |d
+            
+            if (_useVBO) 
+            {
+                if ( x < 0 ){
+                    a.x() = a.x() - _rowLength*_spacing;
+                    b.x() = b.x() - _rowLength*_spacing;
+                } 
+                else if ( x+1 >= (int) _rowLength ) {
+                    c.x() = c.x() + _rowLength*_spacing ;
+                    d.x() = d.x() + _rowLength*_spacing ;
+                }
+
+                if ( y < 0 ){
+                    a.y() = a.y() + _rowLength*_spacing;
+                    c.y() = c.y() + _rowLength*_spacing;
+                } 
+                else if (y+1 >= (int) _rowLength) {
+                    b.y() = b.y() - _rowLength*_spacing;
+                    d.y() = d.y() - _rowLength*_spacing;
+                }
+            }
+            else
+            {
+               a =      getVertex(x1, y1);        //      a|   /|c
+               b = s2 + getVertex(x1, y2);        //       |  / |
+               c = s3 + getVertex(x2, y1);        //       | /  |
+               d = s4 + getVertex(x2, y2);        //      b|/   |d
+            }
 
             v1 = b - a;
             v2 = b - c;
@@ -217,13 +258,13 @@ void OceanTile::computeNormals( void )
             n1 = v2 ^ v1;
             n2 = v3 ^ v2;
 
-            (*normals)[ array_pos(x+1, y+1, _resolution+2) ] += n1;        // a|  /c
-            (*normals)[ array_pos(x+1, y+2, _resolution+2) ] += n1;        //  | /
-            (*normals)[ array_pos(x+2, y+1, _resolution+2) ] += n1;        // b|/
+            (*normals)[ array_pos(x+1, y+1, _rowLength+2) ] += n1;        // a|  /c
+            (*normals)[ array_pos(x+1, y+2, _rowLength+2) ] += n1;        //  | /
+            (*normals)[ array_pos(x+2, y+1, _rowLength+2) ] += n1;        // b|/
 
-            (*normals)[ array_pos(x+1, y+2, _resolution+2) ] += n2;        //    /|c
-            (*normals)[ array_pos(x+2, y+1, _resolution+2) ] += n2;        //   / |
-            (*normals)[ array_pos(x+2, y+2, _resolution+2) ] += n2;        // b/__|d
+            (*normals)[ array_pos(x+1, y+2, _rowLength+2) ] += n2;        //    /|c
+            (*normals)[ array_pos(x+2, y+1, _rowLength+2) ] += n2;        //   / |
+            (*normals)[ array_pos(x+2, y+2, _rowLength+2) ] += n2;        // b/__|d
         }
     }
 
@@ -238,11 +279,11 @@ void OceanTile::computeNormals( void )
 
     unsigned int ptr = 0;
 
-    for(unsigned int y = 1; y <= _resolution+1; ++y )
+    for(unsigned int y = 1; y <= _rowLength; ++y )
     {
-        for(unsigned int x = 1; x <= _resolution+1; ++x )
+        for(unsigned int x = 1; x <= _rowLength; ++x )
         {
-            (*_normals)[ptr] = (*normals)[ array_pos(x,y,_resolution+2) ];
+            (*_normals)[ptr] = (*normals)[ array_pos(x,y,_rowLength+2) ];
             ++ptr;
         }
     }
@@ -269,7 +310,7 @@ void OceanTile::computeMaxDelta( void )
 
                     float delta = biLinearInterp(posX, posX+step, posY, posY+step, j, i);
                     delta -= getVertex(j, i).z();
-                    delta = abs(delta);
+                    delta = fabs(delta);
                     deltaMax = std::max(deltaMax, delta);
                 }
             }
@@ -298,8 +339,8 @@ float OceanTile::biLinearInterp(float x, float y ) const
 {
     float dx = x/_spacing;
     float dy = y/_spacing;
-    unsigned int ix = dx;
-    unsigned int iy = dy;
+    unsigned int ix = (unsigned int)dx;
+    unsigned int iy = (unsigned int)dy;
     dx -= ix;
     dy -= iy;
 
@@ -317,8 +358,8 @@ osg::Vec3f OceanTile::normalBiLinearInterp(float x, float y ) const
     float dx = x / _spacing;
     float dy = y / _spacing;
 
-    unsigned int ix = dx;
-    unsigned int iy = dy;
+    unsigned int ix = (unsigned int) dx;
+    unsigned int iy = (unsigned int) dy;
 
     dx -= ix;
     dy -= iy;
