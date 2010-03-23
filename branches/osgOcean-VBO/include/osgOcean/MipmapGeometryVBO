@@ -128,7 +128,7 @@ namespace osgOcean
         inline unsigned int getIndex( unsigned c, unsigned r ){
             
             int test = c+r*(_maxResolution+1);
-            assert( test < ((_maxResolution+1)*(_maxResolution+1)) );
+            assert( test < (int)((_maxResolution+1)*(_maxResolution+1)) );
             
             return c+r*(_maxResolution+1);
         }

@@ -56,11 +56,17 @@ ADD_EXECUTABLE(
   oceanExample
 
   application.cpp
+  SceneModel.cpp
   SkyDome.cpp
   SphereSegment.cpp
+  
 
+  ${HEADER_PATH}/SceneEventHandler.h
+  ${HEADER_PATH}/SceneModel.h
+  ${HEADER_PATH}/ScopedTimer.h
   ${HEADER_PATH}/SkyDome.h
   ${HEADER_PATH}/SphereSegment.h
+  ${HEADER_PATH}/TextHUD.h
 
   ${EXAMPLE_SHADERS}
 )
