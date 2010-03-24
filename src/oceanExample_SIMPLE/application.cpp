@@ -162,8 +162,7 @@ int main(int argc, char *argv[])
     osgOcean::ShaderManager::instance().enableShaders(!disableShaders);
 
     osg::ref_ptr<osgOcean::OceanTechnique> oceanSurface; 
-    oceanSurface->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
-
+    
     if (useVBO)
     {
         osg::notify(osg::NOTICE) << "Using VBO Ocean Technique" << std::endl;
@@ -181,7 +180,8 @@ int main(int argc, char *argv[])
         // Make the ocean surface track with the main camera position, giving the illusion
         // of an endless ocean surface.
         oceanSurfaceVBO->enableEndlessOcean(isEndlessOcean);
-
+        oceanSurfaceVBO->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
+        
         oceanSurface = oceanSurfaceVBO;
     }
     else
@@ -201,10 +201,11 @@ int main(int argc, char *argv[])
         // Make the ocean surface track with the main camera position, giving the illusion
         // of an endless ocean surface.
         oceanSurfaceFFT->enableEndlessOcean(isEndlessOcean);
+        oceanSurfaceFFT->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
 
         oceanSurface = oceanSurfaceFFT;
     }
-    
+
     osgOcean::ShaderManager::instance().setGlobalDefinition("osgOcean_LightID", 0); 
 
     osg::Vec3f eye(0.f,0.f,20.f);
