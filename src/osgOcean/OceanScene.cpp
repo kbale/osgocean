@@ -731,7 +731,7 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bo
     // Above water
     if( eyeAboveWater )
     {
-        bool reflectionVisible = _enableReflections && (cv.getEyePoint().z() < _eyeHeightReflectionCutoff - getOceanSurfaceHeight());
+        bool reflectionVisible = (cv.getEyePoint().z() < _eyeHeightReflectionCutoff - getOceanSurfaceHeight());
         _surfaceStateSet->getUniform("osgOcean_EnableReflections")->set(reflectionVisible);
 
         // Render reflection if ocean surface is visible.
