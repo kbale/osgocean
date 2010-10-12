@@ -1,44 +1,44 @@
 SET(HEADER_PATH ${osgOcean_SOURCE_DIR}/include/osgOcean )
 
 SET( SHADER_FILES
-  ${osgOcean_SOURCE_DIR}/resources/shaders/water.frag
-  ${osgOcean_SOURCE_DIR}/resources/shaders/water.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_ocean_surface.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_ocean_surface.vert
 
-  ${osgOcean_SOURCE_DIR}/resources/shaders/godrays.vert
-  ${osgOcean_SOURCE_DIR}/resources/shaders/godrays.frag
-  ${osgOcean_SOURCE_DIR}/resources/shaders/godray_screen_blend.vert
-  ${osgOcean_SOURCE_DIR}/resources/shaders/godray_screen_blend.frag
-  ${osgOcean_SOURCE_DIR}/resources/shaders/godray_glare.vert
-  ${osgOcean_SOURCE_DIR}/resources/shaders/godray_glare.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_godrays.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_godrays.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_godray_screen_blend.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_godray_screen_blend.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_godray_glare.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_godray_glare.frag
 
-  ${osgOcean_SOURCE_DIR}/resources/shaders/silt_quads.vert
-  ${osgOcean_SOURCE_DIR}/resources/shaders/silt_quads.frag
-  ${osgOcean_SOURCE_DIR}/resources/shaders/silt_points.vert
-  ${osgOcean_SOURCE_DIR}/resources/shaders/silt_points.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_silt_quads.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_silt_quads.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_silt_points.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_silt_points.frag
 
-  ${osgOcean_SOURCE_DIR}/resources/shaders/streak.vert
-  ${osgOcean_SOURCE_DIR}/resources/shaders/streak.frag
-  ${osgOcean_SOURCE_DIR}/resources/shaders/glare_composite.vert
-  ${osgOcean_SOURCE_DIR}/resources/shaders/glare_composite.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_streak.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_streak.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_glare_composite.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_glare_composite.frag
 
-  ${osgOcean_SOURCE_DIR}/resources/shaders/downsample_glare.frag
-  ${osgOcean_SOURCE_DIR}/resources/shaders/downsample.vert
-  ${osgOcean_SOURCE_DIR}/resources/shaders/downsample.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_downsample_glare.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_downsample.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_downsample.frag
 
-  ${osgOcean_SOURCE_DIR}/resources/shaders/gaussian1.vert
-  ${osgOcean_SOURCE_DIR}/resources/shaders/gaussian1.frag
-  ${osgOcean_SOURCE_DIR}/resources/shaders/gaussian2.vert
-  ${osgOcean_SOURCE_DIR}/resources/shaders/gaussian2.frag
-  ${osgOcean_SOURCE_DIR}/resources/shaders/dof_combiner.vert
-  ${osgOcean_SOURCE_DIR}/resources/shaders/dof_combiner.frag
-  ${osgOcean_SOURCE_DIR}/resources/shaders/water_distortion.vert
-  ${osgOcean_SOURCE_DIR}/resources/shaders/water_distortion.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_gaussian1.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_gaussian1.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_gaussian2.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_gaussian2.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_dof_combiner.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_dof_combiner.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_water_distortion.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_water_distortion.frag
 
-  ${osgOcean_SOURCE_DIR}/resources/shaders/default_scene.vert
-  ${osgOcean_SOURCE_DIR}/resources/shaders/default_scene.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_ocean_scene.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_ocean_scene.frag
   
-  ${osgOcean_SOURCE_DIR}/resources/shaders/heightmap.vert
-  ${osgOcean_SOURCE_DIR}/resources/shaders/heightmap.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_heightmap.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_heightmap.frag
 )
 
 
