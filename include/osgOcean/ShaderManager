@@ -51,14 +51,14 @@ namespace osgOcean
          */
         std::string getGlobalDefiniton(const std::string& name);
 
-        /** Creates a shader program using either the given strings as shader 
-         *  source directly, or as filenames to load the shaders from disk, 
-         *  depending on the value of the \c loadFromFiles parameter.
+        /** Creates a shader program. Will try to load the filenames first, and if 
+         *  not found will fall back to using the given shader source strings.
          */
         osg::Program* createProgram( const std::string& name, 
-                                            const std::string& vertexSrc, 
-                                            const std::string& fragmentSrc, 
-                                            bool loadFromFiles );
+                                     const std::string& vertexFilename, 
+                                     const std::string& fragmentFilename, 
+                                     const std::string& vertexSrc, 
+                                     const std::string& fragmentSrc );
 
         /// Check if shaders are globally enabled or not.
         bool areShadersEnabled() const { return _shadersEnabled; }

@@ -20,8 +20,6 @@
 
 using namespace osgOcean;
 
-#define USE_LOCAL_SHADERS 1
-
 GodRayBlendSurface::GodRayBlendSurface( void ):
     _HGg          (1.f-(.2f*.2f), 1.f+(.2f*.2f), 2.f*.2f),
     _intensity    (0.2f),
@@ -94,7 +92,6 @@ void GodRayBlendSurface::build( const osg::Vec3f& corner, const osg::Vec2f& dims
 
 osg::Program* GodRayBlendSurface::createShader(void)
 {
-#if USE_LOCAL_SHADERS
 
     static const char god_ray_screen_blend_vertex[] = 
         "varying vec3 vRay;\n"
@@ -161,12 +158,12 @@ osg::Program* GodRayBlendSurface::createShader(void)
         "    gl_FragColor = vec4(colour, 1.0);\n"
         "}\n";
 
-#else
-    static const char god_ray_screen_blend_vertex[]   = "godray_screen_blend.vert";
-    static const char god_ray_screen_blend_fragment[] = "godray_screen_blend.frag";
-#endif
+    static const char god_ray_screen_blend_vertex_filename[]   = "osgOcean_godray_screen_blend.vert";
+    static const char god_ray_screen_blend_fragment_filename[] = "osgOcean_godray_screen_blend.frag";
 
-    return ShaderManager::instance().createProgram("godray_blend", god_ray_screen_blend_vertex, god_ray_screen_blend_fragment, !USE_LOCAL_SHADERS );
+    return ShaderManager::instance().createProgram("godray_blend", 
+                                                   god_ray_screen_blend_vertex_filename, god_ray_screen_blend_fragment_filename,
+                                                   god_ray_screen_blend_vertex,          god_ray_screen_blend_fragment);
 }
 
 void GodRayBlendSurface::update( const osg::Matrixd& view, const osg::Matrixd& proj )

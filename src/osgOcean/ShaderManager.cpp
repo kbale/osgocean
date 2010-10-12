@@ -83,47 +83,49 @@ std::string ShaderManager::getGlobalDefiniton(const std::string& name)
     return "";
 }
 
-/** Creates a shader program using either the given strings as shader 
- *  source directly, or as filenames to load the shaders from disk, 
- *  depending on the value of the \c loadFromFiles parameter.
+/** Creates a shader program. Will try to load the filenames first, and if 
+ *  not found will fall back to using the given shader source strings.
  */
 osg::Program* ShaderManager::createProgram( const std::string& name, 
+                                            const std::string& vertexFilename, 
+                                            const std::string& fragmentFilename, 
                                             const std::string& vertexSrc, 
-                                            const std::string& fragmentSrc, 
-                                            bool loadFromFiles )
+                                            const std::string& fragmentSrc )
 {
     if (!_shadersEnabled)
         return new osg::Program;
 
-    osg::ref_ptr<osg::Shader> vShader = 0;
-    osg::ref_ptr<osg::Shader> fShader = 0;
-
-    if (loadFromFiles)
-    {
-        vShader = readShader(vertexSrc);
-        if (!vShader)
-        {
-            osg::notify(osg::WARN) << "Could not read shader from file " << vertexSrc << std::endl;
-            return NULL;
-        }
-
-        fShader = readShader(fragmentSrc);
-        if (!fShader)
-        {
-            osg::notify(osg::WARN) << "Could not read shader from file " << fragmentSrc << std::endl;
-            return NULL;
-        }
-    }
-    else
+    osg::ref_ptr<osg::Shader> vShader = readShader(vertexFilename);
+    if (!vShader)
     {
         if (!vertexSrc.empty())
         {
+            osg::notify(osg::NOTICE) << "osgOcean: Could not read shader from file " << vertexFilename << ", falling back to default shader." << std::endl;
             vShader = new osg::Shader( osg::Shader::VERTEX, vertexSrc );
         }
+        else
+        {
+            osg::notify(osg::WARN) << "osgOcean: Could not read shader from file " << vertexFilename << " and no fallback shader source was given. No shader will be used." << std::endl;
+        }
+    }
+
+    osg::ref_ptr<osg::Shader> fShader = readShader(fragmentFilename);
+    if (!fShader)
+    {
         if (!fragmentSrc.empty())
         {
+            osg::notify(osg::NOTICE) << "osgOcean: Could not read shader from file " << fragmentFilename << ", falling back to default shader." << std::endl;
             fShader = new osg::Shader( osg::Shader::FRAGMENT, fragmentSrc );
         }
+        else
+        {
+            osg::notify(osg::WARN) << "osgOcean: Could not read shader from file " << fragmentFilename << " and no fallback shader source was given. No shader will be used." << std::endl;
+        }
+    }
+
+    if (!vShader && !fShader)
+    {
+        return NULL;
     }
 
     osg::Program* program = new osg::Program;

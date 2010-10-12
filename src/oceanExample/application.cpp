@@ -516,10 +516,13 @@ public:
         }
 
 #ifdef USE_CUSTOM_SHADER
-        static const char terrain_vertex[]   = "terrain.vert";
-        static const char terrain_fragment[] = "terrain.frag";
+        static const char terrain_vertex_filename[]   = "terrain.vert";
+        static const char terrain_fragment_filename[] = "terrain.frag";
 
-        osg::Program* program = osgOcean::ShaderManager::instance().createProgram("terrain", terrain_vertex, terrain_fragment, true);
+        osg::Program* program = 
+            osgOcean::ShaderManager::instance().createProgram("terrain", 
+                                                              terrain_vertex_filename, terrain_fragment_filename,
+                                                              "", "");
         program->addBindAttribLocation("aTangent", 6);
 #endif
         island->setNodeMask( _oceanScene->getNormalSceneMask() | _oceanScene->getReflectedSceneMask() | _oceanScene->getRefractedSceneMask() | _oceanScene->getHeightmapMask());
@@ -833,8 +836,8 @@ int main(int argc, char *argv[])
         if(boat.valid())
         {
             boat->setNodeMask( scene->getOceanScene()->getNormalSceneMask() | 
-                scene->getOceanScene()->getReflectedSceneMask() | 
-                scene->getOceanScene()->getRefractedSceneMask() );
+                               scene->getOceanScene()->getReflectedSceneMask() | 
+                               scene->getOceanScene()->getRefractedSceneMask() );
 
             osg::ref_ptr<osg::MatrixTransform> boatTransform = new osg::MatrixTransform;
             boatTransform->addChild(boat.get());
