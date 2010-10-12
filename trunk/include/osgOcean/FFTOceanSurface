@@ -156,7 +156,7 @@ namespace osgOcean
         * Cull/Update Animation callback. Override its operator() to customize
         * how the ocean is updated.
         */
-        class OceanAnimationCallback: public osg::NodeCallback
+        class OSGOCEAN_EXPORT OceanAnimationCallback: public osg::NodeCallback
         {
         public:
             /**

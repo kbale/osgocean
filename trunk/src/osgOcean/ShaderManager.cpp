@@ -100,7 +100,7 @@ osg::Program* ShaderManager::createProgram( const std::string& name,
     {
         if (!vertexSrc.empty())
         {
-            osg::notify(osg::NOTICE) << "osgOcean: Could not read shader from file " << vertexFilename << ", falling back to default shader." << std::endl;
+            osg::notify(osg::INFO) << "osgOcean: Could not read shader from file " << vertexFilename << ", falling back to default shader." << std::endl;
             vShader = new osg::Shader( osg::Shader::VERTEX, vertexSrc );
         }
         else
@@ -114,7 +114,7 @@ osg::Program* ShaderManager::createProgram( const std::string& name,
     {
         if (!fragmentSrc.empty())
         {
-            osg::notify(osg::NOTICE) << "osgOcean: Could not read shader from file " << fragmentFilename << ", falling back to default shader." << std::endl;
+            osg::notify(osg::INFO) << "osgOcean: Could not read shader from file " << fragmentFilename << ", falling back to default shader." << std::endl;
             fShader = new osg::Shader( osg::Shader::FRAGMENT, fragmentSrc );
         }
         else
