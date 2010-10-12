@@ -22,8 +22,6 @@
 
 using namespace osgOcean;
 
-#define USE_LOCAL_SHADERS 1
-
 FFTOceanSurface::FFTOceanSurface( unsigned int FFTGridSize,
                                   unsigned int resolution,
                                   unsigned int numTiles, 
@@ -82,8 +80,7 @@ FFTOceanSurface::FFTOceanSurface( unsigned int FFTGridSize,
     _stateset = new osg::StateSet;
 
     setUserData( new OceanDataType(*this, _NUMFRAMES, 25) );
-    setCullCallback( new OceanAnimationCallback );
-    setUpdateCallback( new OceanAnimationCallback );
+    setOceanAnimationCallback( new OceanAnimationCallback );
 }
 
 FFTOceanSurface::FFTOceanSurface( const FFTOceanSurface& copy, const osg::CopyOp& copyop ):
@@ -464,6 +461,17 @@ void FFTOceanSurface::update( unsigned int frame, const double& dt, const osg::V
     }
 
     _oldFrame = frame;
+}
+
+void FFTOceanSurface::setOceanAnimationCallback(FFTOceanSurface::OceanAnimationCallback* callback)
+{
+    setUpdateCallback(callback);
+    setCullCallback(callback);
+}
+
+FFTOceanSurface::OceanAnimationCallback* FFTOceanSurface::getOceanAnimationCallback()
+{
+    return dynamic_cast<OceanAnimationCallback*>(getUpdateCallback());
 }
 
 float FFTOceanSurface::getSurfaceHeightAt(float x, float y, osg::Vec3f* normal)
@@ -1104,7 +1112,6 @@ osg::Texture2D* FFTOceanSurface::createTexture(const std::string& name, osg::Tex
 osg::Program* FFTOceanSurface::createShader(void)
 {
 
-#if USE_LOCAL_SHADERS
     static const char ocean_surface_vertex[] = 
         
         "uniform mat4 osg_ViewMatrixInverse;\n"
@@ -1578,12 +1585,14 @@ osg::Program* FFTOceanSurface::createShader(void)
         "    }\n"
         "}\n";
 
-#else
-    static const char ocean_surface_vertex[]   = "water.vert";
-    static const char ocean_surface_fragment[] = "water.frag";
-#endif
+    static const char ocean_surface_vertex_filename[]   = "osgOcean_ocean_surface.vert";
+    static const char ocean_surface_fragment_filename[] = "osgOcean_ocean_surface.frag";
 
-    osg::Program* program = ShaderManager::instance().createProgram("ocean_surface", ocean_surface_vertex, ocean_surface_fragment, !USE_LOCAL_SHADERS);
+    osg::Program* program = 
+        ShaderManager::instance().createProgram("ocean_surface", 
+                                                ocean_surface_vertex_filename, ocean_surface_fragment_filename, 
+                                                ocean_surface_vertex,          ocean_surface_fragment);
+
     return program;
 }
 
@@ -1620,7 +1629,7 @@ void FFTOceanSurface::addResourcePaths(void)
 FFTOceanSurface::OceanDataType::OceanDataType( FFTOceanSurface& ocean, unsigned int numFrames, unsigned int fps ):
     _oceanSurface( ocean ),
     _NUMFRAMES   ( numFrames ),
-    _time        ( 0.f ),
+    _time        ( 0.0 ),
     _FPS         ( fps ), 
     _msPerFrame  ( 1000.f/(float)fps ),
     _frame       ( 0 ),
@@ -1640,10 +1649,18 @@ FFTOceanSurface::OceanDataType::OceanDataType( const OceanDataType& copy, const 
     _newTime     ( copy._newTime )
 {}
 
-void FFTOceanSurface::OceanDataType::updateOcean( void )
+void FFTOceanSurface::OceanDataType::updateOcean( double simulationTime )
 {
     _oldTime = _newTime;
-    _newTime = osg::Timer::instance()->tick();
+    if (simulationTime < 0.0)
+    {
+        _newTime = osg::Timer::instance()->tick();
+    }
+    else
+    {
+        // simulationTime is passed in seconds.
+        _newTime = simulationTime / osg::Timer::instance()->getSecondsPerTick();
+    }
 
     double dt = osg::Timer::instance()->delta_m(_oldTime, _newTime);
     _time += dt;
@@ -1655,13 +1672,20 @@ void FFTOceanSurface::OceanDataType::updateOcean( void )
         if( _frame >= _NUMFRAMES ) 
             _frame = _frame%_NUMFRAMES; 
 
-        _time = fmod( _time, _msPerFrame );
+        _time = fmod( _time, (double)_msPerFrame );
     }
     
     _oceanSurface.update( _frame, dt, _eye );
 }
 
 void FFTOceanSurface::OceanAnimationCallback::operator()(osg::Node* node, osg::NodeVisitor* nv)
+{
+    update(node, nv, -1.0);
+
+    traverse(node, nv); 
+}
+
+void FFTOceanSurface::OceanAnimationCallback::update(osg::Node* node, osg::NodeVisitor* nv, double simulationTime)
 {
     osg::ref_ptr<OceanDataType> oceanData = dynamic_cast<OceanDataType*> ( node->getUserData() );
 
@@ -1674,7 +1698,7 @@ void FFTOceanSurface::OceanAnimationCallback::operator()(osg::Node* node, osg::N
             oceanData->setEye( cv->getEyePoint() );
         }
         else if( nv->getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR ){
-            oceanData->updateOcean();
+            oceanData->updateOcean(simulationTime);
         }
     }
 

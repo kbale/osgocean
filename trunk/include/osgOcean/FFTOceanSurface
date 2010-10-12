@@ -153,6 +153,39 @@ namespace osgOcean
         void update( unsigned int frame, const double& dt, const osg::Vec3f& eye );
 
         /**
+        * Cull/Update Animation callback. Override its operator() to customize
+        * how the ocean is updated.
+        */
+        class OceanAnimationCallback: public osg::NodeCallback
+        {
+        public:
+            /**
+            * Override this to be able to call update() with specified dt. 
+            * Don't forget to call traverse(node, nv); as for any update 
+            * callback in OSG.
+            */
+            virtual void operator()(osg::Node* node, osg::NodeVisitor* nv);
+
+        protected:
+            /**
+            * Pass simulationTime < 0.0 to update with the real elapsed time, 
+            * else will use specified simulationTime in seconds.
+            * @see FFTOceanSurface::update();
+            */
+            void update(osg::Node* node, osg::NodeVisitor* nv, double simulationTime = -1.0);
+        };
+
+        /**
+        * Set a different animation callback than the default one.
+        */
+        void setOceanAnimationCallback(OceanAnimationCallback* callback);
+
+        /**
+        * Get the animation callback.
+        */
+        OceanAnimationCallback* getOceanAnimationCallback();
+
+        /**
         * Sets up geometry and mipmaping data.
         * Forces stateset rebuid.
         */
@@ -469,7 +502,7 @@ namespace osgOcean
             osgOcean::FFTOceanSurface& _oceanSurface;
             const unsigned int _NUMFRAMES;
             osg::Vec3f _eye;
-            float _time;
+            double _time;
             const unsigned int _FPS;
             float _msPerFrame;
             unsigned int _frame;
@@ -483,19 +516,13 @@ namespace osgOcean
             inline void setEye( const osg::Vec3f& eye ){ _eye = eye;    }
             
             /**
+            * Pass simulationTime < 0.0 to update with the real elapsed time, 
+            * else will use specified simulationTime in seconds.
             * @see FFTOceanSurface::update();
             */
-            void updateOcean(void);
+            void updateOcean(double simulationTime = -1.0);
         };
 
-        /**
-        * Cull/Update Animation callback.
-        */
-        class OSGOCEAN_EXPORT OceanAnimationCallback: public osg::NodeCallback
-        {
-        public:
-            virtual void operator()(osg::Node* node, osg::NodeVisitor* nv);
-        };
 };
 
 }// namespace

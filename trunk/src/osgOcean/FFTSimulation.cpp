@@ -236,7 +236,7 @@ float FFTSimulation::Implementation::phillipsSpectrum(const osg::Vec2f& K) const
 
     float eterm = exp( -_GRAVITY2 / (k2*_windSpeed4) ) / k4;
 
-    const float damping = 0.000001;
+    const float damping = 0.000001f;
 
     float specResult = _A * eterm * KdotWhat * exp( -k2 * _maxWave * damping );    
 

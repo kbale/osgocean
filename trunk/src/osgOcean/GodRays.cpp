@@ -20,8 +20,6 @@
 
 using namespace osgOcean;
 
-#define USE_LOCAL_SHADERS 1
-
 GodRays::GodRays(void):
     _isDirty        (true),
     _isStateDirty   (true),
@@ -328,7 +326,6 @@ osg::Vec3f GodRays::refract( const float ratio, const osg::Vec3f& I, const osg::
 
 osg::Program* GodRays::createGodRayProgram( void )
 {
-#if USE_LOCAL_SHADERS
 
     static const char godrays_vertex[] = 
         "const int NUM_WAVES = 16;\n"
@@ -427,17 +424,16 @@ osg::Program* GodRays::createGodRayProgram( void )
         "    gl_FragColor = vec4(vIntensity,1.0);\n"
         "}\n";
 
-#else
-	static const char godrays_vertex[]   = "godrays.vert";
-	static const char godrays_fragment[] = "godrays.frag";
-#endif
+	static const char godrays_vertex_filename[]   = "osgOcean_godrays.vert";
+	static const char godrays_fragment_filename[] = "osgOcean_godrays.frag";
 
-	return ShaderManager::instance().createProgram("godrays_shader", godrays_vertex, godrays_fragment, !USE_LOCAL_SHADERS );
+	return ShaderManager::instance().createProgram("godrays_shader", 
+                                                   godrays_vertex_filename, godrays_fragment_filename, 
+                                                   godrays_vertex,          godrays_fragment);
 }
 
 osg::Program* GodRays::createGodRayGlareProgram( void )
 {
-#if USE_LOCAL_SHADERS
 
     char glare_vertex[] = 
         "uniform vec3 osgOcean_Origin;\n"
@@ -475,12 +471,12 @@ osg::Program* GodRays::createGodRayGlareProgram( void )
         "    gl_FragColor = vec4((vIntensity*color.r)*1.5, 1.0 );\n"
         "}\n";
 
-#else
-	static const char glare_vertex[]   = "godray_glare.vert";
-	static const char glare_fragment[] = "godray_glare.frag";
-#endif
+	static const char glare_vertex_filename[]   = "osgOcean_godray_glare.vert";
+	static const char glare_fragment_filename[] = "osgOcean_godray_glare.frag";
 
-	return ShaderManager::instance().createProgram("godray_glare", glare_vertex, glare_fragment, !USE_LOCAL_SHADERS );
+	return ShaderManager::instance().createProgram("godray_glare", 
+                                                   glare_vertex_filename, glare_fragment_filename,
+                                                   glare_vertex,          glare_fragment);
 }
 
 // --------------------------------------------

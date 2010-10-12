@@ -22,8 +22,6 @@
 
 using namespace osgOcean;
 
-#define USE_LOCAL_SHADERS 1
-
 DistortionSurface::DistortionSurface( void )
 {
     addResourcePaths();
@@ -74,7 +72,6 @@ void DistortionSurface::build( const osg::Vec3f& corner, const osg::Vec2f& dims,
 
 osg::Program* DistortionSurface::createShader(void)
 {
-#if USE_LOCAL_SHADERS
 
     char water_distortion_vertex[] = 
         "varying vec4 vEyePos;\n"
@@ -133,12 +130,12 @@ osg::Program* DistortionSurface::createShader(void)
         "    //gl_FragColor = texture2DRect( osgOcean_FrameBuffer, gl_TexCoord[0].st );\n"
       "}\n";
 
-#else
-    static const char water_distortion_vertex[]   = "water_distortion.vert";
-    static const char water_distortion_fragment[] = "water_distortion.frag";
-#endif
+    static const char water_distortion_vertex_filename[]   = "osgOcean_water_distortion.vert";
+    static const char water_distortion_fragment_filename[] = "osgOcean_water_distortion.frag";
 
-    return ShaderManager::instance().createProgram("distortion_surface", water_distortion_vertex, water_distortion_fragment, !USE_LOCAL_SHADERS );
+    return ShaderManager::instance().createProgram("distortion_surface", 
+                                                   water_distortion_vertex_filename, water_distortion_fragment_filename, 
+                                                   water_distortion_vertex,          water_distortion_fragment);
 }
 
 void DistortionSurface::update( const double& dt )

@@ -71,8 +71,6 @@ namespace
 
 }
 
-#define USE_LOCAL_SHADERS 1
-
 OceanScene::OceanScene( void ):
     _oceanSurface               ( 0 ),
     _isDirty                    ( true ),
@@ -410,6 +408,7 @@ void OceanScene::init( void )
             _surfaceStateSet->setTextureAttributeAndModes( _reflectionUnit, reflectionTexture.get(), osg::StateAttribute::ON );
 
             osg::ClipPlane* reflClipPlane = new osg::ClipPlane();
+            _reflectionCamera->getOrCreateStateSet()->setMode( GL_CLIP_PLANE0, osg::StateAttribute::ON );
             reflClipPlane->setClipPlaneNum(0);
             reflClipPlane->setClipPlane( 0.0, 0.0, 1.0, -getOceanSurfaceHeight() );
             _reflectionClipNode = new osg::ClipNode;
@@ -475,7 +474,54 @@ void OceanScene::init( void )
             _heightmapCamera->setCullMask( _heightmapMask );
             _heightmapCamera->setCullCallback( new CameraCullCallback(this) );
 
-            osg::ref_ptr<osg::Program> program = ShaderManager::instance().createProgram("heightmap", "heightmap.vert", "heightmap.frag", true);
+            static const char heightmap_vertex[]   =
+                "// osgOcean uniforms\n"
+                "// -------------------\n"
+                "uniform float osgOcean_WaterHeight;\n"
+                "// ------------------\n"
+                "\n"
+                "uniform mat4 osg_ViewMatrixInverse;\n"
+                "uniform mat4 osg_ViewMatrix;\n"
+                "\n"
+                "varying vec4 vWorldVertex;\n"
+                "\n"
+                "void main(void)\n"
+                "{\n"
+	            "// Transform the vertex into world space\n"
+	            "vWorldVertex = (osg_ViewMatrixInverse * gl_ModelViewMatrix) * gl_Vertex;\n"
+	            "vWorldVertex.xyzw /= vWorldVertex.w;\n"
+                "\n"
+                "	// Project the vertex onto the ocean plane\n"
+                "	vec4 projectedVertex = vWorldVertex;\n"
+                "	projectedVertex.z = osgOcean_WaterHeight;\n"
+                "\n"
+                "	gl_Position = (gl_ProjectionMatrix * osg_ViewMatrix) * projectedVertex;\n"
+                "\n"
+                "	return;\n"
+                "}\n";
+
+            static const char heightmap_fragment[]   =
+                "// osgOcean uniforms\n"
+                "// -------------------\n"
+                "uniform float osgOcean_WaterHeight;\n"
+                "// -------------------\n"
+                "\n"
+                "varying vec4 vWorldVertex;\n"
+                "\n"
+                "void main(void)\n"
+                "{\n"
+                "    // Store the water depth\n"
+                "    // maximum possible depth is 500,\n"
+                "    // (a higher water depth value would not have a visible effect anyway)\n"
+                "    gl_FragDepth = clamp((osgOcean_WaterHeight - vWorldVertex.z) / 500.0, 0.0, 1.0);\n"
+                "\n"
+                "    return;\n"
+                "}\n";
+
+            static const char heightmap_vertex_filename[]   = "osgOcean_heightmap.vert";
+            static const char heightmap_fragment_filename[] = "osgOcean_heightmap.frag";
+
+            osg::ref_ptr<osg::Program> program = ShaderManager::instance().createProgram("heightmap", heightmap_vertex_filename, heightmap_fragment_filename, heightmap_vertex, heightmap_fragment);
 
             if(program.valid())
                 _heightmapCamera->getOrCreateStateSet()->setAttributeAndModes( program.get(), osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
@@ -495,7 +541,6 @@ void OceanScene::init( void )
             _dofStateSet->addUniform( new osg::Uniform("osgOcean_DOF_Clamp", _dofFarClamp ) );
             _dofStateSet->addUniform( new osg::Uniform("osgOcean_DOF_Focus", _dofFocus ) );
 
-            // First capture screen
             // First capture screen color buffer and a luminance buffer used for a custom depth map
             osg::TextureRectangle* fullScreenTexture   = createTextureRectangle( _screenDims, GL_RGBA );
             osg::TextureRectangle* fullScreenLuminance = createTextureRectangle( _screenDims, GL_LUMINANCE );
@@ -827,7 +872,7 @@ void OceanScene::cull(osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surface
         for (unsigned int i = 0; i < getNumChildren(); ++i)
         {
             osg::Node* child = getChild(i);
-            if (child != _oceanTransform.get() && child != _siltClipNode.get())
+            if (child->getNodeMask() != 0 && child != _oceanTransform.get() && child != _siltClipNode.get())
                 child->setNodeMask((child->getNodeMask() & ~_surfaceMask & ~_siltMask) | _normalSceneMask);
         }
 
@@ -915,7 +960,6 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
                                         osg::TextureRectangle* outputTexture,
                                         bool isGlareEffect )
 {
-#if USE_LOCAL_SHADERS
     static const char downsample_vertex[] =
         "void main( void )\n"
         "{\n"
@@ -995,24 +1039,32 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
         "        gl_FragColor = vec4(0.0);\n"
         "}\n";
 
-#else
-    static const char downsample_vertex[] = "downsample.vert";
-    static const char downsample_fragment[] = "downsample.frag";
-    static const char downsample_glare_fragment[] = "downsample_glare.frag";
-#endif
+    static const char downsample_vertex_filename[]         = "osgOcean_downsample.vert";
+    static const char downsample_fragment_filename[]       = "osgOcean_downsample.frag";
+    static const char downsample_glare_fragment_filename[] = "osgOcean_downsample_glare.frag";
+
     osg::Vec2s lowResDims = _screenDims/4;
 
     osg::StateSet* ss = new osg::StateSet;
 
-    if(isGlareEffect){
-        ss->setAttributeAndModes( ShaderManager::instance().createProgram("downsample_glare", downsample_vertex, downsample_glare_fragment, !USE_LOCAL_SHADERS ), osg::StateAttribute::ON );
+    if (isGlareEffect)
+    {
+        ss->setAttributeAndModes( 
+            ShaderManager::instance().createProgram("downsample_glare", 
+                                                    downsample_vertex_filename, downsample_glare_fragment_filename,
+                                                    downsample_vertex,          downsample_glare_fragment), osg::StateAttribute::ON );
         ss->setTextureAttributeAndModes( 1, auxBuffer,   osg::StateAttribute::ON );
 
         ss->addUniform( new osg::Uniform("osgOcean_GlareThreshold", _glareThreshold ) );
         ss->addUniform( new osg::Uniform("osgOcean_LuminanceTexture", 1 ) );
     }
     else
-        ss->setAttributeAndModes( ShaderManager::instance().createProgram("downsample", downsample_vertex, downsample_fragment, !USE_LOCAL_SHADERS ), osg::StateAttribute::ON );
+    {
+        ss->setAttributeAndModes( 
+            ShaderManager::instance().createProgram("downsample", 
+                                                    downsample_vertex_filename, downsample_fragment_filename,
+                                                    downsample_vertex,          downsample_fragment ), osg::StateAttribute::ON );
+    }
 
     ss->setTextureAttributeAndModes( 0, colorBuffer, osg::StateAttribute::ON );
     ss->addUniform( new osg::Uniform( "osgOcean_ColorTexture", 0 ) );
@@ -1030,7 +1082,7 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
 
 osg::Camera* OceanScene::gaussianPass( osg::TextureRectangle* inputTexture, osg::TextureRectangle* outputTexture, bool isXAxis )
 {
-#if USE_LOCAL_SHADERS
+
     static const char gaussian_vertex[] = 
         "void main(void)\n"
         "{\n"
@@ -1080,20 +1132,29 @@ osg::Camera* OceanScene::gaussianPass( osg::TextureRectangle* inputTexture, osg:
         "      \n"
         "   gl_FragColor = color;\n"
         "}\n";
-#else
-    static const char gaussian_vertex[] = "gaussian1.vert";
-    static const char gaussian1_fragment[] = "gaussian1.frag";
-    static const char gaussian2_fragment[] = "gaussian2.frag";
-#endif
+
+    static const char gaussian_vertex_filename[]    = "osgOcean_gaussian1.vert";
+    static const char gaussian1_fragment_filename[] = "osgOcean_gaussian1.frag";
+    static const char gaussian2_fragment_filename[] = "osgOcean_gaussian2.frag";
 
     osg::Vec2s lowResDims = _screenDims/4.f;
 
     osg::StateSet* ss = new osg::StateSet;
     
-    if(isXAxis)
-        ss->setAttributeAndModes( ShaderManager::instance().createProgram("gaussian1", gaussian_vertex, gaussian1_fragment, !USE_LOCAL_SHADERS ), osg::StateAttribute::ON );
+    if (isXAxis)
+    {
+        ss->setAttributeAndModes( 
+            ShaderManager::instance().createProgram("gaussian1", 
+                                                    gaussian_vertex_filename, gaussian1_fragment_filename, 
+                                                    gaussian_vertex,          gaussian1_fragment), osg::StateAttribute::ON );
+    }
     else
-        ss->setAttributeAndModes( ShaderManager::instance().createProgram("gaussian2", gaussian_vertex, gaussian2_fragment, !USE_LOCAL_SHADERS ), osg::StateAttribute::ON );
+    {
+        ss->setAttributeAndModes( 
+            ShaderManager::instance().createProgram("gaussian2", 
+                                                    gaussian_vertex_filename, gaussian2_fragment_filename, 
+                                                    gaussian_vertex,          gaussian2_fragment), osg::StateAttribute::ON );
+    }
 
     ss->setTextureAttributeAndModes( 0, inputTexture, osg::StateAttribute::ON );
     ss->addUniform( new osg::Uniform( "osgOcean_GaussianTexture", 0 ) );
@@ -1113,7 +1174,6 @@ osg::Camera* OceanScene::dofCombinerPass(osg::TextureRectangle* fullscreenTextur
                                          osg::TextureRectangle* blurTexture,
                                          osg::TextureRectangle* outputTexture )
 {
-#if USE_LOCAL_SHADERS
 
     static const char dof_composite_vertex[]=
         "uniform vec2 osgOcean_ScreenRes;\n"
@@ -1210,10 +1270,9 @@ osg::Camera* OceanScene::dofCombinerPass(osg::TextureRectangle* fullscreenTextur
         "    // normalize and return result\n"
         "    gl_FragColor = colorAccum / depthAccum;\n"
         "}\n";
-#else
-    static const char dof_composite_vertex[]   = "dof_combiner.vert";
-    static const char dof_composite_fragment[] = "dof_combiner.frag";
-#endif
+
+    static const char dof_composite_vertex_filename[]   = "osgOcean_dof_combiner.vert";
+    static const char dof_composite_fragment_filename[] = "osgOcean_dof_combiner.frag";
 
     osg::Vec2f screenRes( (float)_screenDims.x(), (float)_screenDims.y() );
     osg::Vec2f invScreenRes( 1.f / (float)_screenDims.x(), 1.f / (float)_screenDims.y() );
@@ -1224,7 +1283,10 @@ osg::Camera* OceanScene::dofCombinerPass(osg::TextureRectangle* fullscreenTextur
     ss->setTextureAttributeAndModes( 1, fullDepthTexture,  osg::StateAttribute::ON );
     ss->setTextureAttributeAndModes( 2, blurTexture,       osg::StateAttribute::ON );
 
-    ss->setAttributeAndModes( ShaderManager::instance().createProgram("dof_combiner", dof_composite_vertex, dof_composite_fragment, !USE_LOCAL_SHADERS ), osg::StateAttribute::ON );
+    ss->setAttributeAndModes( 
+        ShaderManager::instance().createProgram("dof_combiner", 
+                                                dof_composite_vertex_filename, dof_composite_fragment_filename,
+                                                dof_composite_vertex,          dof_composite_fragment), osg::StateAttribute::ON );
 
     ss->addUniform( new osg::Uniform( "osgOcean_FullColourMap", 0 ) );
     ss->addUniform( new osg::Uniform( "osgOcean_FullDepthMap",  1 ) );
@@ -1264,7 +1326,7 @@ osg::Camera* OceanScene::glarePass(osg::TextureRectangle* streakInput,
                                    int pass, 
                                    osg::Vec2f direction )
 {
-#if USE_LOCAL_SHADERS
+
     static const char streak_vertex[] =
         "void main(void)\n"
         "{\n"
@@ -1309,10 +1371,10 @@ osg::Camera* OceanScene::glarePass(osg::TextureRectangle* streakInput,
         "\n"
         "    gl_FragColor = vec4(streak,1.0);\n"
         "}\n";
-#else
-    static const char streak_vertex[]   = "streak.vert";
-    static const char streak_fragment[] = "streak.frag";
-#endif
+
+    static const char streak_vertex_filename[]   = "osgOcean_streak.vert";
+    static const char streak_fragment_filename[] = "osgOcean_streak.frag";
+
     osg::Vec2s lowResDims = _screenDims / 4;
 
     osg::Camera* glarePass = renderToTexturePass( steakOutput );
@@ -1320,7 +1382,10 @@ osg::Camera* OceanScene::glarePass(osg::TextureRectangle* streakInput,
     glarePass->setProjectionMatrixAsOrtho( 0, lowResDims.x(), 0.f, lowResDims.y(), 1.0, 500.f );
     glarePass->setRenderTargetImplementation( osg::Camera::FRAME_BUFFER_OBJECT );
     {
-        osg::Program* program = ShaderManager::instance().createProgram( "streak_shader", streak_vertex, streak_fragment, !USE_LOCAL_SHADERS );
+        osg::Program* program = 
+            ShaderManager::instance().createProgram( "streak_shader", 
+                                                     streak_vertex_filename, streak_fragment_filename, 
+                                                     streak_vertex,          streak_fragment );
 
         osg::Geode* screenQuad = createScreenQuad(lowResDims, lowResDims);
         screenQuad->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
@@ -1342,7 +1407,7 @@ osg::Camera* OceanScene::glareCombinerPass( osg::TextureRectangle* fullscreenTex
                                             osg::TextureRectangle* glareTexture3,
                                             osg::TextureRectangle* glareTexture4 )
 {
-#if USE_LOCAL_SHADERS
+
     static const char glare_composite_vertex[] = 
         "void main(void)\n"
         "{\n"
@@ -1373,10 +1438,10 @@ osg::Camera* OceanScene::glareCombinerPass( osg::TextureRectangle* fullscreenTex
         "\n"
         "    gl_FragColor = streak+fullColor;\n"
         "}\n";
-#else
-    static const char glare_composite_vertex[]   = "glare_composite.vert";
-    static const char glare_composite_fragment[] = "glare_composite.frag";
-#endif
+
+    static const char glare_composite_vertex_filename[]   = "osgOcean_glare_composite.vert";
+    static const char glare_composite_fragment_filename[] = "osgOcean_glare_composite.frag";
+
     osg::Camera* camera = new osg::Camera;
 
     camera->setClearMask(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -1388,7 +1453,10 @@ osg::Camera* OceanScene::glareCombinerPass( osg::TextureRectangle* fullscreenTex
 
     osg::Geode* quad = createScreenQuad( _screenDims, _screenDims );
 
-    osg::Program* program = ShaderManager::instance().createProgram( "glare_composite", glare_composite_vertex, glare_composite_fragment, !USE_LOCAL_SHADERS );
+    osg::Program* program = 
+        ShaderManager::instance().createProgram( "glare_composite", 
+                                                 glare_composite_vertex_filename, glare_composite_fragment_filename, 
+                                                 glare_composite_vertex,          glare_composite_fragment );
 
     osg::StateSet* ss = quad->getOrCreateStateSet();
     ss->setAttributeAndModes(program, osg::StateAttribute::ON);
@@ -1452,7 +1520,7 @@ osg::Geode* OceanScene::createScreenQuad( const osg::Vec2s& dims, const osg::Vec
 
 osg::Program* OceanScene::createDefaultSceneShader(void)
 {
-#if USE_LOCAL_SHADERS
+
     static const char default_scene_vertex[] = 
         "// osgOcean Uniforms\n"
         "// -----------------\n"
@@ -1629,11 +1697,13 @@ osg::Program* OceanScene::createDefaultSceneShader(void)
         "        gl_FragData[0] = final_color;\n"
         "    }\n"
         "}\n";
-#else
-    static const char default_scene_vertex[]   = "default_scene.vert";
-    static const char default_scene_fragment[] = "default_scene.frag";
-#endif
-    return ShaderManager::instance().createProgram("scene_shader", default_scene_vertex, default_scene_fragment, !USE_LOCAL_SHADERS );
+
+    static const char default_scene_vertex_filename[]   = "osgOcean_ocean_scene.vert";
+    static const char default_scene_fragment_filename[] = "osgOcean_ocean_scene.frag";
+
+    return ShaderManager::instance().createProgram("scene_shader", 
+                                                   default_scene_vertex_filename, default_scene_fragment_filename,
+                                                   default_scene_vertex,          default_scene_fragment);
 }
 
 void OceanScene::addResourcePaths(void)
