@@ -51,7 +51,7 @@ const float shininess = 2000.0;
 
 // Extinction level for red, green and blue light in ocean water
 // (maybe this should be changed into a user configurable shader uniform?)
-// Values are taken from "Rendering Water as Post-process Effect", Wojciech Toman
+// Values are taken from 'Rendering Water as Post-process Effect', Wojciech Toman
 // http://www.gamedev.net/reference/programming/features/ppWaterRender/
 // vec4 colorExtinction = vec4(4.5, 75.0, 300.0, 1.0) * 5.0;
 const vec4 oneOverColorExtinction = vec4(1.0/22.5, 1.0/375.0, 1.0/1500, 1.0/5.0);
