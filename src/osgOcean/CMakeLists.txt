@@ -25,9 +25,8 @@ SET( SHADER_FILES
   ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_downsample.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_downsample.frag
 
-  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_gaussian1.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_gaussian.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_gaussian1.frag
-  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_gaussian2.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_gaussian2.frag
   ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_dof_combiner.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_dof_combiner.frag
@@ -143,4 +142,10 @@ INSTALL(
 INSTALL(
   FILES ${TEXTURE_FILES}
   DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/resources/textures
+)
+
+ADD_CUSTOM_COMMAND( 
+  TARGET osgOcean
+  PRE_BUILD
+  COMMAND ${osgOcean_SOURCE_DIR}/scripts/convert_shaders.py ${osgOcean_SOURCE_DIR}
 )

@@ -27,6 +27,11 @@
 #include <osg/Timer>
 #include <osg/Version>
 
+#include <osgOcean/shaders/osgOcean_silt_points_vert.inl>
+#include <osgOcean/shaders/osgOcean_silt_points_frag.inl>
+#include <osgOcean/shaders/osgOcean_silt_quads_vert.inl>
+#include <osgOcean/shaders/osgOcean_silt_quads_frag.inl>
+
 using namespace osgOcean;
 
 static float random(float min,float max) { return min + (max-min)*(float)rand()/(float)RAND_MAX; }
@@ -437,77 +442,13 @@ void SiltEffect::setUpGeometries(unsigned int numParticles)
 
         _quadStateSet->setRenderBinDetails(quadRenderBin,"DepthSortedBin");
 
-        char silt_quads_vertex[] = 
-            "uniform vec4 osgOcean_ParticleColour;\n"
-            "\n"
-            "uniform float osgOcean_InversePeriod;\n"
-            "uniform float osgOcean_ParticleSize;\n"
-            "uniform float osg_SimulationTime;\n"
-            "uniform float osg_DeltaSimulationTime;\n"
-            "\n"
-            "varying vec4 colour;\n"
-            "varying vec2 texCoord;\n"
-            "\n"
-            "void main(void)\n"
-            "{\n"
-            "    float startTime = gl_MultiTexCoord1.x;\n"
-            "    texCoord = gl_MultiTexCoord0.xy;\n"
-            "\n"
-	        "     float disp = (osg_SimulationTime - startTime)*osgOcean_InversePeriod;\n"
-            "\n"
-            "    vec4 v_previous = gl_Vertex;\n"
-            "\n"
-	        "     vec3 direction = sign(gl_Normal);\n"
-            "\n"
-	        "     v_previous.x = direction.x * fract( disp + gl_Vertex.x );\n"
-	        "     v_previous.y = direction.y * fract( disp + gl_Vertex.y );\n"
-	        "     v_previous.z = direction.z * fract( disp + gl_Vertex.z );\n"
-            "\n"
-            "    vec4 v_current =  v_previous;\n"
-            "\n"
-	        "     v_current.x += ( osg_DeltaSimulationTime * osgOcean_InversePeriod );\n"
-	        "     v_current.y += ( osg_DeltaSimulationTime * osgOcean_InversePeriod );\n"
-	        "     v_current.z += ( osg_DeltaSimulationTime * osgOcean_InversePeriod );\n"
-            "\n"
-            "    colour = osgOcean_ParticleColour;\n"
-            "\n"
-            "    vec4 v1 = gl_ModelViewMatrix * v_current;\n"
-            "    vec4 v2 = gl_ModelViewMatrix * v_previous;\n"
-            "\n"
-            "    vec3 dv = v2.xyz - v1.xyz;\n"
-            "\n"
-            "    vec2 dv_normalized = normalize(dv.xy);\n"
-            "    dv.xy += dv_normalized * osgOcean_ParticleSize;\n"
-            "    vec2 dp = vec2( -dv_normalized.y, dv_normalized.x ) * osgOcean_ParticleSize;\n"
-            "\n"
-            "    float area = length(dv.xy);\n"
-            "    colour.a = 0.05+(osgOcean_ParticleSize)/area;\n"
-            "\n"
-            "    v1.xyz += dv*texCoord.y;\n"
-            "    v1.xy += dp*texCoord.x;\n"
-            "\n"
-            "    gl_Position = gl_ProjectionMatrix * v1;\n"
-	        "     gl_Position.z = 0.01;\n"
-            "    gl_ClipVertex = v1;\n"
-            "}\n";
-
-        char silt_quads_fragment[] = 
-            "uniform sampler2D osgOcean_BaseTexture;\n"
-            "varying vec2 texCoord;\n"
-            "varying vec4 colour;\n"
-            "\n"
-            "void main (void)\n"
-            "{\n"
-            "    gl_FragColor = colour * texture2D( osgOcean_BaseTexture, texCoord);\n"
-            "}\n";
-
-        static const char silt_quads_vertex_filename[]   = "osgOcean_silt_quads.vert";
-	    static const char silt_quads_fragment_filename[] = "osgOcean_silt_quads.frag";
+        static const char osgOcean_silt_quads_vert_file[] = "osgOcean_silt_quads.vert";
+	    static const char osgOcean_silt_quads_frag_file[] = "osgOcean_silt_quads.frag";
 
         osg::Program* program = 
             ShaderManager::instance().createProgram("silt_quads", 
-                                                    silt_quads_vertex_filename, silt_quads_fragment_filename, 
-                                                    silt_quads_vertex,          silt_quads_fragment );
+                                                    osgOcean_silt_quads_vert_file, osgOcean_silt_quads_frag_file, 
+                                                    osgOcean_silt_quads_vert,      osgOcean_silt_quads_frag );
         _quadStateSet->setAttribute(program);
     }
 
@@ -515,58 +456,13 @@ void SiltEffect::setUpGeometries(unsigned int numParticles)
     {
         _pointStateSet = new osg::StateSet;
 
-        static const char silt_point_vertex[] = 
-            "uniform float osgOcean_InversePeriod;\n"
-            "uniform vec4 osgOcean_ParticleColour;\n"
-            "uniform float osgOcean_ParticleSize;\n"
-            "\n"
-            "uniform float osg_SimulationTime;\n"
-            "\n"
-            "varying vec4 colour;\n"
-            "\n"
-            "void main(void)\n"
-            "{\n"
-	        "    float startTime = gl_MultiTexCoord1.x;\n"
-            "\n"
-	        "    vec4 v_current = gl_Vertex;\n"
-            "\n"
-	        "    float disp = (osg_SimulationTime - startTime)*osgOcean_InversePeriod;\n"
-            "\n"
-	        "    vec3 direction = sign(gl_Normal);\n"
-            "\n"
-	        "    v_current.x = direction.x * fract( disp + gl_Vertex.x );\n"
-	        "    v_current.y = direction.y * fract( disp + gl_Vertex.y );\n"
-	        "    v_current.z = direction.z * fract( disp + gl_Vertex.z );\n"
-            "\n"
-	        "    colour = osgOcean_ParticleColour;\n"
-            "\n"
-	        "    gl_Position = gl_ModelViewProjectionMatrix * v_current;\n"
-            "\n"
-	        "    float pointSize = abs(1280.0*osgOcean_ParticleSize / gl_Position.w);\n"
-            "\n"
-	        "    gl_PointSize = ceil(pointSize);\n"
-            "\n"
-	        "    colour.a = 0.05+(pointSize*pointSize)/(gl_PointSize*gl_PointSize);\n"
-            "\n"
-	        "    gl_ClipVertex = v_current;\n"
-            "}\n";
-
-        static const char silt_point_fragment[] = 
-            "uniform sampler2D osgOcean_BaseTexture;\n"
-            "varying vec4 colour;\n"
-            "\n"
-            "void main (void)\n"
-            "{\n"
-            "    gl_FragColor = colour * texture2D( osgOcean_BaseTexture, gl_TexCoord[0].xy);\n"
-            "}\n";
-
-        static const char silt_point_vertex_filename[]   = "osgOcean_silt_points.vert";
-	    static const char silt_point_fragment_filename[] = "osgOcean_silt_points.frag";
+        static const char osgOcean_silt_points_vert_file[] = "osgOcean_silt_points.vert";
+	    static const char osgOcean_silt_points_frag_file[] = "osgOcean_silt_points.frag";
 
         osg::Program* program = 
             ShaderManager::instance().createProgram("silt_point", 
-                                                    silt_point_vertex_filename, silt_point_fragment_filename, 
-                                                    silt_point_vertex,          silt_point_fragment );
+                                                    osgOcean_silt_points_vert_file, osgOcean_silt_points_frag_file, 
+                                                    osgOcean_silt_points_vert,      osgOcean_silt_points_frag );
         _pointStateSet->setAttribute(program);
 
         /// Setup the point sprites
