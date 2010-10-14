@@ -18,6 +18,9 @@
 #include <osgOcean/GodRayBlendSurface>
 #include <osgOcean/ShaderManager>
 
+#include <osgOcean/shaders/osgOcean_godray_screen_blend_vert.inl>
+#include <osgOcean/shaders/osgOcean_godray_screen_blend_frag.inl>
+
 using namespace osgOcean;
 
 GodRayBlendSurface::GodRayBlendSurface( void ):
@@ -92,78 +95,12 @@ void GodRayBlendSurface::build( const osg::Vec3f& corner, const osg::Vec2f& dims
 
 osg::Program* GodRayBlendSurface::createShader(void)
 {
+    static const char osgOcean_godray_screen_blend_vert_file[] = "osgOcean_godray_screen_blend.vert";
+    static const char osgOcean_godray_screen_blend_frag_file[] = "osgOcean_godray_screen_blend.frag";
 
-    static const char god_ray_screen_blend_vertex[] = 
-        "varying vec3 vRay;\n"
-        "uniform vec3 osgOcean_Eye;\n"
-        "\n"
-        "void main( void )\n"
-        "{\n"
-        "    gl_Position = gl_Vertex;\n"
-        "\n"
-        "    gl_TexCoord[0] = gl_MultiTexCoord0;\n"
-        "\n"
-        "    gl_TexCoord[1].xy = gl_TexCoord[0].st;\n"
-        "    gl_TexCoord[1].zw = gl_TexCoord[0].st + vec2(1.0, 0.0);\n"
-        "    gl_TexCoord[2].xy = gl_TexCoord[0].st + vec2(1.0, 1.0);\n"
-        "    gl_TexCoord[2].zw = gl_TexCoord[0].st + vec2(0.0, 1.0);\n"
-        "\n"
-        "    vRay = gl_Normal;\n"
-        "}\n";
-
-    static const char god_ray_screen_blend_fragment[] =
-        "uniform sampler2DRect osgOcean_GodRayTexture;\n"
-        "\n"
-        "uniform vec3    osgOcean_SunDir;\n"
-        "uniform vec3    osgOcean_HGg;\n"
-        "uniform float    osgOcean_Intensity;\n"
-        "uniform vec3  osgOcean_Eye;\n"
-        "\n"
-        "varying vec3 vRay;\n"
-        "\n"
-        "const float bias = 0.15; // used to hide aliasing\n"
-        "\n"
-        "float computeMie(vec3 viewDir, vec3 sunDir) \n"
-        "{\n"
-        "    float num = osgOcean_HGg.x;\n"
-        "    float den = (osgOcean_HGg.y - osgOcean_HGg.z*dot(sunDir, viewDir)); \n"
-        "    den = inversesqrt(den); \n"
-        "\n"
-        "    float phase = num * (den*den*den);\n"
-        "\n"
-        "    return phase;\n"
-        "}\n"
-        "\n"
-        "void main( void )\n"
-        "{\n"
-        "    vec4 shafts;\n"
-        "\n"
-        "    shafts += texture2DRect(osgOcean_GodRayTexture, gl_TexCoord[1].xy);\n"
-        "    shafts += texture2DRect(osgOcean_GodRayTexture, gl_TexCoord[1].zw);\n"
-        "    shafts += texture2DRect(osgOcean_GodRayTexture, gl_TexCoord[2].xy);\n"
-        "    shafts += texture2DRect(osgOcean_GodRayTexture, gl_TexCoord[2].zw);\n"
-        "\n"
-        "    shafts /= 4.0;\n"
-        "\n"
-        "    vec3 rayNormalised = normalize(vRay-osgOcean_Eye);\n"
-        "\n"
-        "    float phase = computeMie(rayNormalised, -osgOcean_SunDir);\n"
-        "\n"
-        "    // Calculate final color, adding a little bias (0.15 here)\n"
-        "    // to hide aliasing\n"
-        "    vec3 colour = (bias+osgOcean_Intensity*shafts.rgb)*phase;\n"
-        "\n"
-        "    vec3 ray = ( rayNormalised + vec3(1.0) ) / 2.0; \n"
-        "\n"
-        "    gl_FragColor = vec4(colour, 1.0);\n"
-        "}\n";
-
-    static const char god_ray_screen_blend_vertex_filename[]   = "osgOcean_godray_screen_blend.vert";
-    static const char god_ray_screen_blend_fragment_filename[] = "osgOcean_godray_screen_blend.frag";
-
-    return ShaderManager::instance().createProgram("godray_blend", 
-                                                   god_ray_screen_blend_vertex_filename, god_ray_screen_blend_fragment_filename,
-                                                   god_ray_screen_blend_vertex,          god_ray_screen_blend_fragment);
+    return ShaderManager::instance().createProgram( "godray_blend", 
+                                                    osgOcean_godray_screen_blend_vert_file, osgOcean_godray_screen_blend_frag_file,
+                                                    osgOcean_godray_screen_blend_vert,      osgOcean_godray_screen_blend_frag );
 }
 
 void GodRayBlendSurface::update( const osg::Matrixd& view, const osg::Matrixd& proj )

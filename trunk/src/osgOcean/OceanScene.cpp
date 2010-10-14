@@ -20,6 +20,23 @@
 
 #include <osg/Depth>
 
+#include <osgOcean/shaders/osgOcean_heightmap_vert.inl>
+#include <osgOcean/shaders/osgOcean_heightmap_frag.inl>
+#include <osgOcean/shaders/osgOcean_downsample_vert.inl>
+#include <osgOcean/shaders/osgOcean_downsample_frag.inl>
+#include <osgOcean/shaders/osgOcean_downsample_glare_frag.inl>
+#include <osgOcean/shaders/osgOcean_gaussian_vert.inl>
+#include <osgOcean/shaders/osgOcean_gaussian1_frag.inl>
+#include <osgOcean/shaders/osgOcean_gaussian2_frag.inl>
+#include <osgOcean/shaders/osgOcean_dof_combiner_vert.inl>
+#include <osgOcean/shaders/osgOcean_dof_combiner_frag.inl>
+#include <osgOcean/shaders/osgOcean_streak_vert.inl>
+#include <osgOcean/shaders/osgOcean_streak_frag.inl>
+#include <osgOcean/shaders/osgOcean_glare_composite_vert.inl>
+#include <osgOcean/shaders/osgOcean_glare_composite_frag.inl>
+#include <osgOcean/shaders/osgOcean_ocean_scene_vert.inl>
+#include <osgOcean/shaders/osgOcean_ocean_scene_frag.inl>
+
 using namespace osgOcean;
 
 namespace
@@ -71,56 +88,56 @@ namespace
 
 }
 
-OceanScene::OceanScene( void ):
-    _oceanSurface               ( 0 ),
-    _isDirty                    ( true ),
-    _enableReflections          ( false ),
-    _enableRefractions          ( false ),
-    _enableHeightmap            ( false ),
-    _enableGodRays              ( false ),
-    _enableSilt                 ( false ),
-    _enableDOF                  ( false ),
-    _enableGlare                ( false ),
-    _enableDistortion           ( false ),
-    _enableUnderwaterScattering ( false ),
-    _enableDefaultShader        ( true ),
-    _reflectionTexSize          ( 512,512 ),
-    _refractionTexSize          ( 512,512 ),
-    _screenDims                 ( 1024,768 ),
-    _sunDirection               ( 0, 0, -1 ),
-    _reflectionUnit             ( 1 ),
-    _refractionUnit             ( 2 ),
-    _refractionDepthUnit        ( 3 ),
-    _heightmapUnit              ( 7 ),
-    _reflectionSceneMask        ( 0x1 ),   // 1
-    _refractionSceneMask        ( 0x2 ),   // 2
-    _normalSceneMask            ( 0x4 ),   // 4
-    _surfaceMask                ( 0x8 ),   // 8
-    _siltMask                   ( 0x10 ),  // 16
-    _heightmapMask              ( 0x20),   // 32
-    _lightID                    ( 0 ),
-    _dofNear                    ( 0.f ),
-    _dofFar                     ( 160.f ),
-    _dofFocus                   ( 30.f ),
-    _dofFarClamp                ( 1.f ),
-    _glareThreshold             ( 0.9f ),
-    _glareAttenuation           ( 0.75f ),
-    _underwaterFogColor         ( 0.2274509f, 0.4352941f, 0.7294117f, 1.f ),
-    _underwaterAttenuation      ( 0.015f, 0.0075f, 0.005f),
-    _underwaterFogDensity       ( 0.01f ),
-    _aboveWaterFogDensity       ( 0.0012f ),
-    _surfaceStateSet            ( new osg::StateSet ),
-    _eyeHeightReflectionCutoff  ( FLT_MAX ),
-    _eyeHeightRefractionCutoff  (-FLT_MAX ),
-    _oceanTransform             ( new osg::MatrixTransform ),
-    _oceanCylinder              ( new Cylinder(1900.f, 3999.8f, 16, false, true) ),
-    _oceanCylinderMT            ( new osg::MatrixTransform ),
-    _fog                        ( new osg::Fog ),
-    _eyeAboveWaterPreviousFrame ( true ),
-    _reflectionMatrix           ( 1,  0,  0,  0,
-                                  0,  1,  0,  0,
-                                  0,  0, -1,  0,    
-                                  0,  0,  0,  1 )
+OceanScene::OceanScene( void )
+    :_oceanSurface               ( 0 )
+    ,_isDirty                    ( true )
+    ,_enableReflections          ( false )
+    ,_enableRefractions          ( false )
+    ,_enableHeightmap            ( false )
+    ,_enableGodRays              ( false )
+    ,_enableSilt                 ( false )
+    ,_enableDOF                  ( false )
+    ,_enableGlare                ( false )
+    ,_enableDistortion           ( false )
+    ,_enableUnderwaterScattering ( false )
+    ,_enableDefaultShader        ( true )
+    ,_reflectionTexSize          ( 512,512 )
+    ,_refractionTexSize          ( 512,512 )
+    ,_screenDims                 ( 1024,768 )
+    ,_sunDirection               ( 0,0,-1 )
+    ,_reflectionUnit             ( 1 )
+    ,_refractionUnit             ( 2 )
+    ,_refractionDepthUnit        ( 3 )
+    ,_heightmapUnit              ( 7 )
+    ,_reflectionSceneMask        ( 0x1 )  // 1
+    ,_refractionSceneMask        ( 0x2 )  // 2
+    ,_normalSceneMask            ( 0x4 )  // 4
+    ,_surfaceMask                ( 0x8 )  // 8
+    ,_siltMask                   ( 0x10 ) // 16
+    ,_heightmapMask              ( 0x20 ) // 32
+    ,_lightID                    ( 0 )
+    ,_dofNear                    ( 0.f )
+    ,_dofFar                     ( 160.f )
+    ,_dofFocus                   ( 30.f )
+    ,_dofFarClamp                ( 1.f )
+    ,_glareThreshold             ( 0.9f )
+    ,_glareAttenuation           ( 0.75f )
+    ,_underwaterFogColor         ( 0.2274509f, 0.4352941f, 0.7294117f, 1.f )
+    ,_underwaterAttenuation      ( 0.015f, 0.0075f, 0.005f)
+    ,_underwaterFogDensity       ( 0.01f )
+    ,_aboveWaterFogDensity       ( 0.0012f )
+    ,_surfaceStateSet            ( new osg::StateSet )
+    ,_eyeHeightReflectionCutoff  ( FLT_MAX )
+    ,_eyeHeightRefractionCutoff  (-FLT_MAX )
+    ,_oceanTransform             ( new osg::MatrixTransform )
+    ,_oceanCylinder              ( new Cylinder(1900.f, 3999.8f, 16, false, true) )
+    ,_oceanCylinderMT            ( new osg::MatrixTransform )
+    ,_fog                        ( new osg::Fog )
+    ,_eyeAboveWaterPreviousFrame ( true )
+    ,_reflectionMatrix           ( 1,  0,  0,  0,
+                                   0,  1,  0,  0,
+                                   0,  0, -1,  0,    
+                                   0,  0,  0,  1 )
 {
     //-----------------------------------------------------------------------
     // _oceanCylinder follows the camera underwater, so that the clear
@@ -153,56 +170,56 @@ OceanScene::OceanScene( void ):
     ShaderManager::instance().setGlobalDefinition("osgOcean_LightID", _lightID);
 }
 
-OceanScene::OceanScene( OceanTechnique* technique ):
-    _oceanSurface               ( technique ),
-    _isDirty                    ( true ),
-    _enableReflections          ( false ),
-    _enableRefractions          ( false ),
-    _enableHeightmap            ( false ),
-    _enableGodRays              ( false ),
-    _enableSilt                 ( false ),
-    _enableDOF                  ( false ),
-    _enableGlare                ( false ),
-    _enableDistortion           ( false ),
-    _enableUnderwaterScattering ( false ),
-    _enableDefaultShader        ( true ),
-    _reflectionTexSize          ( 512,512 ),
-    _refractionTexSize          ( 512,512 ),
-    _screenDims                 ( 1024,768 ),
-    _sunDirection               ( 0,0,-1 ),
-    _reflectionUnit             ( 1 ),
-    _refractionUnit             ( 2 ),
-    _refractionDepthUnit        ( 3 ),
-    _heightmapUnit              ( 7 ),
-    _reflectionSceneMask        ( 0x1 ),
-    _refractionSceneMask        ( 0x2 ),
-    _normalSceneMask            ( 0x4 ),
-    _surfaceMask                ( 0x8 ),
-    _siltMask                   ( 0x10 ),
-    _heightmapMask              ( 0x20), 
-    _lightID                    ( 0 ),
-    _dofNear                    ( 0.f ),
-    _dofFar                     ( 160.f ),
-    _dofFocus                   ( 30.f ),
-    _dofFarClamp                ( 1.f ),
-    _glareThreshold             ( 0.9f ),
-    _glareAttenuation           ( 0.75f ),
-    _underwaterFogColor         ( 0.2274509f, 0.4352941f, 0.7294117f, 1.f ),
-    _underwaterAttenuation      ( 0.015f, 0.0075f, 0.005f),
-    _underwaterFogDensity       ( 0.01f ),
-    _aboveWaterFogDensity       ( 0.0012f ),
-    _surfaceStateSet            ( new osg::StateSet ),
-    _eyeHeightReflectionCutoff  ( FLT_MAX),
-    _eyeHeightRefractionCutoff  (-FLT_MAX),
-    _oceanTransform             ( new osg::MatrixTransform ),
-    _oceanCylinder              ( new Cylinder(1900.f, 3999.8f, 16, false, true) ),
-    _oceanCylinderMT            ( new osg::MatrixTransform ),
-    _fog                        ( new osg::Fog),
-    _eyeAboveWaterPreviousFrame ( true ),
-    _reflectionMatrix           ( 1,  0,  0,  0,
-                                  0,  1,  0,  0,
-                                  0,  0, -1,  0,    
-                                  0,  0,  0,  1 )
+OceanScene::OceanScene( OceanTechnique* technique )
+    :_oceanSurface               ( technique )
+    ,_isDirty                    ( true )
+    ,_enableReflections          ( false )
+    ,_enableRefractions          ( false )
+    ,_enableHeightmap            ( false )
+    ,_enableGodRays              ( false )
+    ,_enableSilt                 ( false )
+    ,_enableDOF                  ( false )
+    ,_enableGlare                ( false )
+    ,_enableDistortion           ( false )
+    ,_enableUnderwaterScattering ( false )
+    ,_enableDefaultShader        ( true )
+    ,_reflectionTexSize          ( 512,512 )
+    ,_refractionTexSize          ( 512,512 )
+    ,_screenDims                 ( 1024,768 )
+    ,_sunDirection               ( 0,0,-1 )
+    ,_reflectionUnit             ( 1 )
+    ,_refractionUnit             ( 2 )
+    ,_refractionDepthUnit        ( 3 )
+    ,_heightmapUnit              ( 7 )
+    ,_reflectionSceneMask        ( 0x1 )
+    ,_refractionSceneMask        ( 0x2 )
+    ,_normalSceneMask            ( 0x4 )
+    ,_surfaceMask                ( 0x8 )
+    ,_siltMask                   ( 0x10 )
+    ,_heightmapMask              ( 0x20 ) 
+    ,_lightID                    ( 0 )
+    ,_dofNear                    ( 0.f )
+    ,_dofFar                     ( 160.f )
+    ,_dofFocus                   ( 30.f )
+    ,_dofFarClamp                ( 1.f )
+    ,_glareThreshold             ( 0.9f )
+    ,_glareAttenuation           ( 0.75f )
+    ,_underwaterFogColor         ( 0.2274509f, 0.4352941f, 0.7294117f, 1.f )
+    ,_underwaterAttenuation      ( 0.015f, 0.0075f, 0.005f)
+    ,_underwaterFogDensity       ( 0.01f )
+    ,_aboveWaterFogDensity       ( 0.0012f )
+    ,_surfaceStateSet            ( new osg::StateSet )
+    ,_eyeHeightReflectionCutoff  ( FLT_MAX)
+    ,_eyeHeightRefractionCutoff  (-FLT_MAX)
+    ,_oceanTransform             ( new osg::MatrixTransform )
+    ,_oceanCylinder              ( new Cylinder(1900.f, 3999.8f, 16, false, true) )
+    ,_oceanCylinderMT            ( new osg::MatrixTransform )
+    ,_fog                        ( new osg::Fog)
+    ,_eyeAboveWaterPreviousFrame ( true )
+    ,_reflectionMatrix           ( 1,  0,  0,  0,
+                                   0,  1,  0,  0,
+                                   0,  0, -1,  0,    
+                                   0,  0,  0,  1 )
 {
     //-----------------------------------------------------------------------
     // _oceanCylinder follows the camera underwater, so that the clear
@@ -238,70 +255,70 @@ OceanScene::OceanScene( OceanTechnique* technique ):
     _defaultSceneShader = createDefaultSceneShader();
 }
 
-OceanScene::OceanScene( const OceanScene& copy, const osg::CopyOp& copyop ):
-    osg::Group                  ( copy, copyop ),
-    _oceanSurface               ( copy._oceanSurface ),
-    _isDirty                    ( copy._isDirty ),
-    _enableReflections          ( copy._enableReflections ),
-    _enableRefractions          ( copy._enableRefractions ),
-    _enableGodRays              ( copy._enableGodRays ),
-    _enableSilt                 ( copy._enableSilt ),
-    _enableDOF                  ( copy._enableDOF ),
-    _enableGlare                ( copy._enableGlare ),
-    _enableDistortion           ( copy._enableDistortion ),
-    _enableUnderwaterScattering ( copy._enableUnderwaterScattering ),
-    _enableDefaultShader        ( copy._enableDefaultShader ),
-    _reflectionTexSize          ( copy._reflectionTexSize ),
-    _refractionTexSize          ( copy._refractionTexSize ),
-    _screenDims                 ( copy._screenDims ),
-    _reflectionUnit             ( copy._reflectionUnit ),
-    _refractionUnit             ( copy._refractionUnit ),
-    _refractionDepthUnit        ( copy._refractionDepthUnit ),
-    _heightmapUnit              ( copy._heightmapUnit ),
-    _reflectionSceneMask        ( copy._reflectionSceneMask ),
-    _refractionSceneMask        ( copy._refractionSceneMask ),
-    _siltMask                   ( copy._siltMask ),
-    _surfaceMask                ( copy._surfaceMask ),
-    _normalSceneMask            ( copy._normalSceneMask ),
-    _heightmapMask              ( copy._heightmapMask ),
-    _reflectionCamera           ( copy._reflectionCamera ),
-    _refractionCamera           ( copy._refractionCamera ),
-    _godrayPreRender            ( copy._godrayPreRender ),
-    _godrayPostRender           ( copy._godrayPostRender ),
-    _godrays                    ( copy._godrays ),
-    _godRayBlendSurface         ( copy._godRayBlendSurface ),
-    _siltClipNode               ( copy._siltClipNode ),
-    _reflectionClipNode         ( copy._reflectionClipNode ),
-    _lightID                    ( copy._lightID ),
-    _reflectionMatrix           ( copy._reflectionMatrix ),
-    _surfaceStateSet            ( copy._surfaceStateSet ),
-    _underwaterFogDensity       ( copy._underwaterFogDensity ),
-    _aboveWaterFogDensity       ( copy._aboveWaterFogDensity ), 
-    _underwaterFogColor         ( copy._underwaterFogColor ),
-    _aboveWaterFogColor         ( copy._aboveWaterFogColor ),
-    _underwaterDiffuse          ( copy._underwaterDiffuse ),
-    _underwaterAttenuation      ( copy._underwaterAttenuation ),
-    _sunDirection               ( copy._sunDirection ),
-    _dofNear                    ( copy._dofNear ),
-    _dofFar                     ( copy._dofFar ),
-    _dofFocus                   ( copy._dofFocus ),
-    _dofFarClamp                ( copy._dofFarClamp ),
-    _dofPasses                  ( copy._dofPasses ),
-    _glarePasses                ( copy._glarePasses ),
-    _dofStateSet                ( copy._dofStateSet ),
-    _glareThreshold             ( copy._glareThreshold ),
-    _glareAttenuation           ( copy._glareAttenuation ),
-    _glareStateSet              ( copy._glareStateSet ),
-    _distortionSurface          ( copy._distortionSurface),
-    _globalStateSet             ( copy._globalStateSet ),
-    _defaultSceneShader         ( copy._defaultSceneShader ),
-    _eyeHeightReflectionCutoff  ( copy._eyeHeightReflectionCutoff ),
-    _eyeHeightRefractionCutoff  ( copy._eyeHeightRefractionCutoff ),
-    _oceanTransform             ( copy._oceanTransform ),
-    _oceanCylinder              ( copy._oceanCylinder ),
-    _oceanCylinderMT            ( copy._oceanCylinderMT ),
-    _fog                        ( copy._fog ),
-    _eyeAboveWaterPreviousFrame ( copy._eyeAboveWaterPreviousFrame )
+OceanScene::OceanScene( const OceanScene& copy, const osg::CopyOp& copyop )
+    :osg::Group                  ( copy, copyop )
+    ,_oceanSurface               ( copy._oceanSurface )
+    ,_isDirty                    ( copy._isDirty )
+    ,_enableReflections          ( copy._enableReflections )
+    ,_enableRefractions          ( copy._enableRefractions )
+    ,_enableGodRays              ( copy._enableGodRays )
+    ,_enableSilt                 ( copy._enableSilt )
+    ,_enableDOF                  ( copy._enableDOF )
+    ,_enableGlare                ( copy._enableGlare )
+    ,_enableDistortion           ( copy._enableDistortion )
+    ,_enableUnderwaterScattering ( copy._enableUnderwaterScattering )
+    ,_enableDefaultShader        ( copy._enableDefaultShader )
+    ,_reflectionTexSize          ( copy._reflectionTexSize )
+    ,_refractionTexSize          ( copy._refractionTexSize )
+    ,_screenDims                 ( copy._screenDims )
+    ,_reflectionUnit             ( copy._reflectionUnit )
+    ,_refractionUnit             ( copy._refractionUnit )
+    ,_refractionDepthUnit        ( copy._refractionDepthUnit )
+    ,_heightmapUnit              ( copy._heightmapUnit )
+    ,_reflectionSceneMask        ( copy._reflectionSceneMask )
+    ,_refractionSceneMask        ( copy._refractionSceneMask )
+    ,_siltMask                   ( copy._siltMask )
+    ,_surfaceMask                ( copy._surfaceMask )
+    ,_normalSceneMask            ( copy._normalSceneMask )
+    ,_heightmapMask              ( copy._heightmapMask )
+    ,_reflectionCamera           ( copy._reflectionCamera )
+    ,_refractionCamera           ( copy._refractionCamera )
+    ,_godrayPreRender            ( copy._godrayPreRender )
+    ,_godrayPostRender           ( copy._godrayPostRender )
+    ,_godrays                    ( copy._godrays )
+    ,_godRayBlendSurface         ( copy._godRayBlendSurface )
+    ,_siltClipNode               ( copy._siltClipNode )
+    ,_reflectionClipNode         ( copy._reflectionClipNode )
+    ,_lightID                    ( copy._lightID )
+    ,_reflectionMatrix           ( copy._reflectionMatrix )
+    ,_surfaceStateSet            ( copy._surfaceStateSet )
+    ,_underwaterFogDensity       ( copy._underwaterFogDensity )
+    ,_aboveWaterFogDensity       ( copy._aboveWaterFogDensity ) 
+    ,_underwaterFogColor         ( copy._underwaterFogColor )
+    ,_aboveWaterFogColor         ( copy._aboveWaterFogColor )
+    ,_underwaterDiffuse          ( copy._underwaterDiffuse )
+    ,_underwaterAttenuation      ( copy._underwaterAttenuation )
+    ,_sunDirection               ( copy._sunDirection )
+    ,_dofNear                    ( copy._dofNear )
+    ,_dofFar                     ( copy._dofFar )
+    ,_dofFocus                   ( copy._dofFocus )
+    ,_dofFarClamp                ( copy._dofFarClamp )
+    ,_dofPasses                  ( copy._dofPasses )
+    ,_glarePasses                ( copy._glarePasses )
+    ,_dofStateSet                ( copy._dofStateSet )
+    ,_glareThreshold             ( copy._glareThreshold )
+    ,_glareAttenuation           ( copy._glareAttenuation )
+    ,_glareStateSet              ( copy._glareStateSet )
+    ,_distortionSurface          ( copy._distortionSurface)
+    ,_globalStateSet             ( copy._globalStateSet )
+    ,_defaultSceneShader         ( copy._defaultSceneShader )
+    ,_eyeHeightReflectionCutoff  ( copy._eyeHeightReflectionCutoff )
+    ,_eyeHeightRefractionCutoff  ( copy._eyeHeightRefractionCutoff )
+    ,_oceanTransform             ( copy._oceanTransform )
+    ,_oceanCylinder              ( copy._oceanCylinder )
+    ,_oceanCylinderMT            ( copy._oceanCylinderMT )
+    ,_fog                        ( copy._fog )
+    ,_eyeAboveWaterPreviousFrame ( copy._eyeAboveWaterPreviousFrame )
 {
 }
 
@@ -474,54 +491,12 @@ void OceanScene::init( void )
             _heightmapCamera->setCullMask( _heightmapMask );
             _heightmapCamera->setCullCallback( new CameraCullCallback(this) );
 
-            static const char heightmap_vertex[]   =
-                "// osgOcean uniforms\n"
-                "// -------------------\n"
-                "uniform float osgOcean_WaterHeight;\n"
-                "// ------------------\n"
-                "\n"
-                "uniform mat4 osg_ViewMatrixInverse;\n"
-                "uniform mat4 osg_ViewMatrix;\n"
-                "\n"
-                "varying vec4 vWorldVertex;\n"
-                "\n"
-                "void main(void)\n"
-                "{\n"
-	            "// Transform the vertex into world space\n"
-	            "vWorldVertex = (osg_ViewMatrixInverse * gl_ModelViewMatrix) * gl_Vertex;\n"
-	            "vWorldVertex.xyzw /= vWorldVertex.w;\n"
-                "\n"
-                "	// Project the vertex onto the ocean plane\n"
-                "	vec4 projectedVertex = vWorldVertex;\n"
-                "	projectedVertex.z = osgOcean_WaterHeight;\n"
-                "\n"
-                "	gl_Position = (gl_ProjectionMatrix * osg_ViewMatrix) * projectedVertex;\n"
-                "\n"
-                "	return;\n"
-                "}\n";
+            static const char osgOcean_heightmap_vert_file[] = "osgOcean_heightmap.vert";
+            static const char osgOcean_heightmap_frag_file[] = "osgOcean_heightmap.frag";
 
-            static const char heightmap_fragment[]   =
-                "// osgOcean uniforms\n"
-                "// -------------------\n"
-                "uniform float osgOcean_WaterHeight;\n"
-                "// -------------------\n"
-                "\n"
-                "varying vec4 vWorldVertex;\n"
-                "\n"
-                "void main(void)\n"
-                "{\n"
-                "    // Store the water depth\n"
-                "    // maximum possible depth is 500,\n"
-                "    // (a higher water depth value would not have a visible effect anyway)\n"
-                "    gl_FragDepth = clamp((osgOcean_WaterHeight - vWorldVertex.z) / 500.0, 0.0, 1.0);\n"
-                "\n"
-                "    return;\n"
-                "}\n";
-
-            static const char heightmap_vertex_filename[]   = "osgOcean_heightmap.vert";
-            static const char heightmap_fragment_filename[] = "osgOcean_heightmap.frag";
-
-            osg::ref_ptr<osg::Program> program = ShaderManager::instance().createProgram("heightmap", heightmap_vertex_filename, heightmap_fragment_filename, heightmap_vertex, heightmap_fragment);
+            osg::ref_ptr<osg::Program> program = ShaderManager::instance().createProgram( "heightmap", 
+                                                                                          osgOcean_heightmap_vert_file, osgOcean_heightmap_frag_file, 
+                                                                                          osgOcean_heightmap_vert,      osgOcean_heightmap_frag );
 
             if(program.valid())
                 _heightmapCamera->getOrCreateStateSet()->setAttributeAndModes( program.get(), osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
@@ -960,88 +935,9 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
                                         osg::TextureRectangle* outputTexture,
                                         bool isGlareEffect )
 {
-    static const char downsample_vertex[] =
-        "void main( void )\n"
-        "{\n"
-        "   gl_TexCoord[0] = gl_MultiTexCoord0;\n"
-        "   gl_Position = ftransform();\n"
-        "}\n";
-
-    static const char downsample_fragment[] =
-        "#extension GL_ARB_texture_rectangle : enable"
-        "\n"
-        "uniform sampler2DRect osgOcean_ColorTexture;\n"
-        "\n"
-        "const vec2 s1 = vec2(-1, 1);\n"
-        "const vec2 s2 = vec2( 1, 1);\n"
-        "const vec2 s3 = vec2( 1,-1);\n"
-        "const vec2 s4 = vec2(-1,-1);\n"
-        "\n"
-        "void main( void )\n"
-        "{\n"
-        "    vec2 texCoordSample = vec2(0.0);\n"
-        "\n"
-        "    texCoordSample = gl_TexCoord[0].st + s1;\n"
-        "    vec4 color = texture2DRect(osgOcean_ColorTexture, texCoordSample);\n"
-        "\n"
-        "    texCoordSample = gl_TexCoord[0].st + s2;\n"
-        "    color += texture2DRect(osgOcean_ColorTexture, texCoordSample);\n"
-        "\n"
-        "    texCoordSample = gl_TexCoord[0].st + s3;\n"
-        "    color += texture2DRect(osgOcean_ColorTexture, texCoordSample);\n"
-        "\n"
-        "    texCoordSample = gl_TexCoord[0].st + s4;\n"
-        "    color += texture2DRect(osgOcean_ColorTexture, texCoordSample);\n"
-        "\n"
-        "    gl_FragColor = color * 0.25;\n"
-        "}\n";
-
-    static const char downsample_glare_fragment[] = 
-        "#extension GL_ARB_texture_rectangle : enable"
-        "\n"
-        "uniform sampler2DRect osgOcean_ColorTexture;\n"
-        "uniform sampler2DRect osgOcean_LuminanceTexture;\n"
-        "uniform float osgOcean_GlareThreshold;\n"
-        "\n"
-        "const vec2 s1 = vec2(-1, 1);\n"
-        "const vec2 s2 = vec2( 1, 1);\n"
-        "const vec2 s3 = vec2( 1,-1);\n"
-        "const vec2 s4 = vec2(-1,-1);\n"
-        "\n"
-        "void main( void )\n"
-        "{\n"
-        "    vec2 texCoordSample = vec2(0.0);\n"
-        "\n"
-        "   texCoordSample = gl_TexCoord[0].st + s1;\n"
-        "    vec4 color = texture2DRect(osgOcean_ColorTexture, texCoordSample);\n"
-        "    float lum  = texture2DRect(osgOcean_LuminanceTexture, texCoordSample).r;\n"
-        "\n"
-        "    texCoordSample = gl_TexCoord[0].st + s2;\n"
-        "    color += texture2DRect(osgOcean_ColorTexture, texCoordSample);\n"
-        "   lum   += texture2DRect(osgOcean_LuminanceTexture, texCoordSample).r;\n"
-        "\n"
-        "    texCoordSample = gl_TexCoord[0].st + s3;\n"
-        "    color += texture2DRect(osgOcean_ColorTexture, texCoordSample);\n"
-        "   lum   += texture2DRect(osgOcean_LuminanceTexture, texCoordSample).r;\n"
-        "\n"
-        "    texCoordSample = gl_TexCoord[0].st +s4;\n"
-        "    color += texture2DRect(osgOcean_ColorTexture, texCoordSample);\n"
-        "   lum   += texture2DRect(osgOcean_LuminanceTexture, texCoordSample).r;\n"
-        "\n"
-        "    color = color*0.25;\n"
-        "   lum = lum*0.25;\n"
-        "\n"
-        "   // only want very high luminance values to pass otherwise\n"
-        "   // we get streaks all over the scene\n"
-        "    if(lum >= osgOcean_GlareThreshold)\n"
-        "        gl_FragColor = color;\n"
-        "    else\n"
-        "        gl_FragColor = vec4(0.0);\n"
-        "}\n";
-
-    static const char downsample_vertex_filename[]         = "osgOcean_downsample.vert";
-    static const char downsample_fragment_filename[]       = "osgOcean_downsample.frag";
-    static const char downsample_glare_fragment_filename[] = "osgOcean_downsample_glare.frag";
+    static const char osgOcean_downsample_vert_file[]       = "osgOcean_downsample.vert";
+    static const char osgOcean_downsample_frag_file[]       = "osgOcean_downsample.frag";
+    static const char osgOcean_downsample_glare_frag_file[] = "osgOcean_downsample_glare.frag";
 
     osg::Vec2s lowResDims = _screenDims/4;
 
@@ -1051,8 +947,10 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
     {
         ss->setAttributeAndModes( 
             ShaderManager::instance().createProgram("downsample_glare", 
-                                                    downsample_vertex_filename, downsample_glare_fragment_filename,
-                                                    downsample_vertex,          downsample_glare_fragment), osg::StateAttribute::ON );
+                                                    osgOcean_downsample_vert_file, osgOcean_downsample_glare_frag_file,
+                                                    osgOcean_downsample_vert,      osgOcean_downsample_glare_frag), 
+                                                    osg::StateAttribute::ON );
+
         ss->setTextureAttributeAndModes( 1, auxBuffer,   osg::StateAttribute::ON );
 
         ss->addUniform( new osg::Uniform("osgOcean_GlareThreshold", _glareThreshold ) );
@@ -1062,8 +960,9 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
     {
         ss->setAttributeAndModes( 
             ShaderManager::instance().createProgram("downsample", 
-                                                    downsample_vertex_filename, downsample_fragment_filename,
-                                                    downsample_vertex,          downsample_fragment ), osg::StateAttribute::ON );
+                                                    osgOcean_downsample_vert_file,  osgOcean_downsample_frag_file,
+                                                    osgOcean_downsample_vert,       osgOcean_downsample_frag ), 
+                                                    osg::StateAttribute::ON );
     }
 
     ss->setTextureAttributeAndModes( 0, colorBuffer, osg::StateAttribute::ON );
@@ -1082,60 +981,9 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
 
 osg::Camera* OceanScene::gaussianPass( osg::TextureRectangle* inputTexture, osg::TextureRectangle* outputTexture, bool isXAxis )
 {
-
-    static const char gaussian_vertex[] = 
-        "void main(void)\n"
-        "{\n"
-        "   gl_TexCoord[0] = gl_MultiTexCoord0;\n"
-        "   gl_Position = ftransform();\n"
-        "}\n"
-        "\n";
-
-    static const char gaussian1_fragment[] = 
-        "#extension GL_ARB_texture_rectangle : enable"
-        "\n"
-        "uniform sampler2DRect osgOcean_GaussianTexture;\n"
-        "\n"
-        "void main( void )\n"
-        "{\n"
-        "   vec2 texCoordSample = vec2( 0.0 );\n"
-        "   \n"
-        "   vec4 color = 0.5 * texture2DRect( osgOcean_GaussianTexture, gl_TexCoord[0].st );\n"
-        "   \n"
-        "   texCoordSample.x = gl_TexCoord[0].x;\n"
-        "   texCoordSample.y = gl_TexCoord[0].y + 1;\n"
-        "   color += 0.25 * texture2DRect( osgOcean_GaussianTexture, texCoordSample);\n"
-        "   \n"
-        "   texCoordSample.y = gl_TexCoord[0].y - 1;\n"
-        "   color += 0.25 * texture2DRect( osgOcean_GaussianTexture, texCoordSample);\n"
-        "\n"
-        "   gl_FragColor = color;\n"
-        "}\n";
-
-    static const char gaussian2_fragment[] = 
-        "#extension GL_ARB_texture_rectangle : enable"
-        "\n"
-        "uniform sampler2DRect osgOcean_GaussianTexture;\n"
-        "\n"
-        "void main( void )\n"
-        "{\n"
-        "   vec2 texCoordSample = vec2( 0.0 );\n"
-        "   \n"
-        "   vec4 color = 0.5 * texture2DRect(osgOcean_GaussianTexture, gl_TexCoord[0].st );\n"
-        "   \n"
-        "   texCoordSample.y = gl_TexCoord[0].y;\n"
-        "   texCoordSample.x = gl_TexCoord[0].x + 1;\n"
-        "   color += 0.25 * texture2DRect(osgOcean_GaussianTexture, texCoordSample);\n"
-        "   \n"
-        "   texCoordSample.x = gl_TexCoord[0].x - 1;\n"
-        "   color += 0.25 * texture2DRect(osgOcean_GaussianTexture, texCoordSample);\n"
-        "      \n"
-        "   gl_FragColor = color;\n"
-        "}\n";
-
-    static const char gaussian_vertex_filename[]    = "osgOcean_gaussian1.vert";
-    static const char gaussian1_fragment_filename[] = "osgOcean_gaussian1.frag";
-    static const char gaussian2_fragment_filename[] = "osgOcean_gaussian2.frag";
+    static const char osgOcean_gaussian_vert_file[]  = "osgOcean_gaussian.vert";
+    static const char osgOcean_gaussian1_frag_file[] = "osgOcean_gaussian1.frag";
+    static const char osgOcean_gaussian2_frag_file[] = "osgOcean_gaussian2.frag";
 
     osg::Vec2s lowResDims = _screenDims/4.f;
 
@@ -1145,15 +993,17 @@ osg::Camera* OceanScene::gaussianPass( osg::TextureRectangle* inputTexture, osg:
     {
         ss->setAttributeAndModes( 
             ShaderManager::instance().createProgram("gaussian1", 
-                                                    gaussian_vertex_filename, gaussian1_fragment_filename, 
-                                                    gaussian_vertex,          gaussian1_fragment), osg::StateAttribute::ON );
+                                                    osgOcean_gaussian_vert_file, osgOcean_gaussian1_frag_file, 
+                                                    osgOcean_gaussian_vert,      osgOcean_gaussian1_frag), 
+                                                    osg::StateAttribute::ON );
     }
     else
     {
         ss->setAttributeAndModes( 
             ShaderManager::instance().createProgram("gaussian2", 
-                                                    gaussian_vertex_filename, gaussian2_fragment_filename, 
-                                                    gaussian_vertex,          gaussian2_fragment), osg::StateAttribute::ON );
+                                                    osgOcean_gaussian_vert_file, osgOcean_gaussian2_frag_file, 
+                                                    osgOcean_gaussian_vert,      osgOcean_gaussian2_frag), 
+                                                    osg::StateAttribute::ON );
     }
 
     ss->setTextureAttributeAndModes( 0, inputTexture, osg::StateAttribute::ON );
@@ -1174,105 +1024,8 @@ osg::Camera* OceanScene::dofCombinerPass(osg::TextureRectangle* fullscreenTextur
                                          osg::TextureRectangle* blurTexture,
                                          osg::TextureRectangle* outputTexture )
 {
-
-    static const char dof_composite_vertex[]=
-        "uniform vec2 osgOcean_ScreenRes;\n"
-        "uniform vec2 osgOcean_LowRes;\n"
-        "\n"
-        "void main( void )\n"
-        "{\n"
-        "    gl_TexCoord[0] = gl_MultiTexCoord0 * vec4( osgOcean_ScreenRes, 1.0, 1.0 );\n"
-        "    gl_TexCoord[1] = gl_MultiTexCoord0 * vec4( osgOcean_LowRes,    1.0, 1.0 );\n"
-        "\n"
-        "    gl_Position = ftransform();\n"
-        "}\n";
-
-    static const char dof_composite_fragment[] = 
-        "#extension GL_ARB_texture_rectangle : enable"
-        "\n"
-        "uniform sampler2DRect osgOcean_FullColourMap;    // full resolution image\n"
-        "uniform sampler2DRect osgOcean_FullDepthMap;     // full resolution depth map\n"
-        "uniform sampler2DRect osgOcean_BlurMap;          // downsampled and filtered image\n"
-        "\n"
-        "uniform vec2 osgOcean_ScreenRes;\n"
-        "uniform vec2 osgOcean_ScreenResInv;\n"
-        "uniform vec2 osgOcean_LowRes;\n"
-        "\n"
-        "#define NUM_TAPS 4\n"
-        "\n"
-        "// maximum CoC radius and diameter in pixels\n"
-        "const vec2 vMaxCoC = vec2(5.0,10);\n"
-        "\n"
-        "// scale factor for maximum CoC size on low res. image\n"
-        "const float radiusScale = 0.4;\n"
-        "\n"
-        "// contains poisson-distributed positions on the unit circle\n"
-        "vec2 poisson[8];\n"
-        "\n"
-        "void main(void)\n"
-        "{\n"
-        "    poisson[0] = vec2( 0.0,       0.0);\n"
-        "    poisson[1] = vec2( 0.527837, -0.085868);\n"
-        "    poisson[2] = vec2(-0.040088,  0.536087);\n"
-        "    poisson[3] = vec2(-0.670445, -0.179949);\n"
-        "    poisson[4] = vec2(-0.419418, -0.616039);\n"
-        "    poisson[5] = vec2( 0.440453, -0.639399);\n"
-        "    poisson[6] = vec2(-0.757088,  0.349334);\n"
-        "    poisson[7] = vec2( 0.574619,  0.685879);\n"
-        "\n"
-        "    // pixel size (1/image resolution) of full resolution image\n"
-        "    vec2 pixelSizeHigh = osgOcean_ScreenResInv;\n"
-        "\n"
-        "    // pixel size of low resolution image\n"
-        "    vec2 pixelSizeLow = 4.0 * pixelSizeHigh;\n"
-        "\n"
-        "    vec4 color = texture2DRect( osgOcean_FullColourMap, gl_TexCoord[0] );    // fetch center tap\n"
-        "    //    float centerDepth = color.a; // save its depth\n"
-        "    float centerDepth = texture2DRect( osgOcean_FullDepthMap, gl_TexCoord[0] ).r; // save its depth\n"
-        "\n"
-        "    // convert depth into blur radius in pixels\n"
-        "    float discRadius = abs(centerDepth * vMaxCoC.y - vMaxCoC.x);\n"
-        "\n"
-        "    // compute disc radius on low-res image\n"
-        "    float discRadiusLow = discRadius * radiusScale;\n"
-        "\n"
-        "    vec4 colorAccum = vec4(0.0);\n"
-        "    float depthAccum = 0.0;\n"
-        "\n"
-        "    for(int t = 0; t < NUM_TAPS; t++)\n"
-        "    {\n"
-        "        vec2 coordHigh = gl_TexCoord[0].st + ( osgOcean_ScreenRes * (pixelSizeHigh * poisson[t] * discRadius    ));\n"
-        "        vec2 coordLow  = gl_TexCoord[1].st + ( osgOcean_LowRes *    (pixelSizeLow  * poisson[t] * discRadiusLow ));\n"
-        "\n"
-        "        // fetch low-res tap\n"
-        "        vec4 tapLow = texture2DRect( osgOcean_BlurMap, coordLow );\n"
-        "\n"
-        "        // fetch high-res tap\n"
-        "        vec4 tapHigh = texture2DRect( osgOcean_FullColourMap, coordHigh );\n"
-        "        \n"
-        "        float tapHighDepth = texture2DRect( osgOcean_FullDepthMap,  coordHigh ).r;\n"
-        "\n"
-        "        // put tap blurriness into [0, 1] range\n"
-        "        float tapBlur = abs(tapHighDepth * 2.0 - 1.0);\n"
-        "\n"
-        "        // mix low- and hi-res taps based on tap blurriness\n"
-        "        vec4 tapColor = mix(tapHigh, tapLow, tapBlur);\n"
-        "\n"
-        "        // apply leaking reduction: lower weight for taps that are\n"
-        "        // closer than the center tap and in focus\n"
-        "        float tapDepth = (tapHighDepth >= centerDepth) ? 1.0 : abs(tapHighDepth * 2.0 - 1.0);\n"
-        "\n"
-        "        // accumulate\n"
-        "        colorAccum += tapColor * tapDepth;\n"
-        "        depthAccum += tapDepth;\n"
-        "    }\n"
-        "\n"
-        "    // normalize and return result\n"
-        "    gl_FragColor = colorAccum / depthAccum;\n"
-        "}\n";
-
-    static const char dof_composite_vertex_filename[]   = "osgOcean_dof_combiner.vert";
-    static const char dof_composite_fragment_filename[] = "osgOcean_dof_combiner.frag";
+    static const char osgOcean_dof_combiner_vert_file[] = "osgOcean_dof_combiner.vert";
+    static const char osgOcean_dof_combiner_frag_file[] = "osgOcean_dof_combiner.frag";
 
     osg::Vec2f screenRes( (float)_screenDims.x(), (float)_screenDims.y() );
     osg::Vec2f invScreenRes( 1.f / (float)_screenDims.x(), 1.f / (float)_screenDims.y() );
@@ -1285,8 +1038,9 @@ osg::Camera* OceanScene::dofCombinerPass(osg::TextureRectangle* fullscreenTextur
 
     ss->setAttributeAndModes( 
         ShaderManager::instance().createProgram("dof_combiner", 
-                                                dof_composite_vertex_filename, dof_composite_fragment_filename,
-                                                dof_composite_vertex,          dof_composite_fragment), osg::StateAttribute::ON );
+                                                osgOcean_dof_combiner_vert_file, osgOcean_dof_combiner_frag_file,
+                                                osgOcean_dof_combiner_vert,      osgOcean_dof_combiner_frag), 
+                                                osg::StateAttribute::ON );
 
     ss->addUniform( new osg::Uniform( "osgOcean_FullColourMap", 0 ) );
     ss->addUniform( new osg::Uniform( "osgOcean_FullDepthMap",  1 ) );
@@ -1326,54 +1080,8 @@ osg::Camera* OceanScene::glarePass(osg::TextureRectangle* streakInput,
                                    int pass, 
                                    osg::Vec2f direction )
 {
-
-    static const char streak_vertex[] =
-        "void main(void)\n"
-        "{\n"
-        "    gl_TexCoord[0] = gl_MultiTexCoord0;\n"
-        "    gl_Position = ftransform();\n"
-        "}\n";
-
-    static const char streak_fragment[] = 
-        "#extension GL_ARB_texture_rectangle : enable"
-        "\n"
-        "#define NUM_SAMPLES 4\n"
-        "\n"
-        "uniform sampler2DRect osgOcean_Buffer;\n"
-        "uniform vec2 osgOcean_Direction;\n"
-        "uniform float osgOcean_Attenuation;\n"
-        "uniform float osgOcean_Pass;\n"
-        "\n"
-        "void main(void)\n"
-        "{\n"
-        "    vec2 sampleCoord = vec2(0.0);\n"
-        "    vec3 cOut = vec3(0.0);\n"
-        "    \n"
-        "    // sample weight = a^(b*s)\n"
-        "    // a = attenuation\n"
-        "    // b = 4^(pass-1)\n"
-        "    // s = sample number\n"
-        "    \n"
-        "    vec2 pxSize = vec2(0.5);\n"
-        "\n"
-        "    float b = pow( float(NUM_SAMPLES), float(osgOcean_Pass));\n"
-        "    float sf = 0.0;\n"
-        "\n"
-        "    for (int s = 0; s < NUM_SAMPLES; s++)\n"
-        "    {\n"
-        "        sf = float(s);\n"
-        "        float weight = pow(osgOcean_Attenuation, b * sf);\n"
-        "        sampleCoord = gl_TexCoord[0].st + (osgOcean_Direction * b * vec2(sf) * pxSize);\n"
-        "        cOut += clamp(weight,0.0,1.0) * texture2DRect(osgOcean_Buffer, sampleCoord).rgb;\n"
-        "    }\n"
-        "    \n"
-        "    vec3 streak = clamp(cOut, 0.0, 1.0);\n"
-        "\n"
-        "    gl_FragColor = vec4(streak,1.0);\n"
-        "}\n";
-
-    static const char streak_vertex_filename[]   = "osgOcean_streak.vert";
-    static const char streak_fragment_filename[] = "osgOcean_streak.frag";
+    static const char osgOcean_streak_vert_file[] = "osgOcean_streak.vert";
+    static const char osgOcean_streak_frag_file[] = "osgOcean_streak.frag";
 
     osg::Vec2s lowResDims = _screenDims / 4;
 
@@ -1384,8 +1092,8 @@ osg::Camera* OceanScene::glarePass(osg::TextureRectangle* streakInput,
     {
         osg::Program* program = 
             ShaderManager::instance().createProgram( "streak_shader", 
-                                                     streak_vertex_filename, streak_fragment_filename, 
-                                                     streak_vertex,          streak_fragment );
+                                                     osgOcean_streak_vert_file, osgOcean_streak_frag_file, 
+                                                     osgOcean_streak_vert,      osgOcean_streak_frag );
 
         osg::Geode* screenQuad = createScreenQuad(lowResDims, lowResDims);
         screenQuad->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
@@ -1407,41 +1115,6 @@ osg::Camera* OceanScene::glareCombinerPass( osg::TextureRectangle* fullscreenTex
                                             osg::TextureRectangle* glareTexture3,
                                             osg::TextureRectangle* glareTexture4 )
 {
-
-    static const char glare_composite_vertex[] = 
-        "void main(void)\n"
-        "{\n"
-        "    gl_TexCoord[0] = gl_MultiTexCoord0;\n"
-        "    gl_TexCoord[1] = gl_MultiTexCoord0 * vec4(0.25,0.25,1.0,1.0);\n"
-        "\n"
-        "    gl_Position = ftransform();\n"
-        "}\n";
-
-    static const char glare_composite_fragment[] = 
-        "#extension GL_ARB_texture_rectangle : enable"
-        "\n"
-        "uniform sampler2DRect osgOcean_ColorBuffer;\n"
-        "uniform sampler2DRect osgOcean_StreakBuffer1;\n"
-        "uniform sampler2DRect osgOcean_StreakBuffer2;\n"
-        "uniform sampler2DRect osgOcean_StreakBuffer3;\n"
-        "uniform sampler2DRect osgOcean_StreakBuffer4;\n"
-        "\n"
-        "void main(void)\n"
-        "{\n"
-        "    vec4 fullColor    = texture2DRect(osgOcean_ColorBuffer,   gl_TexCoord[0].st );\n"
-        "    vec4 streakColor1 = texture2DRect(osgOcean_StreakBuffer1, gl_TexCoord[1].st );\n"
-        "    vec4 streakColor2 = texture2DRect(osgOcean_StreakBuffer2, gl_TexCoord[1].st );\n"
-        "    vec4 streakColor3 = texture2DRect(osgOcean_StreakBuffer3, gl_TexCoord[1].st );\n"
-        "    vec4 streakColor4 = texture2DRect(osgOcean_StreakBuffer4, gl_TexCoord[1].st );\n"
-        "\n"
-        "    vec4 streak = streakColor1+streakColor2+streakColor3+streakColor4;\n"
-        "\n"
-        "    gl_FragColor = streak+fullColor;\n"
-        "}\n";
-
-    static const char glare_composite_vertex_filename[]   = "osgOcean_glare_composite.vert";
-    static const char glare_composite_fragment_filename[] = "osgOcean_glare_composite.frag";
-
     osg::Camera* camera = new osg::Camera;
 
     camera->setClearMask(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -1453,10 +1126,13 @@ osg::Camera* OceanScene::glareCombinerPass( osg::TextureRectangle* fullscreenTex
 
     osg::Geode* quad = createScreenQuad( _screenDims, _screenDims );
 
+    static const char osgOcean_glare_composite_vert_file[] = "osgOcean_glare_composite.vert";
+    static const char osgOcean_glare_composite_frag_file[] = "osgOcean_glare_composite.frag";
+
     osg::Program* program = 
         ShaderManager::instance().createProgram( "glare_composite", 
-                                                 glare_composite_vertex_filename, glare_composite_fragment_filename, 
-                                                 glare_composite_vertex,          glare_composite_fragment );
+                                                 osgOcean_glare_composite_vert_file, osgOcean_glare_composite_frag_file, 
+                                                 osgOcean_glare_composite_vert,      osgOcean_glare_composite_frag );
 
     osg::StateSet* ss = quad->getOrCreateStateSet();
     ss->setAttributeAndModes(program, osg::StateAttribute::ON);
@@ -1520,195 +1196,17 @@ osg::Geode* OceanScene::createScreenQuad( const osg::Vec2s& dims, const osg::Vec
 
 osg::Program* OceanScene::createDefaultSceneShader(void)
 {
-
-    static const char default_scene_vertex[] = 
-        "// osgOcean Uniforms\n"
-        "// -----------------\n"
-        "uniform mat4 osg_ViewMatrixInverse;\n"
-        "uniform float osgOcean_WaterHeight;\n"
-        "uniform vec3 osgOcean_Eye;\n"
-        "uniform vec3 osgOcean_UnderwaterAttenuation;\n"
-        "uniform vec4 osgOcean_UnderwaterDiffuse;\n"
-        "uniform bool osgOcean_EnableUnderwaterScattering;\n"
-        "// -----------------\n"
-        "\n"
-        "varying vec3 vExtinction;\n"
-        "varying vec3 vInScattering;\n"
-        "\n"
-        "varying vec3 vNormal;\n"
-        "varying vec3 vLightDir;\n"
-        "varying vec3 vEyeVec;\n"
-        "varying float vWorldHeight;\n"
-        "\n"
-        "void computeScattering( in vec3 eye, in vec3 worldVertex, out vec3 extinction, out vec3 inScattering )\n"
-        "{\n"
-        "    float viewDist = length(eye-worldVertex);\n"
-        "    \n"
-        "    float depth = max(osgOcean_WaterHeight-worldVertex.z, 0.0);\n"
-        "    \n"
-        "    extinction = exp(-osgOcean_UnderwaterAttenuation*viewDist*2.0);\n"
-        "\n"
-        "    // Need to compute accurate kd constant.\n"
-        "    // const vec3 kd = vec3(0.001, 0.001, 0.001);\n"
-        "    inScattering = osgOcean_UnderwaterDiffuse.rgb * (1.0-extinction*exp(-depth*vec3(0.001)));\n"
-        "}\n"
-        "\n"
-        "void main(void)\n"
-        "{\n"
-        "    gl_TexCoord[0] = gl_MultiTexCoord0;\n"
-        "    gl_Position = ftransform();\n"
-        "    gl_FogFragCoord = gl_Position.z;\n"
-        "    gl_ClipVertex = gl_ModelViewMatrix * gl_Vertex; // for reflections\n"
-        "\n"
-        "    vNormal = gl_NormalMatrix * gl_Normal;\n"
-        "    vLightDir = gl_LightSource[osgOcean_LightID].position.xyz;\n"
-        "    vEyeVec = -vec3(gl_ModelViewMatrix*gl_Vertex);\n"
-        "\n"
-        "    vec4 worldVertex = (osg_ViewMatrixInverse*gl_ModelViewMatrix) * gl_Vertex;\n"
-        "\n"
-        "    if (osgOcean_EnableUnderwaterScattering)\n"
-        "       computeScattering( osgOcean_Eye, worldVertex.xyz, vExtinction, vInScattering);\n"
-        "\n"
-        "    vWorldHeight = worldVertex.z;\n"
-        "}\n";
-
-    static const char default_scene_fragment[] = 
-        "// osgOcean Uniforms\n"
-        "// -----------------\n"
-        "uniform float osgOcean_DOF_Near;\n"
-        "uniform float osgOcean_DOF_Focus;\n"
-        "uniform float osgOcean_DOF_Far;\n"
-        "uniform float osgOcean_DOF_Clamp;\n"
-        "\n"
-        "uniform float osgOcean_UnderwaterFogDensity;\n"
-        "uniform float osgOcean_AboveWaterFogDensity;\n"
-        "uniform vec4  osgOcean_UnderwaterFogColor;\n"
-        "uniform vec4  osgOcean_AboveWaterFogColor;\n"
-        "\n"
-        "uniform float osgOcean_WaterHeight;\n"
-        "\n"
-        "uniform bool osgOcean_EnableGlare;\n"
-        "uniform bool osgOcean_EnableDOF;\n"
-        "uniform bool osgOcean_EyeUnderwater;\n"
-        "uniform bool osgOcean_EnableUnderwaterScattering;\n"
-        "// -------------------\n"
-        "\n"
-        "uniform sampler2D uTextureMap;\n"
-        "\n"
-        "varying vec3 vExtinction;\n"
-        "varying vec3 vInScattering;\n"
-        "varying vec3 vNormal;\n"
-        "varying vec3 vLightDir;\n"
-        "varying vec3 vEyeVec;\n"
-        "\n"
-        "varying float vWorldHeight;\n"
-        "\n"
-        "float computeDepthBlur(float depth, float focus, float near, float far, float clampval )\n"
-        "{\n"
-        "   float f;\n"
-        "   if (depth < focus){\n"
-        "      f = (depth - focus)/(focus - near);\n"
-        "   }\n"
-        "   else{\n"
-        "      f = (depth - focus)/(far - focus);\n"
-        "      f = clamp(f, 0.0, clampval);\n"
-        "   }\n"
-        "   return f * 0.5 + 0.5;\n"
-        "}\n"
-        "\n"
-        "vec4 lighting( vec4 colormap )\n"
-        "{\n"
-        "    vec4 final_color = gl_LightSource[osgOcean_LightID].ambient * colormap;\n"
-        "\n"
-        "    vec3 N = normalize(vNormal);\n"
-        "    vec3 L = normalize(vLightDir);\n"
-        "\n"
-        "    float lambertTerm = dot(N,L);\n"
-        "\n"
-        "    if(lambertTerm > 0.0)\n"
-        "    {\n"
-        "        final_color += gl_LightSource[osgOcean_LightID].diffuse * lambertTerm * colormap;\n"
-        "\n"
-        "        vec3 E = normalize(vEyeVec);\n"
-        "        vec3 R = reflect(-L, N);\n"
-        "\n"
-        "        float specular = pow( max(dot(R, E), 0.0), 2.0 );\n"
-        "\n"
-        "        final_color += gl_LightSource[osgOcean_LightID].specular * specular;\n"
-        "    }\n"
-        "\n"
-        "    return final_color;\n"
-        "}\n"
-        "\n"
-        "float computeFogFactor( float density, float fogCoord )\n"
-        "{\n"
-        "    return exp2(density * fogCoord * fogCoord );\n"
-        "}\n"
-        "\n"
-        "void main(void)\n"
-        "{\n"
-        "    vec4 final_color;\n"
-        "\n"
-        "    vec4 textureColor = texture2D( uTextureMap, gl_TexCoord[0].st );\n"
-        "\n"
-        "    // Underwater\n"
-        "    // +2 tweak here as waves peak above average wave height,\n"
-        "    // and surface fog becomes visible.\n"
-        "    if(osgOcean_EyeUnderwater && vWorldHeight < osgOcean_WaterHeight+2.0 )\n"
-        "    {\n"
-        "        final_color = lighting( textureColor );\n"
-        "\n"
-        "        // mix in underwater light\n"
-        "        if(osgOcean_EnableUnderwaterScattering)\n"
-        "        {\n"
-        "            final_color.rgb = final_color.rgb * vExtinction + vInScattering;\n"
-        "        }\n"
-        "\n"
-        "        float fogFactor = computeFogFactor( osgOcean_UnderwaterFogDensity, gl_FogFragCoord );\n"
-        "\n"
-        "        // write to depth buffer (actually a GL_LUMINANCE)\n"
-        "        if(osgOcean_EnableDOF)\n"
-        "        {\n"
-        "            float depth = computeDepthBlur(gl_FogFragCoord, osgOcean_DOF_Focus, osgOcean_DOF_Near, osgOcean_DOF_Far, osgOcean_DOF_Clamp);\n"
-        "            gl_FragData[1] = vec4(depth);\n"
-        "        }\n"
-        "\n"
-        "        // color buffer\n"
-        "        gl_FragData[0] = mix( osgOcean_UnderwaterFogColor, final_color, fogFactor );\n"
-        "    }\n"
-        "    // Above water\n"
-        "    else\n"
-        "    {\n"
-        "        final_color = lighting( textureColor );\n"
-        "\n"
-        "        float fogFactor = computeFogFactor( osgOcean_AboveWaterFogDensity, gl_FogFragCoord );\n"
-        "        final_color = mix( osgOcean_AboveWaterFogColor, final_color, fogFactor );\n"
-        "\n"
-        "        // write to luminance buffer\n"
-        "        // might not need the IF here, glsl compiler doesn't complain if \n"
-        "        // you try and write to a FragData index that doesn't exist. But since\n"
-        "        // Mac GLSL support seems so fussy I'll leave it in.\n"
-        "        if(osgOcean_EnableGlare)\n"
-        "        {\n"
-        "            gl_FragData[1] = vec4(0.0);\n"
-        "        }\n"
-        "\n"
-        "        // write to color buffer\n"
-        "        gl_FragData[0] = final_color;\n"
-        "    }\n"
-        "}\n";
-
-    static const char default_scene_vertex_filename[]   = "osgOcean_ocean_scene.vert";
-    static const char default_scene_fragment_filename[] = "osgOcean_ocean_scene.frag";
+    static const char osgOcean_ocean_scene_vert_file[] = "osgOcean_ocean_scene.vert";
+    static const char osgOcean_ocean_scene_frag_file[] = "osgOcean_ocean_scene.frag";
 
     return ShaderManager::instance().createProgram("scene_shader", 
-                                                   default_scene_vertex_filename, default_scene_fragment_filename,
-                                                   default_scene_vertex,          default_scene_fragment);
+                                                   osgOcean_ocean_scene_vert_file, osgOcean_ocean_scene_frag_file,
+                                                   osgOcean_ocean_scene_vert,      osgOcean_ocean_scene_frag);
 }
 
 void OceanScene::addResourcePaths(void)
 {
-    const std::string shaderPath = "resources/shaders/";
+    const std::string shaderPath  = "resources/shaders/";
     const std::string texturePath = "resources/textures/";
 
     osgDB::FilePathList& pathList = osgDB::Registry::instance()->getDataFilePathList();

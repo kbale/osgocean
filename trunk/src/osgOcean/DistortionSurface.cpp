@@ -20,6 +20,9 @@
 #include <osgDB/Registry>
 #include <osgOcean/ShaderManager>
 
+#include <osgOcean/shaders/osgOcean_water_distortion_vert.inl>
+#include <osgOcean/shaders/osgOcean_water_distortion_frag.inl>
+
 using namespace osgOcean;
 
 DistortionSurface::DistortionSurface( void )
@@ -72,70 +75,12 @@ void DistortionSurface::build( const osg::Vec3f& corner, const osg::Vec2f& dims,
 
 osg::Program* DistortionSurface::createShader(void)
 {
-
-    char water_distortion_vertex[] = 
-        "varying vec4 vEyePos;\n"
-        "\n"
-        "void main(void)\n"
-        "{\n"
-        "    gl_TexCoord[0] = gl_MultiTexCoord0;\n"
-        "    vEyePos = gl_ModelViewProjectionMatrix * gl_Vertex;\n"
-        "    gl_Position = ftransform();\n"
-        "}\n";
-
-    char water_distortion_fragment[] =
-        "// Based on Jon Kennedy's heat haze shader\n"
-        "// Copyright (c) 2002-2006 3Dlabs Inc. Ltd.\n"
-        "\n"
-        "uniform float osgOcean_Frequency;\n"
-        "uniform float osgOcean_Offset;\n"
-        "uniform float osgOcean_Speed;\n"
-        "uniform vec2  osgOcean_ScreenRes;\n"
-        "\n"
-        "uniform sampler2DRect osgOcean_FrameBuffer;\n"
-        "\n"
-        "varying vec4 vEyePos;\n"
-        "\n"
-        "void main (void)\n"
-        "{\n"
-        "    vec2 index;\n"
-        "\n"
-        "    // perform the div by w to put the texture into screen space\n"
-        "    float recipW = 1.0 / vEyePos.w;\n"
-        "    vec2 eye = vEyePos.xy * vec2(recipW);\n"
-        "\n"
-        "    float blend = max(1.0 - eye.y, 0.0);   \n"
-        "      \n"
-        "    // calc the wobble\n"
-        "    // index.s = eye.x ;\n"
-        "    index.s = eye.x + blend * sin( osgOcean_Frequency * 5.0 * eye.x + osgOcean_Offset * osgOcean_Speed ) * 0.004;\n"
-        "    index.t = eye.y + blend * sin( osgOcean_Frequency * 5.0 * eye.y + osgOcean_Offset * osgOcean_Speed ) * 0.004;\n"
-        "      \n"
-        "    // scale and shift so we're in the range 0-1\n"
-        "    index.s = index.s * 0.5 + 0.5;\n"
-        "    index.t = index.t * 0.5 + 0.5;\n"
-        "\n"
-        "    vec2 recipRes = vec2(1.0/osgOcean_ScreenRes.x, 1.0/osgOcean_ScreenRes.y);\n"
-        "\n"
-        "    index.s = clamp(index.s, 0.0, 1.0 - recipRes.x);\n"
-        "    index.t = clamp(index.t, 0.0, 1.0 - recipRes.y);\n"
-        "\n"
-        "    // scale the texture so we just see the rendered framebuffer\n"
-        "    index.s = index.s * osgOcean_ScreenRes.x;\n"
-        "    index.t = index.t * osgOcean_ScreenRes.y;\n"
-        "      \n"
-        "    vec3 RefractionColor = vec3( texture2DRect( osgOcean_FrameBuffer, index ) );\n"
-        "\n"
-        "    gl_FragColor = vec4( RefractionColor, 1.0 );\n"
-        "    //gl_FragColor = texture2DRect( osgOcean_FrameBuffer, gl_TexCoord[0].st );\n"
-      "}\n";
-
-    static const char water_distortion_vertex_filename[]   = "osgOcean_water_distortion.vert";
-    static const char water_distortion_fragment_filename[] = "osgOcean_water_distortion.frag";
+    static const char osgOcean_water_distortion_vert_file[] = "osgOcean_water_distortion.vert";
+    static const char osgOcean_water_distortion_frag_file[] = "osgOcean_water_distortion.frag";
 
     return ShaderManager::instance().createProgram("distortion_surface", 
-                                                   water_distortion_vertex_filename, water_distortion_fragment_filename, 
-                                                   water_distortion_vertex,          water_distortion_fragment);
+                                                   osgOcean_water_distortion_vert_file, osgOcean_water_distortion_frag_file, 
+                                                   osgOcean_water_distortion_vert,      osgOcean_water_distortion_frag);
 }
 
 void DistortionSurface::update( const double& dt )
@@ -153,7 +98,7 @@ void DistortionSurface::update( const double& dt )
 
 void DistortionSurface::addResourcePaths(void)
 {
-    const std::string shaderPath = "resources/shaders/";
+    const std::string shaderPath  = "resources/shaders/";
     const std::string texturePath = "resources/textures/";
 
     osgDB::FilePathList& pathList = osgDB::Registry::instance()->getDataFilePathList();
