@@ -51,13 +51,27 @@ bool OceanTechnique::isVisible( osgUtil::CullVisitor& cv, bool eyeAboveWater )
 {
     if (getNodeMask() == 0) return false;
 
-    // Use a small cutoff to unconditionally cull ocean surface.
-    // This assumes the view frustum is 45 degrees wide...
-    static const float cutoff = osg::PI/8;      // 45 degrees divided by 2
-    osg::Vec3 lookVector = cv.getLookVectorLocal();
-    float dotProduct = lookVector * osg::Vec3(0,0,1);
-    return ( eyeAboveWater && dotProduct <  cutoff) ||
-           (!eyeAboveWater && dotProduct > -cutoff);
+    // Use a cutoff to unconditionally cull ocean surface if we can't see it.
+    // This test is valid when the eye is close to the horizon, but further up
+    // it will be too conservative (i.e. it will return true even when the 
+    // surface is not visible because it does the test relative to a horizontal
+    // plane at the eye position).
+    osg::Camera* currentCamera = cv.getCurrentRenderBin()->getStage()->getCamera();
+    if (currentCamera->getProjectionMatrix()(3,3) == 0.0)     // Perspective
+    {
+        double fovy, ratio, zNear, zFar;
+        currentCamera->getProjectionMatrixAsPerspective(fovy, ratio, zNear, zFar);
+
+        static const float cutoff = fovy / 2.0;
+        osg::Vec3 lookVector = cv.getLookVectorLocal();
+        float dotProduct = lookVector * osg::Vec3(0,0,1);
+        return ( eyeAboveWater && dotProduct <  cutoff) ||
+               (!eyeAboveWater && dotProduct > -cutoff);
+    }
+    else                                                      // Ortho
+    {
+        return true;
+    }
 
     // A better way would be to check if any of the frustum corners intersect 
     // the plane at (0,0,ocean_height) with normal (0,0,1), and if not then 
