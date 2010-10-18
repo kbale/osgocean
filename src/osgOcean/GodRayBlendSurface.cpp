@@ -18,9 +18,6 @@
 #include <osgOcean/GodRayBlendSurface>
 #include <osgOcean/ShaderManager>
 
-#include <osgOcean/shaders/osgOcean_godray_screen_blend_vert.inl>
-#include <osgOcean/shaders/osgOcean_godray_screen_blend_frag.inl>
-
 using namespace osgOcean;
 
 GodRayBlendSurface::GodRayBlendSurface( void ):
@@ -92,6 +89,9 @@ void GodRayBlendSurface::build( const osg::Vec3f& corner, const osg::Vec2f& dims
     setCullCallback( new GodRayBlendCallback );
     setUpdateCallback( new GodRayBlendCallback );
 }
+
+#include <osgOcean/shaders/osgOcean_godray_screen_blend_vert.inl>
+#include <osgOcean/shaders/osgOcean_godray_screen_blend_frag.inl>
 
 osg::Program* GodRayBlendSurface::createShader(void)
 {

@@ -18,11 +18,6 @@
 #include <osgOcean/GodRays>
 #include <osgOcean/ShaderManager>
 
-#include <osgOcean/shaders/osgOcean_godrays_vert.inl>
-#include <osgOcean/shaders/osgOcean_godrays_frag.inl>
-#include <osgOcean/shaders/osgOcean_godray_glare_vert.inl>
-#include <osgOcean/shaders/osgOcean_godray_glare_frag.inl>
-
 using namespace osgOcean;
 
 GodRays::GodRays(void):
@@ -329,6 +324,9 @@ osg::Vec3f GodRays::refract( const float ratio, const osg::Vec3f& I, const osg::
     return ( N * ( -nIN - sqrt( 1.f - ( n_2*(1.f-IN_2) )  ) ) ) + nI;
 }
 
+#include <osgOcean/shaders/osgOcean_godrays_vert.inl>
+#include <osgOcean/shaders/osgOcean_godrays_frag.inl>
+
 osg::Program* GodRays::createGodRayProgram( void )
 {
 	static const char osgOcean_godrays_vert_file[] = "osgOcean_godrays.vert";
@@ -338,6 +336,9 @@ osg::Program* GodRays::createGodRayProgram( void )
                                                    osgOcean_godrays_vert_file, osgOcean_godrays_frag_file, 
                                                    osgOcean_godrays_vert,      osgOcean_godrays_frag);
 }
+
+#include <osgOcean/shaders/osgOcean_godray_glare_vert.inl>
+#include <osgOcean/shaders/osgOcean_godray_glare_frag.inl>
 
 osg::Program* GodRays::createGodRayGlareProgram( void )
 {

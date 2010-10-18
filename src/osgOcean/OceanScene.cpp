@@ -20,23 +20,6 @@
 
 #include <osg/Depth>
 
-#include <osgOcean/shaders/osgOcean_heightmap_vert.inl>
-#include <osgOcean/shaders/osgOcean_heightmap_frag.inl>
-#include <osgOcean/shaders/osgOcean_downsample_vert.inl>
-#include <osgOcean/shaders/osgOcean_downsample_frag.inl>
-#include <osgOcean/shaders/osgOcean_downsample_glare_frag.inl>
-#include <osgOcean/shaders/osgOcean_gaussian_vert.inl>
-#include <osgOcean/shaders/osgOcean_gaussian1_frag.inl>
-#include <osgOcean/shaders/osgOcean_gaussian2_frag.inl>
-#include <osgOcean/shaders/osgOcean_dof_combiner_vert.inl>
-#include <osgOcean/shaders/osgOcean_dof_combiner_frag.inl>
-#include <osgOcean/shaders/osgOcean_streak_vert.inl>
-#include <osgOcean/shaders/osgOcean_streak_frag.inl>
-#include <osgOcean/shaders/osgOcean_glare_composite_vert.inl>
-#include <osgOcean/shaders/osgOcean_glare_composite_frag.inl>
-#include <osgOcean/shaders/osgOcean_ocean_scene_vert.inl>
-#include <osgOcean/shaders/osgOcean_ocean_scene_frag.inl>
-
 using namespace osgOcean;
 
 namespace
@@ -326,6 +309,9 @@ OceanScene::~OceanScene( void )
 {
 
 }
+
+#include <osgOcean/shaders/osgOcean_heightmap_vert.inl>
+#include <osgOcean/shaders/osgOcean_heightmap_frag.inl>
 
 void OceanScene::init( void )
 {
@@ -930,6 +916,11 @@ osg::Camera* OceanScene::godrayFinalPass( void )
     
     return camera;
 }
+
+#include <osgOcean/shaders/osgOcean_downsample_vert.inl>
+#include <osgOcean/shaders/osgOcean_downsample_frag.inl>
+#include <osgOcean/shaders/osgOcean_downsample_glare_frag.inl>
+
 osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer, 
                                         osg::TextureRectangle* auxBuffer,
                                         osg::TextureRectangle* outputTexture,
@@ -979,6 +970,10 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
     return RTTCamera;
 }
 
+#include <osgOcean/shaders/osgOcean_gaussian_vert.inl>
+#include <osgOcean/shaders/osgOcean_gaussian1_frag.inl>
+#include <osgOcean/shaders/osgOcean_gaussian2_frag.inl>
+
 osg::Camera* OceanScene::gaussianPass( osg::TextureRectangle* inputTexture, osg::TextureRectangle* outputTexture, bool isXAxis )
 {
     static const char osgOcean_gaussian_vert_file[]  = "osgOcean_gaussian.vert";
@@ -1018,6 +1013,10 @@ osg::Camera* OceanScene::gaussianPass( osg::TextureRectangle* inputTexture, osg:
 
     return dofGaussianPass;
 }
+
+
+#include <osgOcean/shaders/osgOcean_dof_combiner_vert.inl>
+#include <osgOcean/shaders/osgOcean_dof_combiner_frag.inl>
 
 osg::Camera* OceanScene::dofCombinerPass(osg::TextureRectangle* fullscreenTexture, 
                                          osg::TextureRectangle* fullDepthTexture,
@@ -1075,6 +1074,9 @@ osg::Camera* OceanScene::dofFinalPass( osg::TextureRectangle* combinedTexture )
     return camera;
 }
 
+#include <osgOcean/shaders/osgOcean_streak_vert.inl>
+#include <osgOcean/shaders/osgOcean_streak_frag.inl>
+
 osg::Camera* OceanScene::glarePass(osg::TextureRectangle* streakInput, 
                                    osg::TextureRectangle* steakOutput, 
                                    int pass, 
@@ -1108,6 +1110,9 @@ osg::Camera* OceanScene::glarePass(osg::TextureRectangle* streakInput,
 
     return glarePass;
 }
+
+#include <osgOcean/shaders/osgOcean_glare_composite_vert.inl>
+#include <osgOcean/shaders/osgOcean_glare_composite_frag.inl>
 
 osg::Camera* OceanScene::glareCombinerPass( osg::TextureRectangle* fullscreenTexture,
                                             osg::TextureRectangle* glareTexture1,
@@ -1193,6 +1198,9 @@ osg::Geode* OceanScene::createScreenQuad( const osg::Vec2s& dims, const osg::Vec
 
     return geode;
 }
+
+#include <osgOcean/shaders/osgOcean_ocean_scene_vert.inl>
+#include <osgOcean/shaders/osgOcean_ocean_scene_frag.inl>
 
 osg::Program* OceanScene::createDefaultSceneShader(void)
 {
