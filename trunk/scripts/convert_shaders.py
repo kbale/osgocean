@@ -1,11 +1,16 @@
+# This script is use to convert the shaders found
+# within the resources/shaders directory to the native
+# .inl format for compiling into the osgOcean source.
+# After conversion, it will copy the .inl files into the
+# include/osgOcean/shaders/ directory.
+
 import os
 import time
-import sys
 
 ###############################################
 
-def readCopyright(root):
-    copyrightFile = open(root+"/scripts/copyright_notice.txt","r")
+def readCopyright():
+    copyrightFile = open("copyright_notice.txt","r")
     copyright = copyrightFile.readlines()
     copyrightFile.close()
     return copyright
@@ -50,27 +55,31 @@ def createInlShader( shaderFile, shaderVar, headerFile ):
 
 ##############################################
 
-srcRoot = ""
+print("\nThis script is used to convert the osgOcean shaders")
+print("found within the resources/shaders directory to the")
+print("native .inl format for compiling into the osgOcean")
+print("source.\n")
+print("Once converted, the .inl files will be copied into the")
+print("include/osgOcean/shaders/ directory overwriting")
+print("existing files.\n")
 
-if len(sys.argv) < 2:
-    print("Please specify the path to the root of the project")
+confirm = raw_input("Continue? [y/n]: ")
+
+if confirm == 'n' or confirm == 'N':
     exit()
         
-srcRoot = sys.argv[1]
-
-shaderPath = srcRoot+"/resources/shaders/"
-headerPath = srcRoot+"/include/osgOcean/shaders/"
+shaderPath = "../resources/shaders/"
+headerPath = "../include/osgOcean/shaders/"
 
 shaderList = os.listdir( shaderPath )
 
 skipped = 0
 created = 0
 
-print("--------------------------------\n")
 print("\nProcessing shader files")
 print("--------------------------------\n")
 
-copyright = readCopyright(srcRoot)
+copyright = readCopyright()
 
 for shader in shaderList:
     if shader.find("osgOcean_") > -1:
@@ -91,8 +100,8 @@ for shader in shaderList:
 print("\n--------------------------------")
 print(str(created)+"\tCreated")
 print(str(skipped)+"\tUp to date")
-print(str(skipped+created)+"\tTotal\n")
-print("\n--------------------------------")    
+print(str(skipped+created)+"\tTotal")
+print("--------------------------------")    
 
 
 

@@ -27,11 +27,6 @@
 #include <osg/Timer>
 #include <osg/Version>
 
-#include <osgOcean/shaders/osgOcean_silt_points_vert.inl>
-#include <osgOcean/shaders/osgOcean_silt_points_frag.inl>
-#include <osgOcean/shaders/osgOcean_silt_quads_vert.inl>
-#include <osgOcean/shaders/osgOcean_silt_quads_frag.inl>
-
 using namespace osgOcean;
 
 static float random(float min,float max) { return min + (max-min)*(float)rand()/(float)RAND_MAX; }
@@ -407,6 +402,11 @@ void SiltEffect::createGeometry(unsigned int numParticles,
         }
     }
 }
+
+#include <osgOcean/shaders/osgOcean_silt_quads_vert.inl>
+#include <osgOcean/shaders/osgOcean_silt_quads_frag.inl>
+#include <osgOcean/shaders/osgOcean_silt_points_vert.inl>
+#include <osgOcean/shaders/osgOcean_silt_points_frag.inl>
 
 void SiltEffect::setUpGeometries(unsigned int numParticles)
 {

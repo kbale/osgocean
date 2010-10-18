@@ -20,9 +20,6 @@
 #include <osgDB/Registry>
 #include <osgOcean/ShaderManager>
 
-#include <osgOcean/shaders/osgOcean_water_distortion_vert.inl>
-#include <osgOcean/shaders/osgOcean_water_distortion_frag.inl>
-
 using namespace osgOcean;
 
 DistortionSurface::DistortionSurface( void )
@@ -72,6 +69,9 @@ void DistortionSurface::build( const osg::Vec3f& corner, const osg::Vec2f& dims,
     setUserData( new DistortionDataType(*this) );
     setUpdateCallback( new DistortionCallback );
 }
+
+#include <osgOcean/shaders/osgOcean_water_distortion_vert.inl>
+#include <osgOcean/shaders/osgOcean_water_distortion_frag.inl>
 
 osg::Program* DistortionSurface::createShader(void)
 {
