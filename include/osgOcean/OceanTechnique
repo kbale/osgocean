@@ -47,12 +47,16 @@ namespace osgOcean
             return _isAnimating;
         }
 
-        /// Returns the average height over the whole surface (in local space)
+        /**
+        * Returns the average height over the whole surface (in local space)
+        */
         virtual float getSurfaceHeight(void) const;
 
-        /// Returns the height at the given point (in local space). If the 
-        /// address of a Vec3f is passed in the normal argument, the normal at
-        /// that position will be calculated and stored in it.
+        /**
+        * Returns the height at the given point (in local space). If the 
+        * address of a Vec3f is passed in the normal argument, the normal at
+        * that position will be calculated and stored in it.
+        */
         virtual float getSurfaceHeightAt(float x, float y, osg::Vec3f* normal = NULL) = 0;
 
         inline bool isDirty(void) const{
@@ -63,8 +67,10 @@ namespace osgOcean
             _isDirty=true;
         }
 
-        /** Check if the ocean surface is visible or not. Basic test is very
-            simple, subclasses can do a better test. */
+        /** 
+        * Check if the ocean surface is visible or not. Basic test is very
+        * simple, subclasses can do a better test.
+        */    
         bool isVisible( osgUtil::CullVisitor& cv, bool eyeAboveWater );
 
         /** Base class for the OceanTechnique event handler. Subclasses of
@@ -80,6 +86,7 @@ namespace osgOcean
         public:
             EventHandler(OceanTechnique* oceanSurface);
             virtual bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object*, osg::NodeVisitor*);
+            /** Get the keyboard and mouse usage of this manipulator.*/
             virtual void getUsage(osg::ApplicationUsage& usage) const;
         protected:
             OceanTechnique* _oceanSurface;
@@ -97,6 +104,13 @@ namespace osgOcean
 
     protected:
         virtual ~OceanTechnique(void){};
+
+        /**
+        * Add the default resource paths to osgDB::Registry.
+        * Checks if already present.
+        * paths: resources/textures and resources/shaders.
+        */
+        virtual void addResourcePaths(void);
 
     protected:
         bool _isDirty;

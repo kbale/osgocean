@@ -3,6 +3,7 @@ SET(HEADER_PATH ${osgOcean_SOURCE_DIR}/include/osgOcean )
 SET( SHADER_FILES
   ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_ocean_surface.frag
   ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_ocean_surface.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_ocean_surface_vbo.vert
 
   ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_godrays.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_godrays.frag
@@ -49,11 +50,14 @@ SET( TEXTURE_FILES
 SET( LIB_HEADERS
   ${HEADER_PATH}/Cylinder
   ${HEADER_PATH}/DistortionSurface
+  ${HEADER_PATH}/FFTOceanTechnique
   ${HEADER_PATH}/FFTOceanSurface
+  ${HEADER_PATH}/FFTOceanSurfaceVBO
   ${HEADER_PATH}/FFTSimulation
   ${HEADER_PATH}/GodRays
   ${HEADER_PATH}/GodRayBlendSurface
   ${HEADER_PATH}/MipmapGeometry
+  ${HEADER_PATH}/MipmapGeometryVBO
   ${HEADER_PATH}/OceanScene
   ${HEADER_PATH}/OceanTechnique
   ${HEADER_PATH}/OceanTile
@@ -86,11 +90,14 @@ ADD_LIBRARY(
   ${LIB_HEADERS}
   Cylinder.cpp
   DistortionSurface.cpp
+  FFTOceanTechnique.cpp
   FFTOceanSurface.cpp
+  FFTOceanSurfaceVBO.cpp
   FFTSimulation.cpp
   GodRays.cpp
   GodRayBlendSurface.cpp
   MipmapGeometry.cpp
+  MipmapGeometryVBO.cpp
   OceanScene.cpp
   OceanTechnique.cpp
   OceanTile.cpp

@@ -16,23 +16,20 @@
 */
 
 #include <osgOcean/OceanTechnique>
+#include <osgDB/Registry>
 
 using namespace osgOcean;
 
-OceanTechnique::OceanTechnique(void):
-    _isDirty    ( true ),
-    _isAnimating( true )
-{
+OceanTechnique::OceanTechnique(void)
+    :_isDirty    ( true )
+    ,_isAnimating( true )
+{}
 
-}
-
-OceanTechnique::OceanTechnique( const OceanTechnique& copy, const osg::CopyOp& copyop ):
-    osg::Geode  ( copy, copyop ),
-    _isDirty    ( true ),
-    _isAnimating( copy._isAnimating )
-{
-
-}
+OceanTechnique::OceanTechnique( const OceanTechnique& copy, const osg::CopyOp& copyop )
+    :osg::Geode  ( copy, copyop )
+    ,_isDirty    ( true )
+    ,_isAnimating( copy._isAnimating )
+{}
 
 void OceanTechnique::build(void)
 {
@@ -78,9 +75,38 @@ bool OceanTechnique::isVisible( osgUtil::CullVisitor& cv, bool eyeAboveWater )
     // return true.
 }
 
+void OceanTechnique::addResourcePaths(void)
+{
+    const std::string shaderPath  = "resources/shaders/";
+    const std::string texturePath = "resources/textures/";
 
-OceanTechnique::EventHandler::EventHandler(OceanTechnique* oceanSurface):
-_oceanSurface(oceanSurface)
+    osgDB::FilePathList& pathList = osgDB::Registry::instance()->getDataFilePathList();
+
+    bool shaderPathPresent = false;
+    bool texturePathPresent = false;
+
+    for(unsigned int i = 0; i < pathList.size(); ++i )
+    {
+        if( pathList.at(i).compare(shaderPath) == 0 )
+            shaderPathPresent = true;
+
+        if( pathList.at(i).compare(texturePath) == 0 )
+            texturePathPresent = true;
+    }
+
+    if(!texturePathPresent)
+        pathList.push_back(texturePath);
+
+    if(!shaderPathPresent)
+        pathList.push_back(shaderPath);
+}
+
+// --------------------------------------------------------
+//  EventHandler implementation
+// --------------------------------------------------------
+
+OceanTechnique::EventHandler::EventHandler(OceanTechnique* oceanSurface)
+    :_oceanSurface(oceanSurface)
 {
 }
 
@@ -93,7 +119,5 @@ bool OceanTechnique::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osgG
     return false;
 }
 
-/** Get the keyboard and mouse usage of this manipulator.*/
 void OceanTechnique::EventHandler::getUsage(osg::ApplicationUsage& usage) const
-{
-}
+{}

@@ -18,8 +18,7 @@
 #pragma once
 #include <osgOcean/Export>
 #include <osgOcean/FFTOceanTechnique>
-#include <osgOcean/MipmapGeometry> 
-#include <osgOcean/OceanTile> 
+#include <osgOcean/MipmapGeometryVBO> 
 
 #include <osg/Timer>
 #include <osg/NodeCallback>
@@ -33,21 +32,17 @@ namespace osgOcean
     * Uses a modified geomipmapping algorithm to provide level of detail.
     * LOD is managed automatically within the update and cull traversals.
     */
-    class OSGOCEAN_EXPORT FFTOceanSurface : public FFTOceanTechnique
+    class OSGOCEAN_EXPORT FFTOceanSurfaceVBO : public FFTOceanTechnique
     {
     private:
-        unsigned int _totalPoints;                      /**< Total number of points on width/height. */ 
-        unsigned int _numVertices;                      /**< Total number of vertices in array. */
-        unsigned int _newNumVertices;                   /**< Number of vertices after updateMipmaps is called */
+        osg::ref_ptr<osg::Vec3Array> _masterVertices;
+        osg::ref_ptr<osg::Vec3Array> _masterNormals;
 
-        osg::ref_ptr<osg::Vec3Array> _activeVertices;   /**< Active vertex buffer. */
-        osg::ref_ptr<osg::Vec3Array> _activeNormals;    /**< Active normal buffer. */
-
-        std::vector< std::vector<OceanTile> > _mipmapData;                      /**< Wave tile data. */
-        std::vector< std::vector< osg::ref_ptr<MipmapGeometry> > > _mipmapGeom;  /**< Geometry tiles. */
+        std::vector< OceanTile > _mipmapData;
+        std::vector< std::vector< osg::ref_ptr<MipmapGeometryVBO> > > _mipmapGeom;  /**< Geometry tiles. */
 
     public:
-        FFTOceanSurface(unsigned int FFTGridSize,
+        FFTOceanSurfaceVBO(unsigned int FFTGridSize,
             unsigned int resolution,
             unsigned int numTiles, 
             const osg::Vec2f& windDirection,
@@ -60,15 +55,15 @@ namespace osgOcean
             float animLoopTime,
             unsigned int numFrames );
 
-        FFTOceanSurface( const FFTOceanSurface& copy, 
+        FFTOceanSurfaceVBO( const FFTOceanSurfaceVBO& copy, 
             const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY );
 
         virtual const char* libraryName() const { return "osgOcean"; }
-        virtual const char* className() const { return "FFTOceanSurface"; }
-        virtual bool isSameKindAs(const osg::Object* obj) const { return dynamic_cast<const FFTOceanSurface*>(obj) != 0; }
+        virtual const char* className() const { return "FFTOceanSurfaceVBO"; }
+        virtual bool isSameKindAs(const osg::Object* obj) const { return dynamic_cast<const FFTOceanSurfaceVBO*>(obj) != 0; }
 
     protected:
-        ~FFTOceanSurface(void);
+        ~FFTOceanSurfaceVBO(void);
 
     public:
         
@@ -85,6 +80,8 @@ namespace osgOcean
         * Forces stateset rebuid.
         */
         void build( void );
+
+        void setMinDistances(std::vector<float> &minDistances);
 
     private:
         /**
@@ -103,52 +100,9 @@ namespace osgOcean
         */
         void createOceanTiles( void );
 
-        /**
-        * Computes and assigns mipmap primitives to the geometry.
-        */
-        void computePrimitives( void );
+        void updateVertices(unsigned int frame);
 
-        /**
-        * Copies vertices needs for the tiles into _activeVertices array.
-        */
-        void computeVertices( unsigned int frame );
-        
-        /**
-        * Checks for any changes in mipmap resolution based on eye position.
-        * @return true if any updates have occured.
-        */
-        bool updateMipmaps( const osg::Vec3f& eye, unsigned int frame );
-
-        /**
-        * Adds primitives for main body of vertices.
-        */
-        void addMainBody( MipmapGeometry* cTile );
-
-        /**
-        * Adds primitives for the right skirt.
-        */
-        void addRightBorder ( MipmapGeometry* cTile, MipmapGeometry* xTile );
-
-        /**
-        * Adds primitives for the bottom skirt.
-        */
-        void addBottomBorder( MipmapGeometry* cTile, MipmapGeometry* yTile );
-
-        /**
-        * Adds primitives for the corner piece.
-        */
-        void addCornerPatch( MipmapGeometry* cTile, MipmapGeometry* xTile, MipmapGeometry* yTile, MipmapGeometry* xyTile );
-
-        /**
-        * Adds primitives for main body of the lowest resolution tile (2x2 vertices).
-        * This is a special case treated similar to a corner piece.
-        */
-        void addMaxDistMainBody( MipmapGeometry* cTile, MipmapGeometry* xTile, MipmapGeometry* yTile, MipmapGeometry* xyTile );
-
-        /**
-        * Adds primitives for edge of the lowest resolution tile (2x2 vertices).
-        */
-        void addMaxDistEdge( MipmapGeometry* cTile, MipmapGeometry* xTile, MipmapGeometry* yTile );
+        bool updateLevels(const osg::Vec3f& eye);
 
         /**
         * Compute noise coordinates for the fragment shader.
@@ -157,7 +111,7 @@ namespace osgOcean
         * @param speed Speed of movement(m/s).
         * @parem time Simulation Time.
         */
-        osg::Vec3f computeNoiseCoords(float noiseSize, const osg::Vec2f& movement, float speed, float time);
+        osg::Vec3f computeNoiseCoords(float noiseSize, const osg::Vec2f& movement, float speed, double time);
 
         /**
         * Creates a custom DOT3 noise map for the ocean surface.
@@ -173,7 +127,7 @@ namespace osgOcean
         /** 
         * Convenience method for retrieving mipmap geometry from _oceanGeom. 
         */
-        inline MipmapGeometry* getTile( unsigned int x, unsigned int y ){    
+        inline MipmapGeometryVBO* getTile( unsigned int x, unsigned int y ){    
             return _mipmapGeom.at(y).at(x).get();
         }
 
@@ -183,5 +137,4 @@ namespace osgOcean
         */
         osg::Program* createShader(void);
     };
-
 }// namespace
