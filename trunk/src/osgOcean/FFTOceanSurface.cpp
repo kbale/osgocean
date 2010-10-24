@@ -20,9 +20,6 @@
 #include <osg/io_utils>
 #include <osg/Material>
 
-#include <osgOcean/shaders/osgOcean_ocean_surface_vert.inl>
-#include <osgOcean/shaders/osgOcean_ocean_surface_frag.inl>
-
 using namespace osgOcean;
 
 FFTOceanSurface::FFTOceanSurface( unsigned int FFTGridSize,
@@ -36,100 +33,36 @@ FFTOceanSurface::FFTOceanSurface( unsigned int FFTGridSize,
                                   bool isChoppy,
                                   float choppyFactor,
                                   float animLoopTime,
-                                  unsigned int numFrames ):
-
-    _tileSize       ( FFTGridSize ),
-    _noiseTileSize  ( FFTGridSize ),
-    _tileResolution ( resolution ),
-    _tileResInv     ( 1.f / float(resolution) ),
-    _noiseTileRes   ( resolution ),
-    _numTiles       ( numTiles ),
-    _totalPoints    ( _tileSize * _numTiles + 1 ),
-    _pointSpacing   ( _tileResolution / _tileSize ),
-    _windDirection  ( windDirection ),
-    _noiseWindDir   ( windDirection ),
-    _windSpeed      ( windSpeed ),
-    _noiseWindSpeed ( windSpeed ),
-    _waveScale      ( waveScale ),
-    _noiseWaveScale ( waveScale ),
-    _depth          ( depth ),
-    _reflDampFactor ( reflectionDamping ),
-    _cycleTime      ( animLoopTime ),
-    _choppyFactor   ( choppyFactor ),
-    _isChoppy       ( isChoppy ),
-    _isEndless      ( false ),
-    _oldFrame       ( 0 ),
-    _numVertices    ( 0 ),
-    _newNumVertices ( 0 ),
-    _fresnelMul     ( 0.7 ),
-    _numLevels      ( (unsigned int) ( log( (float)_tileSize) / log(2.f) )+1),
-    _startPos       ( -float( (_tileResolution+1)*_numTiles) * 0.5f, float( (_tileResolution+1)*_numTiles) * 0.5f ),
-    _THRESHOLD      ( 3.f ),
-    _VRES           ( 1024 ),
-    _NUMFRAMES      ( numFrames ),
-    _activeVertices ( new osg::Vec3Array ),
-    _activeNormals  ( new osg::Vec3Array ),
-    _waveTopColor   ( 0.192156862f, 0.32549019f, 0.36862745098f ),
-    _waveBottomColor( 0.11372549019f, 0.219607843f, 0.3568627450f ),
-    _useCrestFoam   ( false ),
-    _foamCapBottom  ( 2.2f ),
-    _foamCapTop     ( 3.0f ),
-    _isStateDirty   ( true ),
-    _averageHeight  ( 0.f ),
-    _lightColor     ( 0.411764705f, 0.54117647f, 0.6823529f, 1.f )
+                                  unsigned int numFrames )
+    :FFTOceanTechnique( FFTGridSize, 
+                        resolution, 
+                        numTiles, 
+                        windDirection, 
+                        windSpeed, 
+                        depth, 
+                        reflectionDamping, 
+                        waveScale, 
+                        isChoppy, 
+                        choppyFactor, 
+                        animLoopTime, 
+                        numFrames)
+    ,_numVertices    ( 0 )
+    ,_newNumVertices ( 0 )
+    ,_activeVertices ( new osg::Vec3Array )
+    ,_activeNormals  ( new osg::Vec3Array )
+    ,_totalPoints    ( _tileSize * _numTiles + 1 )
 {
-    addResourcePaths();
-
-    _stateset = new osg::StateSet;
-
     setUserData( new OceanDataType(*this, _NUMFRAMES, 25) );
     setOceanAnimationCallback( new OceanAnimationCallback );
 }
 
 FFTOceanSurface::FFTOceanSurface( const FFTOceanSurface& copy, const osg::CopyOp& copyop ):
-    OceanTechnique  ( copy, copyop ),
-    _tileSize       ( copy._tileSize ),
-    _noiseTileSize  ( copy._noiseTileSize ),
-    _tileResolution ( copy._tileResolution ),
-    _tileResInv     ( copy._tileResInv ),
-    _noiseTileRes   ( copy._noiseTileRes ),
-    _numTiles       ( copy._numTiles ),
-    _totalPoints    ( copy._totalPoints ),
-    _pointSpacing   ( copy._pointSpacing ),
-    _windDirection  ( copy._windDirection ),
-    _noiseWindDir   ( copy._noiseWindDir ),
-    _windSpeed      ( copy._windSpeed ),
-    _noiseWindSpeed ( copy._noiseWindSpeed ),
-    _waveScale      ( copy._waveScale ),
-    _noiseWaveScale ( copy._noiseWaveScale ),
-    _depth          ( copy._depth ),
-    _cycleTime      ( copy._cycleTime ),
-    _choppyFactor   ( copy._choppyFactor ),
-    _isChoppy       ( copy._isChoppy ),
-    _isEndless      ( copy._isEndless ),
-    _oldFrame       ( copy._oldFrame ),
-    _numVertices    ( copy._numVertices ),
-    _newNumVertices ( copy._newNumVertices ),
-    _fresnelMul     ( copy._fresnelMul ),
-    _numLevels      ( copy._numLevels ),
-    _startPos       ( copy._startPos ),
-    _THRESHOLD      ( copy._THRESHOLD ),
-    _VRES           ( copy._VRES ),
-    _NUMFRAMES      ( copy._NUMFRAMES ),
-    _minDist        ( copy._minDist ),
-    _mipmapData     ( copy._mipmapData ),
-    _oceanGeom      ( copy._oceanGeom ),
-    _activeVertices ( copy._activeVertices ),
-    _activeNormals  ( copy._activeNormals ),
-    _environmentMap ( copy._environmentMap ),
-    _waveTopColor   ( copy._waveTopColor ),
-    _waveBottomColor( copy._waveBottomColor ),
-    _useCrestFoam   ( copy._useCrestFoam ),
-    _foamCapBottom  ( copy._foamCapBottom ),
-    _foamCapTop     ( copy._foamCapTop ),
-    _isStateDirty   ( copy._isStateDirty ),
-    _averageHeight  ( copy._averageHeight ),
-    _lightColor     ( copy._lightColor )
+    FFTOceanTechnique   ( copy, copyop )
+    ,_numVertices       ( copy._numVertices )
+    ,_newNumVertices    ( copy._newNumVertices )
+    ,_mipmapGeom        ( copy._mipmapGeom )
+    ,_mipmapData        ( copy._mipmapData )
+    ,_totalPoints       ( copy._totalPoints )
 {}
 
 FFTOceanSurface::~FFTOceanSurface(void)
@@ -311,7 +244,7 @@ void FFTOceanSurface::createOceanTiles( void )
     // Clear previous data if it exists
     _numVertices = 0;
     _newNumVertices = 0;
-    _oceanGeom.clear();
+    _mipmapGeom.clear();
     _activeVertices->clear();
     _activeNormals->clear();
     _minDist.clear();
@@ -319,7 +252,7 @@ void FFTOceanSurface::createOceanTiles( void )
     if(getNumDrawables()>0)
         removeDrawables(0,getNumDrawables());
 
-    _oceanGeom.resize( _numTiles );
+    _mipmapGeom.resize( _numTiles );
 
     osg::ref_ptr<osg::Vec4Array> colours = new osg::Vec4Array;
     colours->push_back( osg::Vec4f(1.f, 1.f,1.f,1.f) );
@@ -350,7 +283,7 @@ void FFTOceanSurface::createOceanTiles( void )
 
             addDrawable( patch );
 
-            _oceanGeom[y].push_back( patch );
+            _mipmapGeom[y].push_back( patch );
 
             unsigned int verts = 0;
             unsigned int s = 2;
@@ -464,17 +397,6 @@ void FFTOceanSurface::update( unsigned int frame, const double& dt, const osg::V
     }
 
     _oldFrame = frame;
-}
-
-void FFTOceanSurface::setOceanAnimationCallback(FFTOceanSurface::OceanAnimationCallback* callback)
-{
-    setUpdateCallback(callback);
-    setCullCallback(callback);
-}
-
-FFTOceanSurface::OceanAnimationCallback* FFTOceanSurface::getOceanAnimationCallback()
-{
-    return dynamic_cast<OceanAnimationCallback*>(getUpdateCallback());
 }
 
 float FFTOceanSurface::getSurfaceHeightAt(float x, float y, osg::Vec3f* normal)
@@ -1099,18 +1021,8 @@ osg::Vec3f FFTOceanSurface::computeNoiseCoords(float noiseSize, const osg::Vec2f
     return osg::Vec3f( pos, tileScale );
 }
 
-osg::Texture2D* FFTOceanSurface::createTexture(const std::string& name, osg::Texture::WrapMode wrap)
-{
-    osg::Texture2D* tex = new osg::Texture2D();
-
-    tex->setFilter(osg::Texture::MIN_FILTER, osg::Texture::LINEAR_MIPMAP_LINEAR);
-    tex->setFilter(osg::Texture::MAG_FILTER, osg::Texture::LINEAR);
-    tex->setWrap  (osg::Texture::WRAP_S,     wrap);
-    tex->setWrap  (osg::Texture::WRAP_T,     wrap);
-    tex->setImage (osgDB::readImageFile(name.c_str()));
-
-    return tex;
-}
+#include <osgOcean/shaders/osgOcean_ocean_surface_vert.inl>
+#include <osgOcean/shaders/osgOcean_ocean_surface_frag.inl>
 
 osg::Program* FFTOceanSurface::createShader(void)
 {
@@ -1123,235 +1035,4 @@ osg::Program* FFTOceanSurface::createShader(void)
                                                 osgOcean_ocean_surface_vert,      osgOcean_ocean_surface_frag);
 
     return program;
-}
-
-void FFTOceanSurface::addResourcePaths(void)
-{
-    const std::string shaderPath  = "resources/shaders/";
-    const std::string texturePath = "resources/textures/";
-
-    osgDB::FilePathList& pathList = osgDB::Registry::instance()->getDataFilePathList();
-
-    bool shaderPathPresent = false;
-    bool texturePathPresent = false;
-
-    for(unsigned int i = 0; i < pathList.size(); ++i )
-    {
-        if( pathList.at(i).compare(shaderPath) == 0 )
-            shaderPathPresent = true;
-
-        if( pathList.at(i).compare(texturePath) == 0 )
-            texturePathPresent = true;
-    }
-
-    if(!texturePathPresent)
-        pathList.push_back(texturePath);
-
-    if(!shaderPathPresent)
-        pathList.push_back(shaderPath);
-}
-
-// -------------------------------
-//     Callback implementation
-// -------------------------------
-
-FFTOceanSurface::OceanDataType::OceanDataType( FFTOceanSurface& ocean, unsigned int numFrames, unsigned int fps ):
-    _oceanSurface( ocean ),
-    _NUMFRAMES   ( numFrames ),
-    _time        ( 0.0 ),
-    _FPS         ( fps ), 
-    _msPerFrame  ( 1000.f/(float)fps ),
-    _frame       ( 0 ),
-    _oldTime     ( 0 ),
-    _newTime     ( 0 )
-{}
-
-FFTOceanSurface::OceanDataType::OceanDataType( const OceanDataType& copy, const osg::CopyOp& copyop ):
-    _oceanSurface( copy._oceanSurface ),
-    _NUMFRAMES   ( copy._NUMFRAMES ),
-    _eye         ( copy._eye ),
-    _time        ( copy._time ),
-    _FPS         ( copy._FPS ), 
-    _msPerFrame  ( copy._msPerFrame ),
-    _frame       ( copy._frame ),
-    _oldTime     ( copy._oldTime ),
-    _newTime     ( copy._newTime )
-{}
-
-void FFTOceanSurface::OceanDataType::updateOcean( double simulationTime )
-{
-    _oldTime = _newTime;
-    if (simulationTime < 0.0)
-    {
-        _newTime = osg::Timer::instance()->tick();
-    }
-    else
-    {
-        // simulationTime is passed in seconds.
-        _newTime = simulationTime / osg::Timer::instance()->getSecondsPerTick();
-    }
-
-    double dt = osg::Timer::instance()->delta_m(_oldTime, _newTime);
-    _time += dt;
-
-    if( _time >= _msPerFrame )
-    {
-        _frame += ( _time / _msPerFrame );
-
-        if( _frame >= _NUMFRAMES ) 
-            _frame = _frame%_NUMFRAMES; 
-
-        _time = fmod( _time, (double)_msPerFrame );
-    }
-    
-    _oceanSurface.update( _frame, dt, _eye );
-}
-
-void FFTOceanSurface::OceanAnimationCallback::operator()(osg::Node* node, osg::NodeVisitor* nv)
-{
-    update(node, nv, -1.0);
-
-    traverse(node, nv); 
-}
-
-void FFTOceanSurface::OceanAnimationCallback::update(osg::Node* node, osg::NodeVisitor* nv, double simulationTime)
-{
-    osg::ref_ptr<OceanDataType> oceanData = dynamic_cast<OceanDataType*> ( node->getUserData() );
-
-    if( oceanData.valid() )
-    {
-        // If cull visitor update the current eye position
-        if( nv->getVisitorType() == osg::NodeVisitor::CULL_VISITOR )
-        {
-            osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(nv);
-            oceanData->setEye( cv->getEyePoint() );
-        }
-        else if( nv->getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR ){
-            oceanData->updateOcean(simulationTime);
-        }
-    }
-
-    traverse(node, nv); 
-}
-
-
-FFTOceanSurface::EventHandler::EventHandler(OceanTechnique* oceanSurface):
-    OceanTechnique::EventHandler(oceanSurface),
-    _autoDirty(true)
-{
-}
-
-bool FFTOceanSurface::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object* object, osg::NodeVisitor* nv)
-{
-    // Call parent class's handle().
-    OceanTechnique::EventHandler::handle(ea, aa, object, nv);
-
-    if (ea.getHandled()) return false;
-
-    // Now we can handle this class's events.
-    switch(ea.getEventType())
-    {
-        case(osgGA::GUIEventAdapter::KEYUP):
-        {
-            // Downcast to the concrete class we're interested in.
-            FFTOceanSurface* fftSurface = dynamic_cast<FFTOceanSurface*>(_oceanSurface);
-            if (!fftSurface) return false;
-
-            // Crest foam
-            if (ea.getKey() == 'f' )
-            {
-                fftSurface->enableCrestFoam(!fftSurface->isCrestFoamEnabled());
-                osg::notify(osg::NOTICE) << "Crest foam " << (fftSurface->isCrestFoamEnabled()? "enabled" : "disabled") << std::endl;
-                return true;
-            }
-            // isChoppy
-            if( ea.getKey() == 'p' )
-            {
-                fftSurface->setIsChoppy(!fftSurface->isChoppy(), _autoDirty);
-                osg::notify(osg::NOTICE) << "Choppy waves " << (fftSurface->isChoppy()? "enabled" : "disabled") << std::endl;
-                return true;
-            }
-            // Wind speed + 0.5
-            if (ea.getKey() == 'W')
-            {
-                fftSurface->setWindSpeed(fftSurface->getWindSpeed() + 0.5, _autoDirty);
-                osg::notify(osg::NOTICE) << "Wind speed now " << fftSurface->getWindSpeed() << std::endl;
-                return true;
-            }
-            // Wind speed - 0.5
-            if (ea.getKey() == 'w')
-            {
-                fftSurface->setWindSpeed(fftSurface->getWindSpeed() - 0.5, _autoDirty);
-                osg::notify(osg::NOTICE) << "Wind speed now " << fftSurface->getWindSpeed() << std::endl;
-                return true;
-            }
-            // Scale factor + 1e-9
-            if(ea.getKey() == 'K' )
-            {
-                float waveScale = fftSurface->getWaveScaleFactor();
-                fftSurface->setWaveScaleFactor(waveScale+(1e-9), _autoDirty);
-                osg::notify(osg::NOTICE) << "Wave scale factor now " << fftSurface->getWaveScaleFactor() << std::endl;
-                return true;
-            }
-            // Scale factor - 1e-9
-            if(ea.getKey() == 'k' )
-            {
-                float waveScale = fftSurface->getWaveScaleFactor();
-                fftSurface->setWaveScaleFactor(waveScale-(1e-9), _autoDirty);
-                osg::notify(osg::NOTICE) << "Wave scale factor now " << fftSurface->getWaveScaleFactor() << std::endl;
-                return true;
-            }
-            // Dirty geometry
-            if (ea.getKey() == 'd')
-            {
-                osg::notify(osg::NOTICE) << "Dirtying ocean geometry" << std::endl;
-                fftSurface->dirty();
-                return true;
-            }
-            // Toggle autoDirty, if off then individual changes will be 
-            // instantaneous but the user will get no feedback until they 
-            // dirty manually, if on each change will dirty automatically.
-            if (ea.getKey() == 'D')
-            {
-                _autoDirty = !_autoDirty;
-                osg::notify(osg::NOTICE) << "AutoDirty " << (_autoDirty? "enabled" : "disabled") << std::endl;
-                return true;
-            }
-            // Print out all current settings to the console.
-            if (ea.getKey() == 'P')
-            {
-                osg::notify(osg::NOTICE) << "Current FFTOceanSurface settings are:" << std::endl;
-                osg::notify(osg::NOTICE) << "  Endless ocean " << (fftSurface->isEndlessOceanEnabled()? "enabled" : "disabled") << std::endl;
-                osg::notify(osg::NOTICE) << "  Crest foam " << (fftSurface->isCrestFoamEnabled()? "enabled" : "disabled") << std::endl;
-                osg::notify(osg::NOTICE) << "  Choppy waves " << (fftSurface->isChoppy()? "enabled" : "disabled") << std::endl;
-                osg::notify(osg::NOTICE) << "  Choppy factor " << fftSurface->getChoppyFactor() << std::endl;
-                osg::notify(osg::NOTICE) << "  Wind direction " << fftSurface->getWindDirection() << std::endl;
-                osg::notify(osg::NOTICE) << "  Wind speed " << fftSurface->getWindSpeed() << std::endl;
-                osg::notify(osg::NOTICE) << "  Wave scale factor " << fftSurface->getWaveScaleFactor() << std::endl;
-                return true;
-            }
-            break;
-        }
-        default:
-            break;
-    }
-
-    return false;
-}
-
-/** Get the keyboard and mouse usage of this manipulator.*/
-void FFTOceanSurface::EventHandler::getUsage(osg::ApplicationUsage& usage) const
-{
-    // Add parent class's keys too.
-    OceanTechnique::EventHandler::getUsage(usage);
-
-    usage.addKeyboardMouseBinding("f","Toggle crest foam");
-    usage.addKeyboardMouseBinding("p","Toggle choppy waves (dirties geometry if autoDirty is active)");
-    usage.addKeyboardMouseBinding("k","Decrease wave scale factor by 1e-9 (dirties geometry if autoDirty is active)");
-    usage.addKeyboardMouseBinding("K","Increase wave scale factor by 1e-9 (dirties geometry if autoDirty is active)");
-    usage.addKeyboardMouseBinding("w","Decrease wind speed by 0.5 (dirties geometry if autoDirty is active)");
-    usage.addKeyboardMouseBinding("W","Increase wind speed by 0.5 (dirties geometry if autoDirty is active)");
-    usage.addKeyboardMouseBinding("d","Dirty geometry manually");
-    usage.addKeyboardMouseBinding("D","Toggle autoDirty (if off, changes will require manual dirty)");
-    usage.addKeyboardMouseBinding("P","Print out current ocean surface settings");
 }
