@@ -19,6 +19,7 @@
 #include <osgOcean/ShaderManager>
 #include <osg/io_utils>
 #include <osg/Material>
+#include <osg/Timer>
 
 using namespace osgOcean;
 

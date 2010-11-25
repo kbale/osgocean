@@ -291,7 +291,7 @@ void FFTOceanSurfaceVBO::createOceanTiles( void )
             tileRow.at(x)=tile;
 
             // assign the master arrays to the tile geometry
-            tile->initialiseArrays( _masterVertices, _masterNormals );
+            tile->initialiseArrays( _masterVertices.get(), _masterNormals.get() );
 
             addDrawable( tile );
 
@@ -462,7 +462,7 @@ bool FFTOceanSurfaceVBO::updateLevels(const osg::Vec3f& eye)
    {
       for(int c = _numTiles-1; c>=0; --c )
       {
-         osgOcean::MipmapGeometryVBO* curGeom = _mipmapGeom.at(r).at(c);
+         osgOcean::MipmapGeometryVBO* curGeom = _mipmapGeom.at(r).at(c).get();
          osg::Vec3f centre = curGeom->getBound().center();
          
          float distanceToTile2 = (centre-eye).length2();
@@ -478,15 +478,15 @@ bool FFTOceanSurfaceVBO::updateLevels(const osg::Vec3f& eye)
          }
          
          if( c != _numTiles-1 && r != _numTiles-1 ){
-            osgOcean::MipmapGeometryVBO* rightGeom = _mipmapGeom.at(r).at(c+1);
-            osgOcean::MipmapGeometryVBO* belowGeom = _mipmapGeom.at(r+1).at(c);
+            osgOcean::MipmapGeometryVBO* rightGeom = _mipmapGeom.at(r).at(c+1).get();
+            osgOcean::MipmapGeometryVBO* belowGeom = _mipmapGeom.at(r+1).at(c).get();
             rightLevel = rightGeom->getLevel();
             belowLevel = belowGeom->getLevel();
          }
          else 
          {
             if( c != _numTiles-1 ){
-               osgOcean::MipmapGeometryVBO* rightGeom = _mipmapGeom.at(r).at(c+1);
+               osgOcean::MipmapGeometryVBO* rightGeom = _mipmapGeom.at(r).at(c+1).get();
                rightLevel = rightGeom->getLevel();
             }
             else{
@@ -494,7 +494,7 @@ bool FFTOceanSurfaceVBO::updateLevels(const osg::Vec3f& eye)
             }
             
             if( r != _numTiles-1 ){
-               osgOcean::MipmapGeometryVBO* belowGeom = _mipmapGeom.at(r+1).at(c);
+               osgOcean::MipmapGeometryVBO* belowGeom = _mipmapGeom.at(r+1).at(c).get();
                belowLevel = belowGeom->getLevel();
             }
             else{
