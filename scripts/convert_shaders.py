@@ -46,7 +46,7 @@ def createInlShader( shaderFile, shaderVar, headerFile ):
     oFile.write("\nstatic const char " + shaderVar +"[] =")
 
     for line in lines:
-        newLine = line.replace("\n","")
+        newLine = line.replace("\n","").replace("\r","")
         oFile.write('\n\t"'+newLine+'\\n"')
 
     oFile.write(";\n");
