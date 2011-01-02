@@ -54,7 +54,7 @@ const float shininess = 2000.0;
 // Values are taken from 'Rendering Water as Post-process Effect', Wojciech Toman
 // http://www.gamedev.net/reference/programming/features/ppWaterRender/
 // vec4 colorExtinction = vec4(4.5, 75.0, 300.0, 1.0) * 5.0;
-const vec4 oneOverColorExtinction = vec4(1.0/22.5, 1.0/375.0, 1.0/1500, 1.0/5.0);
+const vec4 oneOverColorExtinction = vec4(1.0/22.5, 1.0/375.0, 1.0/1500.0, 1.0/5.0);
 
 // The amount of light extinction,
 // higher values means that less light is transmitted through the water
@@ -208,8 +208,10 @@ void main( void )
         // Fade out the distortion along the screen edges this reduces artifacts
         // caused by texture coordinates that are distorted out of the [0, 1] range.
         // At very close distance to the surface the distortion artifacts still appear.
-        vec2 fade_xy = pow(abs(gl_FragCoord.xy / (osgOcean_ViewportDimensions.xy * 0.5) - 1.0), 10.0);
-        float fade = 1.0 - max(fade_xy.x , fade_xy.y);
+        float fadeX = pow(abs(gl_FragCoord.x / (osgOcean_ViewportDimensions.x * 0.5) - 1.0), 10.0);
+        float fadeY = pow(abs(gl_FragCoord.y / (osgOcean_ViewportDimensions.y * 0.5) - 1.0), 10.0);
+		
+        float fade = 1.0 - max(fadeX , fadeY);
 
         vec4 distortedVertex = distortGen(vVertex, N*fade);
 
