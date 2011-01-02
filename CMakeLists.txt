@@ -10,7 +10,11 @@ SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${osgOcean_BINARY_DIR}/bin)
 SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${osgOcean_BINARY_DIR}/lib)
 SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${osgOcean_BINARY_DIR}/lib)
 
-SET( CMAKE_USE_RELATIVE_PATHS true )
+# Work around for building an xcode project. It seems XCode projects that
+# built with CMake are not compatible with relative paths.
+IF(NOT APPLE)
+  SET( CMAKE_USE_RELATIVE_PATHS true )
+ENDIF()
 
 SET(CMAKE_DEBUG_POSTFIX "d" CACHE STRING "add a postfix, usually d")
 SET(CMAKE_RELEASE_POSTFIX "" CACHE STRING "add a postfix, usually empty")
