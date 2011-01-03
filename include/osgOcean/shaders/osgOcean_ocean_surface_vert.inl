@@ -66,8 +66,6 @@ static const char osgOcean_ocean_surface_vert[] =
 	"    return result;\n"
 	"}\n"
 	"\n"
-	"uniform mat4 gl_ModelViewProjectionMatrix;\n"
-	"\n"
 	"// -------------------------------\n"
 	"//          Main Program\n"
 	"// -------------------------------\n"
