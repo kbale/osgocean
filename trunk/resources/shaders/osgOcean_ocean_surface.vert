@@ -44,8 +44,6 @@ mat3 get3x3Matrix( mat4 m )
     return result;
 }
 
-uniform mat4 gl_ModelViewProjectionMatrix;
-
 // -------------------------------
 //          Main Program
 // -------------------------------
