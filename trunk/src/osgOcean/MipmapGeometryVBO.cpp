@@ -482,10 +482,10 @@ namespace osgOcean
             primitive->push_back( getIndex( _maxResolution - incBelow, _maxResolution ) );
             primitive->push_back( getIndex( _maxResolution,            _maxResolution ) );
             
-            for(int r = _maxResolution; r >= (int)_maxResolution-inc; r-=incRight )
+            for(int r = _maxResolution; r >= int(_maxResolution-inc); r-=incRight )
                 primitive->push_back( getIndex( _maxResolution, r ) );
 
-            for(int c = _maxResolution; c >= (int)_maxResolution-incBelow; c-=inc )
+            for(int c = _maxResolution; c >= int(_maxResolution-incBelow); c-=inc )
                 primitive->push_back( getIndex( c, _maxResolution-inc ) );
             
             _cornerPiece.push_back(primitive);
@@ -512,7 +512,7 @@ namespace osgOcean
             for(unsigned c = _maxResolution-inc; c < _maxResolution; c+=incBelow)
                 primitive->push_back( getIndex( c, _maxResolution ) );
 
-            for(int r = _maxResolution; r >= (int)_maxResolution-inc; r-=incRight )
+            for(int r = _maxResolution; r >= int(_maxResolution-inc); r-=incRight )
                 primitive->push_back( getIndex( _maxResolution, r ) );
 
             _cornerPiece.push_back(primitive);
