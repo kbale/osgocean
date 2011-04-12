@@ -205,18 +205,10 @@ void main( void )
         float dotEN = dot(E, N);
         float dotLN = dot(L, N);
 
-        // Fade out the distortion along the screen edges this reduces artifacts
-        // caused by texture coordinates that are distorted out of the [0, 1] range.
-        // At very close distance to the surface the distortion artifacts still appear.
-        float fadeX = pow(abs(gl_FragCoord.x / (osgOcean_ViewportDimensions.x * 0.5) - 1.0), 10.0);
-        float fadeY = pow(abs(gl_FragCoord.y / (osgOcean_ViewportDimensions.y * 0.5) - 1.0), 10.0);
-		
-        float fade = 1.0 - max(fadeX , fadeY);
-
-        vec4 distortedVertex = distortGen(vVertex, N*fade);
+        vec4 distortedVertex = distortGen(vVertex, N);
 
         // Calculate the position in world space of the pixel on the ocean floor
-        vec4 refraction_ndc = vec4(gl_FragCoord.xy / osgOcean_ViewportDimensions, texture2DProj(osgOcean_RefractionDepthMap, distortGen(vVertex, 0.0 * N)).x, 1.0);
+        vec4 refraction_ndc = vec4(gl_FragCoord.xy / osgOcean_ViewportDimensions, texture2DProj(osgOcean_RefractionDepthMap, distortedVertex).x, 1.0);
         vec4 refraction_screen = refraction_ndc * 2.0 - 1.0;
         vec4 refraction_world = osgOcean_RefractionInverseTransformation * refraction_screen;
         refraction_world = refraction_world / refraction_world.w;
@@ -224,16 +216,18 @@ void main( void )
         // The amount of water behind the pixel
         // (water depth as seen from the camera position)
         float waterDepth = distance(vWorldVertex, refraction_world);
+        vec4 refraction_dir = refraction_world - vWorldVertex;
 
 #if SHORETOSINUS
         // The vertical distance between the ocean surface and ocean floor, this uses the projected heightmap
-        float waterHeight = (texture2DProj(osgOcean_Heightmap, distortGen(vVertex, 0.0 * N)).x) * 500.0;
+        float waterHeight = (texture2DProj(osgOcean_Heightmap, distortedVertex).x) * 500.0;
 #endif
 
         // Determine refraction color
         vec4 refraction_color = vec4( gl_Color.rgb, 1.0 );
 
-        if(osgOcean_EnableRefractions)
+        // Only use refraction for under the ocean surface.
+        if(osgOcean_EnableRefractions && dot(vWorldViewDir, refraction_dir.xyz) > 0.0)
         {
             vec4 refractionmap_color = texture2DProj(osgOcean_RefractionMap, distortedVertex );
 			
