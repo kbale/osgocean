@@ -131,12 +131,11 @@ OceanScene::OceanScene( void )
 
     osg::Geode* cylinderGeode = new osg::Geode;
     cylinderGeode->addDrawable( _oceanCylinder.get() );
-    cylinderGeode->setNodeMask( getNormalSceneMask() );
 
     _oceanCylinderMT->setMatrix( osg::Matrix::translate(0, 0, -4000) );
     _oceanCylinderMT->setDataVariance( osg::Object::DYNAMIC ),
     _oceanCylinderMT->setCullCallback( new CameraTrackCallback );
-    _oceanCylinderMT->setNodeMask( getNormalSceneMask() );
+    _oceanCylinderMT->setNodeMask( getNormalSceneMask() | getRefractedSceneMask() );
     _oceanCylinderMT->addChild( cylinderGeode );
 
     _oceanTransform->addChild( _oceanCylinderMT.get() );
@@ -213,12 +212,11 @@ OceanScene::OceanScene( OceanTechnique* technique )
 
     osg::Geode* cylinderGeode = new osg::Geode;
     cylinderGeode->addDrawable( _oceanCylinder.get() );
-    cylinderGeode->setNodeMask( getNormalSceneMask() );
 
     _oceanCylinderMT->setMatrix( osg::Matrix::translate(0, 0, -4000) );
     _oceanCylinderMT->setDataVariance( osg::Object::DYNAMIC ),
     _oceanCylinderMT->setCullCallback( new CameraTrackCallback );
-    _oceanCylinderMT->setNodeMask( getNormalSceneMask() );
+    _oceanCylinderMT->setNodeMask( getNormalSceneMask() | getRefractedSceneMask() );
     _oceanCylinderMT->addChild( cylinderGeode );
 
     _oceanTransform->addChild( _oceanCylinderMT.get() );
@@ -834,7 +832,7 @@ void OceanScene::cull(osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surface
         {
             osg::Node* child = getChild(i);
             if (child->getNodeMask() != 0 && child != _oceanTransform.get() && child != _siltClipNode.get())
-                child->setNodeMask((child->getNodeMask() & ~_surfaceMask & ~_siltMask) | _normalSceneMask);
+                child->setNodeMask((child->getNodeMask() & ~_surfaceMask & ~_siltMask) | _normalSceneMask | _reflectionSceneMask | _refractionSceneMask);
         }
 
         // render ocean surface with reflection / refraction stateset
@@ -881,6 +879,7 @@ osg::Camera* OceanScene::renderToTexturePass( osg::Texture* textureBuffer )
     camera->setReferenceFrame( osg::Transform::ABSOLUTE_RF_INHERIT_VIEWPOINT );
     camera->setViewport( 0,0, textureBuffer->getTextureWidth(), textureBuffer->getTextureHeight() );
     camera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT);
+    camera->setRenderOrder(osg::Camera::PRE_RENDER);
     camera->attach( osg::Camera::COLOR_BUFFER, textureBuffer );
 
     return camera;
@@ -897,6 +896,7 @@ osg::Camera* OceanScene::multipleRenderTargetPass(osg::Texture* texture0, osg::C
     camera->setReferenceFrame( osg::Transform::ABSOLUTE_RF_INHERIT_VIEWPOINT );
     camera->setViewport( 0,0, texture0->getTextureWidth(), texture0->getTextureHeight() );
     camera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT);
+    camera->setRenderOrder(osg::Camera::PRE_RENDER);
     camera->attach( buffer0, texture0 );
     camera->attach( buffer1, texture1 );
 
@@ -1162,10 +1162,10 @@ osg::Texture2D* OceanScene::createTexture2D( const osg::Vec2s& size, GLint forma
     osg::Texture2D* texture = new osg::Texture2D;
     texture->setTextureSize(size.x(), size.y());
     texture->setInternalFormat(format);
-    texture->setFilter(osg::Texture2D::MIN_FILTER,osg::Texture2D::LINEAR);
-    texture->setFilter(osg::Texture2D::MAG_FILTER,osg::Texture2D::LINEAR);
-    texture->setWrap(osg::Texture::WRAP_S, osg::Texture::CLAMP );
-    texture->setWrap(osg::Texture::WRAP_T, osg::Texture::CLAMP );
+    texture->setFilter(osg::Texture2D::MIN_FILTER, format == GL_DEPTH_COMPONENT ? osg::Texture2D::NEAREST : osg::Texture2D::LINEAR );
+    texture->setFilter(osg::Texture2D::MAG_FILTER, format == GL_DEPTH_COMPONENT ? osg::Texture2D::NEAREST : osg::Texture2D::LINEAR);
+    texture->setWrap(osg::Texture::WRAP_S, osg::Texture::CLAMP_TO_EDGE );
+    texture->setWrap(osg::Texture::WRAP_T, osg::Texture::CLAMP_TO_EDGE );
     texture->setDataVariance(osg::Object::DYNAMIC);
     return texture;
 }
@@ -1177,8 +1177,8 @@ osg::TextureRectangle* OceanScene::createTextureRectangle( const osg::Vec2s& siz
     texture->setInternalFormat(format);
     texture->setFilter(osg::Texture2D::MIN_FILTER,osg::Texture2D::LINEAR);
     texture->setFilter(osg::Texture2D::MAG_FILTER,osg::Texture2D::LINEAR);
-    texture->setWrap(osg::Texture::WRAP_S, osg::Texture::CLAMP );
-    texture->setWrap(osg::Texture::WRAP_T, osg::Texture::CLAMP );
+    texture->setWrap(osg::Texture::WRAP_S, osg::Texture::CLAMP_TO_EDGE );
+    texture->setWrap(osg::Texture::WRAP_T, osg::Texture::CLAMP_TO_EDGE );
     texture->setDataVariance(osg::Object::DYNAMIC);
     return texture;
 }
