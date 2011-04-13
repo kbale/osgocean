@@ -423,12 +423,15 @@ void OceanScene::init( void )
             osg::Texture2D* refractionTexture = createTexture2D( _refractionTexSize, GL_RGBA );
             osg::Texture2D* refractionDepthTexture = createTexture2D( _refractionTexSize, GL_DEPTH_COMPONENT );
 
+            refractionTexture->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture2D::NEAREST );
+            refractionTexture->setFilter(osg::Texture2D::MAG_FILTER, osg::Texture2D::NEAREST );
+
             _refractionCamera = multipleRenderTargetPass( 
                 refractionTexture, osg::Camera::COLOR_BUFFER, 
                 refractionDepthTexture, osg::Camera::DEPTH_BUFFER );
             
             _refractionCamera->setClearDepth( 1.0 );
-            _refractionCamera->setClearColor( osg::Vec4( 0.160784, 0.231372, 0.325490, 0.0 ) );
+            _refractionCamera->setClearColor( osg::Vec4( 0.0, 0.0, 0.0, 0.0 ) );
             _refractionCamera->setCullMask( _refractionSceneMask );
             _refractionCamera->setCullCallback( new CameraCullCallback(this) );
 
@@ -1163,7 +1166,7 @@ osg::Texture2D* OceanScene::createTexture2D( const osg::Vec2s& size, GLint forma
     texture->setTextureSize(size.x(), size.y());
     texture->setInternalFormat(format);
     texture->setFilter(osg::Texture2D::MIN_FILTER, format == GL_DEPTH_COMPONENT ? osg::Texture2D::NEAREST : osg::Texture2D::LINEAR );
-    texture->setFilter(osg::Texture2D::MAG_FILTER, format == GL_DEPTH_COMPONENT ? osg::Texture2D::NEAREST : osg::Texture2D::LINEAR);
+    texture->setFilter(osg::Texture2D::MAG_FILTER, format == GL_DEPTH_COMPONENT ? osg::Texture2D::NEAREST : osg::Texture2D::LINEAR );
     texture->setWrap(osg::Texture::WRAP_S, osg::Texture::CLAMP_TO_EDGE );
     texture->setWrap(osg::Texture::WRAP_T, osg::Texture::CLAMP_TO_EDGE );
     texture->setDataVariance(osg::Object::DYNAMIC);
