@@ -409,7 +409,6 @@ void OceanScene::init( void )
             _surfaceStateSet->setTextureAttributeAndModes( _reflectionUnit, reflectionTexture.get(), osg::StateAttribute::ON );
 
             osg::ClipPlane* reflClipPlane = new osg::ClipPlane();
-            _reflectionCamera->getOrCreateStateSet()->setMode( GL_CLIP_PLANE0, osg::StateAttribute::ON );
             reflClipPlane->setClipPlaneNum(0);
             reflClipPlane->setClipPlane( 0.0, 0.0, 1.0, -getOceanSurfaceHeight() );
             _reflectionClipNode = new osg::ClipNode;
@@ -429,7 +428,7 @@ void OceanScene::init( void )
             _refractionCamera = multipleRenderTargetPass( 
                 refractionTexture, osg::Camera::COLOR_BUFFER, 
                 refractionDepthTexture, osg::Camera::DEPTH_BUFFER );
-            
+
             _refractionCamera->setClearDepth( 1.0 );
             _refractionCamera->setClearColor( osg::Vec4( 0.0, 0.0, 0.0, 0.0 ) );
             _refractionCamera->setCullMask( _refractionSceneMask );
@@ -444,11 +443,11 @@ void OceanScene::init( void )
             osg::TextureRectangle* godRayTexture = createTextureRectangle( _screenDims/2, GL_RGB );
 
             _godrays = new GodRays(10,_sunDirection, getOceanSurfaceHeight() );
-            
+
             _godrayPreRender=renderToTexturePass( godRayTexture );
             _godrayPreRender->setClearColor( osg::Vec4(0.0745098, 0.10588235, 0.1529411, 1.0) );
             _godrayPreRender->addChild( _godrays.get() );
-        
+
             _godRayBlendSurface = new GodRayBlendSurface( osg::Vec3f(-1.f,-1.f,-1.f), osg::Vec2f(2.f,2.f), godRayTexture );
 
             _godRayBlendSurface->setSunDirection(_sunDirection);
