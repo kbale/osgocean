@@ -154,6 +154,9 @@ int main(int argc, char *argv[])
     bool compositeViewer = false;
     if (arguments.read("--compositeViewer")) compositeViewer = true;
 
+    bool mainViewLast = false;
+    if (arguments.read("--mainViewLast")) mainViewLast = true;
+
     osg::ref_ptr<osg::Node> loadedModel = osgDB::readNodeFiles(arguments);
 
     // any option left unread are converted into errors to write out later.
@@ -272,6 +275,7 @@ int main(int argc, char *argv[])
 
     if (compositeViewer)
     {
+        // Create a small inset view.
         osgViewer::View* view2 = new osgViewer::View;
         view2->getCamera()->setGraphicsContext(view->getCamera()->getGraphicsContext());
         view2->getCamera()->setViewport(10, view->getCamera()->getViewport()->height() - 200 - 10, 200, 200);
@@ -286,8 +290,25 @@ int main(int argc, char *argv[])
         // (refraction and height map). Reflection doesn't seem to depend on this 
         // at all, it works correctly in both views.
         osgViewer::CompositeViewer* compositeViewer = dynamic_cast<osgViewer::CompositeViewer*>(viewer.get());
-        compositeViewer->addView(view2);
-        compositeViewer->addView(view);
+
+        if (mainViewLast)
+        {
+            // If we explicitly asked that the main view be added last to the 
+            // viewer, we'll see that the refraction applies to it, and it 
+            // controls ocean tile LOD.
+            compositeViewer->addView(view2);
+            compositeViewer->addView(view);
+        }
+        else
+        {
+            // The "normal" case in most applications I've seen is that the 
+            // main view is created and added first, and then inset views are
+            // created and added. So without the --mainViewLast argument, this
+            // is what we'll demonstrate. The main view won't have refraction
+            // effects, the inset view will.
+            compositeViewer->addView(view);
+            compositeViewer->addView(view2);
+        }
     }
 
     viewer->realize();
