@@ -14,9 +14,9 @@
 class SceneEventHandler : public osgGA::GUIEventHandler
 {
 private:
-    osg::ref_ptr<Scene> _scene;
+    osg::ref_ptr<Scene>   _scene;
     osg::ref_ptr<TextHUD> _textHUD;
-    osgViewer::Viewer& _viewer;
+    osgViewer::View*      _view;
 
     enum CameraMode
     {
@@ -28,10 +28,10 @@ private:
     CameraMode _currentCameraMode;
 
 public:
-    SceneEventHandler( Scene* scene, TextHUD* textHUD, osgViewer::Viewer& viewer )
+    SceneEventHandler( Scene* scene, TextHUD* textHUD, osgViewer::View* view )
         :_scene             (scene)
         ,_textHUD           (textHUD)
-        ,_viewer            (viewer)
+        ,_view              (view)
         ,_currentCameraMode (FIXED)
       {
           _textHUD->setSceneText("Clear");
@@ -41,7 +41,7 @@ public:
           osg::Vec3f centre = eye+osg::Vec3f(0.f,1.f,0.f);
           osg::Vec3f up(0.f, 0.f, 1.f);
 
-          _viewer.getCamera()->setViewMatrixAsLookAt( eye, centre, up    );
+          _view->getCamera()->setViewMatrixAsLookAt( eye, centre, up    );
       }
 
       virtual bool handle(const osgGA::GUIEventAdapter& ea,osgGA::GUIActionAdapter&)
@@ -75,7 +75,7 @@ public:
                           _currentCameraMode = FLIGHT;
                           osgGA::FlightManipulator* flight = new osgGA::FlightManipulator;
                           flight->setHomePosition( osg::Vec3f(0.f,0.f,20.f), osg::Vec3f(0.f,0.f,20.f)+osg::Vec3f(0.f,1.f,0.f), osg::Vec3f(0,0,1) );
-                          _viewer.setCameraManipulator( flight );
+                          _view->setCameraManipulator( flight );
                           _textHUD->setCameraText("FLIGHT");
                       }
                       else if (_currentCameraMode == FLIGHT)
@@ -83,14 +83,14 @@ public:
                           _currentCameraMode = TRACKBALL;
                           osgGA::TrackballManipulator* tb = new osgGA::TrackballManipulator;
                           tb->setHomePosition( osg::Vec3f(0.f,0.f,20.f), osg::Vec3f(0.f,20.f,20.f), osg::Vec3f(0,0,1) );
-                          _viewer.setCameraManipulator( tb );
+                          _view->setCameraManipulator( tb );
                           _textHUD->setCameraText("TRACKBALL");
                       }
                       else if (_currentCameraMode == TRACKBALL)
                       {
                           _currentCameraMode = FIXED;
-                          _viewer.getCamera()->setViewMatrixAsLookAt( osg::Vec3f(0.f,0.f,20.f), osg::Vec3f(0.f,0.f,20.f)+osg::Vec3f(0.f,1.f,0.f), osg::Vec3f(0,0,1) );
-                          _viewer.setCameraManipulator(NULL);
+                          _view->getCamera()->setViewMatrixAsLookAt( osg::Vec3f(0.f,0.f,20.f), osg::Vec3f(0.f,0.f,20.f)+osg::Vec3f(0.f,1.f,0.f), osg::Vec3f(0,0,1) );
+                          _view->setCameraManipulator(NULL);
                           _textHUD->setCameraText("FIXED");
                       }
                   }

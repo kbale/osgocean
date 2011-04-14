@@ -20,6 +20,8 @@
 #include <iostream>
 
 #include <osgViewer/Viewer>
+#include <osgViewer/CompositeViewer>
+
 #include <osgViewer/ViewerEventHandlers>
 
 #include <osgGA/StateSetManipulator>
@@ -149,6 +151,9 @@ int main(int argc, char *argv[])
     bool useVBO = false;
     if (arguments.read("--vbo")) useVBO = true;
 
+    bool compositeViewer = false;
+    if (arguments.read("--compositeViewer")) compositeViewer = true;
+
     osg::ref_ptr<osg::Node> loadedModel = osgDB::readNodeFiles(arguments);
 
     // any option left unread are converted into errors to write out later.
@@ -161,17 +166,42 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    osgViewer::Viewer viewer;
+    osg::ref_ptr<osgViewer::ViewerBase> viewer;
+    osgViewer::View* view = 0;
+    if (compositeViewer)
+    {
+        viewer = new osgViewer::CompositeViewer;
+        view = new osgViewer::View;
+    }
+    else
+    {
+        osgViewer::Viewer* singleViewer = new osgViewer::Viewer;
+        viewer = singleViewer;
+        view = singleViewer;
+    }
 
-    viewer.setUpViewInWindow( 150,150,1024,768, 0 );
-    viewer.addEventHandler( new osgViewer::StatsHandler );
-    viewer.addEventHandler( new osgGA::StateSetManipulator( viewer.getCamera()->getOrCreateStateSet() ) );
+    view->setUpViewInWindow( 150,150,1024,768, 0 );
+    view->addEventHandler( new osgViewer::StatsHandler );
+    view->addEventHandler( new osgGA::StateSetManipulator( view->getCamera()->getOrCreateStateSet() ) );
 
     osg::ref_ptr<TextHUD> hud = new TextHUD;
 
     osgOcean::ShaderManager::instance().enableShaders(!disableShaders);
     osg::ref_ptr<Scene> scene = new Scene(windDirection, windSpeed, depth, reflectionDamping, scale, isChoppy, choppyFactor, crestFoamHeight, useVBO);
     
+    if (compositeViewer)
+    {
+        // Post-render RTT effects don't work at all when using multiple 
+        // views. This is not an immediate concern for us because we don't
+        // use them anyways in our software.
+        scene->getOceanScene()->enableGodRays(false);
+        scene->getOceanScene()->enableSilt(false);
+        scene->getOceanScene()->enableUnderwaterDOF(false);
+        scene->getOceanScene()->enableUnderwaterScattering(false);
+        scene->getOceanScene()->enableDistortion(false);
+        scene->getOceanScene()->enableGlare(false);
+    }
+
     if (disableShaders)
     {
         // Disable all special effects that depend on shaders.
@@ -192,16 +222,15 @@ int main(int argc, char *argv[])
     }
 
     scene->getOceanScene()->setOceanSurfaceHeight(oceanSurfaceHeight);
-    viewer.addEventHandler(scene->getOceanSceneEventHandler());
-    viewer.addEventHandler(scene->getOceanSurface()->getEventHandler());
+    view->addEventHandler(scene->getOceanSceneEventHandler());
+    view->addEventHandler(scene->getOceanSurface()->getEventHandler());
 
-    viewer.addEventHandler( new SceneEventHandler(scene.get(), hud.get(), viewer ) );
-    viewer.addEventHandler( new osgViewer::HelpHandler );
-    viewer.getCamera()->setName("MainCamera");
+    view->addEventHandler( new SceneEventHandler(scene.get(), hud.get(), view ) );
+    view->addEventHandler( new osgViewer::HelpHandler );
+    view->getCamera()->setName("MainCamera");
 
     osg::Group* root = new osg::Group;
     root->addChild( scene->getScene() );
-    root->addChild( hud->getHudCamera() );
 
     if (loadedModel.valid())
     {
@@ -237,13 +266,35 @@ int main(int argc, char *argv[])
         }
     }
 
-    viewer.setSceneData( root );
+    view->setSceneData( root );
+    // Add the HUD to the main view only (if compositeViewer == true)
+    view->getCamera()->addChild( hud->getHudCamera() );
 
-    viewer.realize();
-
-    while(!viewer.done())
+    if (compositeViewer)
     {
-        viewer.frame();    
+        osgViewer::View* view2 = new osgViewer::View;
+        view2->getCamera()->setGraphicsContext(view->getCamera()->getGraphicsContext());
+        view2->getCamera()->setViewport(10, view->getCamera()->getViewport()->height() - 200 - 10, 200, 200);
+        osgGA::TrackballManipulator* tb = new osgGA::TrackballManipulator;
+        tb->setHomePosition( osg::Vec3f(0.f,0.f,20.f), osg::Vec3f(0.f,20.f,20.f), osg::Vec3f(0,0,1) );
+        view2->setCameraManipulator( tb );
+        view2->setSceneData(root);
+
+        // The order here is important, the last view added to the viewer (so 
+        // presumably the last one to be rendered by the viewer) controls the LOD 
+        // of ocean tiles, as well as which view gets refraction effects 
+        // (refraction and height map). Reflection doesn't seem to depend on this 
+        // at all, it works correctly in both views.
+        osgViewer::CompositeViewer* compositeViewer = dynamic_cast<osgViewer::CompositeViewer*>(viewer.get());
+        compositeViewer->addView(view2);
+        compositeViewer->addView(view);
+    }
+
+    viewer->realize();
+
+    while(!viewer->done())
+    {
+        viewer->frame();    
     }
 
     return 0;
