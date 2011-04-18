@@ -39,6 +39,7 @@ namespace osgOcean
         float _spacing;                         /**< Vertex spacing. */
         float _maxDelta;                        /**< Max change in height between levels */
         float _averageHeight;                   /**< Average height (z) of vertices */
+        float _maxHeight;                       /**< Maximum height (z) of vertices */
         bool  _useVBO;                          /**< Add relative position to tile placement */
         
     public:
@@ -130,6 +131,10 @@ namespace osgOcean
 
         inline const float getAverageHeight(void) const{
             return _averageHeight;
+        }
+
+        inline const float getMaximumHeight(void) const{
+            return _maxHeight;
         }
 
         inline const bool getUseVBO(void) const {

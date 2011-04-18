@@ -42,6 +42,12 @@ float OceanTechnique::getSurfaceHeight(void) const
     return 0.f;
 }
 
+float OceanTechnique::getMaximumHeight(void) const
+{
+    osg::notify(osg::DEBUG_INFO) << "OceanTechnique::getMaximumHeight() Not Implemented" << std::endl;
+    return 0.f;
+}
+
 /** Check if the ocean surface is visible or not. Basic test is very 
     simple, subclasses can do a better test. */
 bool OceanTechnique::isVisible( osgUtil::CullVisitor& cv, bool eyeAboveWater )

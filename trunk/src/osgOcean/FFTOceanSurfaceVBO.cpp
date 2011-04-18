@@ -203,6 +203,7 @@ void FFTOceanSurfaceVBO::computeSea( unsigned int totalFrames )
     _mipmapData.resize( totalFrames );
 
     _averageHeight = 0.f;
+    _maxHeight = -FLT_MAX;
 
     for( unsigned int frame = 0; frame < totalFrames; ++frame )
     {
@@ -224,6 +225,8 @@ void FFTOceanSurfaceVBO::computeSea( unsigned int totalFrames )
         _mipmapData[frame] = OceanTile( heights.get(), _tileSize, _pointSpacing, displacements.get(), true );
 
         _averageHeight += _mipmapData[frame].getAverageHeight();
+
+        _maxHeight = osg::maximum(_maxHeight, _mipmapData[frame].getMaximumHeight());
     }
     _averageHeight /= (float)totalFrames;
 

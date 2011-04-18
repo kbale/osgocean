@@ -70,6 +70,7 @@ namespace osgOcean
         float       _foamCapTop;            /**< Maximum height for foam caps. */
         float       _foamCapBottom;         /**< Minimum height for foam caps. */
         float       _averageHeight;         /**< Average height over the total tiles. */
+        float       _maxHeight;             /**< Maximum height over the total tiles. */
         float       _fresnelMul;            /**< Fresnel multiplier uniform, typical values: (0.5-0.8). */
 
         bool        _isStateDirty;
@@ -201,6 +202,11 @@ namespace osgOcean
         /** Returns the average height over the whole surface (in local space)*/
         inline float getSurfaceHeight( void ) const {
             return _averageHeight;
+        }
+
+        /** Returns the maximum height over the whole surface (in local space)*/
+        inline float getMaximumHeight( void ) const {
+            return _maxHeight;
         }
 
         /**
