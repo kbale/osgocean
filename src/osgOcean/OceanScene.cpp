@@ -17,6 +17,7 @@
 
 #include <osgOcean/OceanScene>
 #include <osgOcean/ShaderManager>
+#include <osgOcean/FFTOceanTechnique>
 
 #include <osg/Depth>
 
@@ -29,20 +30,43 @@ namespace
     class CameraTrackCallback: public osg::NodeCallback
     {
     public:
+        CameraTrackCallback(OceanScene* oceanScene)
+            : _oceanScene (oceanScene)
+        {
+        }
+
         virtual void operator()(osg::Node* node, osg::NodeVisitor* nv)
         {
             if( nv->getVisitorType() == osg::NodeVisitor::CULL_VISITOR )
             {
-                osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(nv);
-                osg::Vec3f centre,up,eye;
-                // get MAIN camera eye,centre,up
-                cv->getRenderStage()->getCamera()->getViewMatrixAsLookAt(eye,centre,up);
-                // update position
                 osg::MatrixTransform* mt = static_cast<osg::MatrixTransform*>(node);
-                mt->setMatrix( osg::Matrix::translate( eye.x(), eye.y(), mt->getMatrix().getTrans().z() ) );
+                bool follow = true;
+
+                osgOcean::FFTOceanTechnique* oceanTechnique = dynamic_cast<osgOcean::FFTOceanTechnique*>(_oceanScene->getOceanTechnique());
+                if (oceanTechnique && !oceanTechnique->isEndlessOceanEnabled())
+                {
+                    follow = false;
+                }
+
+                if (follow)
+                {
+                    osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(nv);
+                    osg::Vec3f centre,up,eye;
+                    // get MAIN camera eye,centre,up
+                    cv->getRenderStage()->getCamera()->getViewMatrixAsLookAt(eye,centre,up);
+                    // update position
+                    mt->setMatrix( osg::Matrix::translate( eye.x(), eye.y(), mt->getMatrix().getTrans().z() ) );
+                }
+                else
+                {
+                    // OceanScene's _oceanTransform is always at (x,y)=(0,0) for now.
+                    mt->setMatrix( osg::Matrix::translate( 0, 0, mt->getMatrix().getTrans().z() ) );
+                }
             }
             traverse(node, nv); 
         }
+
+        osgOcean::OceanScene* _oceanScene;
     };
 
     class RefractionInverseTransformationMatrixCallback : public osg::Uniform::Callback
@@ -68,6 +92,8 @@ namespace
 
     };
 
+
+    static const float OCEAN_CYLINDER_HEIGHT = 4000.f;
 
 }
 
@@ -113,7 +139,7 @@ OceanScene::OceanScene( void )
     ,_eyeHeightReflectionCutoff  ( FLT_MAX )
     ,_eyeHeightRefractionCutoff  (-FLT_MAX )
     ,_oceanTransform             ( new osg::MatrixTransform )
-    ,_oceanCylinder              ( new Cylinder(1900.f, 3999.8f, 16, false, true) )
+    ,_oceanCylinder              ( new Cylinder(1900.f, OCEAN_CYLINDER_HEIGHT, 16, false, true) )
     ,_oceanCylinderMT            ( new osg::MatrixTransform )
     ,_fog                        ( new osg::Fog )
     ,_eyeAboveWaterPreviousFrame ( true )
@@ -132,9 +158,9 @@ OceanScene::OceanScene( void )
     osg::Geode* cylinderGeode = new osg::Geode;
     cylinderGeode->addDrawable( _oceanCylinder.get() );
 
-    _oceanCylinderMT->setMatrix( osg::Matrix::translate(0, 0, -4000) );
+    _oceanCylinderMT->setMatrix( osg::Matrix::translate(0, 0, -OCEAN_CYLINDER_HEIGHT) );
     _oceanCylinderMT->setDataVariance( osg::Object::DYNAMIC ),
-    _oceanCylinderMT->setCullCallback( new CameraTrackCallback );
+    _oceanCylinderMT->setCullCallback( new CameraTrackCallback(this) );
     _oceanCylinderMT->setNodeMask( getNormalSceneMask() | getRefractedSceneMask() );
     _oceanCylinderMT->addChild( cylinderGeode );
 
@@ -194,7 +220,7 @@ OceanScene::OceanScene( OceanTechnique* technique )
     ,_eyeHeightReflectionCutoff  ( FLT_MAX)
     ,_eyeHeightRefractionCutoff  (-FLT_MAX)
     ,_oceanTransform             ( new osg::MatrixTransform )
-    ,_oceanCylinder              ( new Cylinder(1900.f, 3999.8f, 16, false, true) )
+    ,_oceanCylinder              ( new Cylinder(1900.f, OCEAN_CYLINDER_HEIGHT, 16, false, true) )
     ,_oceanCylinderMT            ( new osg::MatrixTransform )
     ,_fog                        ( new osg::Fog)
     ,_eyeAboveWaterPreviousFrame ( true )
@@ -213,9 +239,9 @@ OceanScene::OceanScene( OceanTechnique* technique )
     osg::Geode* cylinderGeode = new osg::Geode;
     cylinderGeode->addDrawable( _oceanCylinder.get() );
 
-    _oceanCylinderMT->setMatrix( osg::Matrix::translate(0, 0, -4000) );
+    _oceanCylinderMT->setMatrix( osg::Matrix::translate(0, 0, -OCEAN_CYLINDER_HEIGHT) );
     _oceanCylinderMT->setDataVariance( osg::Object::DYNAMIC ),
-    _oceanCylinderMT->setCullCallback( new CameraTrackCallback );
+    _oceanCylinderMT->setCullCallback( new CameraTrackCallback(this) );
     _oceanCylinderMT->setNodeMask( getNormalSceneMask() | getRefractedSceneMask() );
     _oceanCylinderMT->addChild( cylinderGeode );
 
@@ -646,6 +672,27 @@ void OceanScene::traverse( osg::NodeVisitor& nv )
                     _fog->setDensity(eyeAboveWater ? _aboveWaterFogDensity : _underwaterFogDensity);
                     _fog->setColor(eyeAboveWater ? _aboveWaterFogColor : _underwaterFogColor);
                     _eyeAboveWaterPreviousFrame = eyeAboveWater;
+                }
+
+                // Translate the ocean cylinder down by the surface height 
+                // if the eye went from below to above the surface (so the 
+                // cylinder doesn't peek through the waves) and inversely
+                // when the eye goes from above to below the surface (so
+                // we don't see cracks between the cylinder's edge and the
+                // waves).
+                if (_oceanCylinderMT.valid())
+                {
+                    osg::Matrix cylinderMatrix = _oceanCylinderMT->getMatrix();
+                    if (eyeAboveWater)
+                    {
+                        cylinderMatrix.setTrans(osg::Vec3(0,0,-_oceanCylinder->getHeight() - _oceanSurface->getMaximumHeight()*2.0));
+                        _oceanCylinderMT->setMatrix(cylinderMatrix);
+                    }
+                    else
+                    {
+                        cylinderMatrix.setTrans(osg::Vec3(0,0,-_oceanCylinder->getHeight() + _oceanSurface->getMaximumHeight()*2.0));
+                        _oceanCylinderMT->setMatrix(cylinderMatrix);
+                    }
                 }
 
                 bool surfaceVisible = _oceanSurface->isVisible(*cv, eyeAboveWater);

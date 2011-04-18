@@ -185,6 +185,7 @@ void FFTOceanSurface::computeSea( unsigned int totalFrames )
     _mipmapData.resize( totalFrames );
 
     _averageHeight = 0.f;
+    _maxHeight = -FLT_MAX;
 
     for( unsigned int frame = 0; frame < totalFrames; ++frame )
     {
@@ -208,6 +209,8 @@ void FFTOceanSurface::computeSea( unsigned int totalFrames )
         _mipmapData[frame][0] = OceanTile( heights.get(), _tileSize, _pointSpacing, displacements.get() );
 
         _averageHeight += _mipmapData[frame][0].getAverageHeight();
+
+        _maxHeight = osg::maximum(_maxHeight, _mipmapData[frame][0].getMaximumHeight());
 
         // Levels 1 -> Max Level
         for(unsigned int level = 1; level < _numLevels-1; ++level )

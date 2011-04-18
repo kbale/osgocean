@@ -169,6 +169,14 @@ namespace osgOcean
 
         bool isOceanVisible() const { return _oceanTransform->getNodeMask() != 0; }
 
+        osgOcean::Cylinder* getOceanCylinder() const{
+            return _oceanCylinder.get();
+        }
+
+        osg::MatrixTransform* getOceanCylinderTransform() const{
+            return _oceanCylinderMT.get();
+        }
+
         /**
         * Set the size of _oceanCylinder which follows the camera underwater, so that the clear
         * color is not visible past the far plane - it will be the fog color.
