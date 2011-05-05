@@ -45,7 +45,14 @@ namespace
                 osgOcean::FFTOceanTechnique* oceanTechnique = dynamic_cast<osgOcean::FFTOceanTechnique*>(_oceanScene->getOceanTechnique());
                 if (oceanTechnique && !oceanTechnique->isEndlessOceanEnabled())
                 {
+                    // Do not follow the eye when the ocean is constrained 
+                    // to an area.
                     follow = false;
+
+                    // The ocean cylinder should not be visible if the ocean 
+                    // is constrained to an area, since the ocean will often 
+                    // be in a pool or a river which already has walls.
+                    _oceanScene->getOceanCylinderTransform()->getChild(0)->setNodeMask(0);
                 }
 
                 if (follow)
@@ -56,11 +63,6 @@ namespace
                     cv->getRenderStage()->getCamera()->getViewMatrixAsLookAt(eye,centre,up);
                     // update position
                     mt->setMatrix( osg::Matrix::translate( eye.x(), eye.y(), mt->getMatrix().getTrans().z() ) );
-                }
-                else
-                {
-                    // OceanScene's _oceanTransform is always at (x,y)=(0,0) for now.
-                    mt->setMatrix( osg::Matrix::translate( 0, 0, mt->getMatrix().getTrans().z() ) );
                 }
             }
             traverse(node, nv); 
