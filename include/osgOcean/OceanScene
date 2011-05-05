@@ -163,6 +163,21 @@ namespace osgOcean
                    _oceanSurface->getSurfaceHeightAt(x, y, normal);
         }
 
+        void setOceanSurfaceTransform(const osg::Matrix& transform)
+        {
+            _oceanTransform->setMatrix(osg::Matrix::translate(transform.getTrans().x(),
+                                                              transform.getTrans().y(),
+                                                              transform.getTrans().z() - _oceanSurface->getSurfaceHeight()));
+            _isDirty = true;
+        }
+
+        osg::Matrix getOceanSurfaceTransform() const
+        {
+            return osg::Matrix::translate(_oceanTransform->getMatrix().getTrans().x(),
+                                          _oceanTransform->getMatrix().getTrans().y(),
+                                          _oceanTransform->getMatrix().getTrans().z() + _oceanSurface->getSurfaceHeight());
+        }
+
         void setOceanVisible(bool visible){
             _oceanTransform->setNodeMask( visible ? _normalSceneMask | _surfaceMask : 0 );
         }

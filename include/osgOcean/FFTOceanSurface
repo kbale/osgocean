@@ -47,18 +47,18 @@ namespace osgOcean
         std::vector< std::vector< osg::ref_ptr<MipmapGeometry> > > _mipmapGeom;  /**< Geometry tiles. */
 
     public:
-        FFTOceanSurface(unsigned int FFTGridSize,
-            unsigned int resolution,
-            unsigned int numTiles, 
-            const osg::Vec2f& windDirection,
-            float windSpeed,
-            float depth,
-            float reflectionDamping,
-            float waveScale,
-            bool isChoppy,
-            float choppyFactor,
-            float animLoopTime,
-            unsigned int numFrames );
+        FFTOceanSurface(unsigned int FFTGridSize = 64,
+            unsigned int resolution = 256,
+            unsigned int numTiles = 17, 
+            const osg::Vec2f& windDirection = osg::Vec2f(1.1f, 1.1f),
+            float windSpeed = 12.f,
+            float depth = 1000.f,
+            float reflectionDamping = 0.35f,
+            float waveScale = 1e-8f,
+            bool isChoppy = true,
+            float choppyFactor = -2.5f,
+            float animLoopTime = 10.f,
+            unsigned int numFrames = 256 );
 
         FFTOceanSurface( const FFTOceanSurface& copy, 
             const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY );

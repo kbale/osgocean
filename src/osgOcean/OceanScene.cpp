@@ -1420,3 +1420,13 @@ void OceanScene::EventHandler::getUsage(osg::ApplicationUsage& usage) const
     usage.addKeyboardMouseBinding("+","Raise ocean surface");
     usage.addKeyboardMouseBinding("-","Lower ocean surface");
 }
+
+// register the read and write functions with the osgDB::Registry.
+REGISTER_DOTOSGWRAPPER(OceanScene)
+(
+    new osgOcean::OceanScene,
+    "OceanScene",
+    "Object Node OceanScene Group",
+    NULL,
+    NULL
+);

@@ -1039,3 +1039,13 @@ osg::Program* FFTOceanSurface::createShader(void)
 
     return program;
 }
+
+// register the read and write functions with the osgDB::Registry.
+REGISTER_DOTOSGWRAPPER(FFTOceanSurface)
+(
+    new osgOcean::FFTOceanSurface,
+    "FFTOceanSurface",
+    "Object Node OceanTechnique FFTOceanTechnique FFTOceanSurface Geode",
+    NULL,
+    NULL
+);

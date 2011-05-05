@@ -632,3 +632,13 @@ osg::Program* FFTOceanSurfaceVBO::createShader(void)
 
     return program;
 }
+
+// register the read and write functions with the osgDB::Registry.
+REGISTER_DOTOSGWRAPPER(FFTOceanSurfaceVBO)
+(
+    new osgOcean::FFTOceanSurfaceVBO,
+    "FFTOceanSurfaceVBO",
+    "Object Node OceanTechnique FFTOceanTechnique FFTOceanSurfaceVBO Geode",
+    NULL,
+    NULL
+);
