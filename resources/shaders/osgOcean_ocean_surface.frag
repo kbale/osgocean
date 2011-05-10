@@ -1,6 +1,8 @@
 uniform bool osgOcean_EnableReflections;
 uniform bool osgOcean_EnableRefractions;
+uniform bool osgOcean_EnableHeightmap;
 uniform bool osgOcean_EnableCrestFoam;
+uniform bool osgOcean_EnableUnderwaterScattering;
 
 uniform bool osgOcean_EnableDOF;
 uniform bool osgOcean_EnableGlare;
@@ -40,6 +42,9 @@ varying vec3 vLightDir;
 varying vec4 vVertex;
 varying vec4 vWorldVertex;
 
+varying vec3 vExtinction;
+varying vec3 vInScattering;
+
 varying vec3 vWorldViewDir;
 varying vec3 vWorldNormal;
 
@@ -59,6 +64,8 @@ const vec4 oneOverColorExtinction = vec4(1.0/22.5, 1.0/375.0, 1.0/1500.0, 1.0/5.
 // The amount of light extinction,
 // higher values means that less light is transmitted through the water
 const float oneOverLightExtinction = 1.0/60.0;
+
+const vec4 BlueEnvColor = vec4(0.75, 0.85, 1.0, 1.0);
 
 vec4 distortGen( vec4 v, vec3 N )
 {
@@ -110,21 +117,6 @@ mat3 getLinearPart( mat4 m )
     result[2][2] = m[2][2];
 
     return result;
-}
-
-vec4 computeCubeMapColor( vec3 N, vec4 V, vec3 E )
-{
-    mat3 worldObjectMat3x3 = getLinearPart( worldObjectMatrix );
-    vec4 world_pos = worldObjectMatrix *  V;
-
-    vec3 normal = normalize( worldObjectMat3x3 * N );
-    vec3 eye = normalize( world_pos.xyz - E );
-
-    vec3 coord = reflect( eye, normal );
-
-    vec3 reflection_vector = vec3( coord.x, coord.y, -coord.z );
-
-    return textureCube(osgOcean_EnvironmentMap, reflection_vector.xzy);
 }
 
 float calcFresnel( float dotEN, float mul )
@@ -192,7 +184,7 @@ void main( void )
         vec3 E = normalize( vViewerDir );
         vec3 R = reflect( -L, N );
 
-        vec4 specular_color;
+        vec4 specular_color = vec4(0.0);
 
         float lambertTerm = dot(N,L);
 
@@ -218,11 +210,13 @@ void main( void )
         float waterDepth = distance(vWorldVertex, refraction_world);
         vec4 refraction_dir = refraction_world - vWorldVertex;
 
-#if SHORETOSINUS
-        // The vertical distance between the ocean surface and ocean floor, this uses the projected heightmap
-        float waterHeight = (texture2DProj(osgOcean_Heightmap, distortedVertex).x) * 500.0;
-#endif
-
+        float waterHeight = 0.0;
+        if (osgOcean_EnableHeightmap)
+        {
+            // The vertical distance between the ocean surface and ocean floor, this uses the projected heightmap
+            waterHeight = (texture2DProj(osgOcean_Heightmap, distortedVertex).x) * 500.0;
+        }
+            
         // Determine refraction color
         vec4 refraction_color = vec4( gl_Color.rgb, 1.0 );
 
@@ -233,17 +227,9 @@ void main( void )
 			
             vec4 waterColor = mix(refractionmap_color, refraction_color, clamp(pow(waterDepth * oneOverLightExtinction, 0.3), 0.0, 1.0));
 
-#if SHORETOSINUS
+            // If osgOcean_EnableHeightmap is false, this will always give waterColor.
             refraction_color = mix(waterColor, refraction_color, clamp(waterHeight * oneOverColorExtinction, 0.0, 1.0));
-#else
-            refraction_color = waterColor;
-#endif
         }
-
-        // To cubemap or not to cubemap that is the question
-        // projected reflection looks pretty nice anyway
-        // cubemap looks wrong with fixed skydome
-        //vec4 env_color = computeCubeMapColor(N, vWorldVertex, osgOcean_EyePosition);
 
         float fresnel = calcFresnel(dotEN, osgOcean_FresnelMul );
 
@@ -255,7 +241,7 @@ void main( void )
         }
         else
         {
-            env_color = gl_LightSource[osgOcean_LightID].diffuse;
+            env_color = BlueEnvColor * gl_LightSource[osgOcean_LightID].diffuse * vec4(vec3(1.25), 1.0);
         }
 
         final_color = mix(refraction_color, env_color, fresnel) + specular_color;
@@ -266,24 +252,23 @@ void main( void )
 
         if(osgOcean_EnableCrestFoam)
         {
-#if SHORETOSINUS
-            if( vVertex.z > osgOcean_FoamCapBottom || waterHeight < 10.0)
+            if( vVertex.z > osgOcean_FoamCapBottom || 
+                (osgOcean_EnableHeightmap && waterHeight < 10.0))
             {
                 vec4 foam_color = texture2D( osgOcean_FoamMap, gl_TexCoord[1].st / 10.0);
 
-                float alpha = max(alphaHeight( osgOcean_FoamCapBottom, osgOcean_FoamCapTop, vVertex.z ) * (fresnel*2.0),
+                float alpha;
+                if (osgOcean_EnableHeightmap)
+                {
+                    alpha = max(alphaHeight( osgOcean_FoamCapBottom, osgOcean_FoamCapTop, vVertex.z ) * (fresnel*2.0),
                                   0.8 - clamp(waterHeight / 10.0, 0.0, 0.8));
-
+                }
+                else
+                {
+                    alpha = alphaHeight( osgOcean_FoamCapBottom, osgOcean_FoamCapTop, vVertex.z ) * (fresnel*2.0);
+                }
                 final_color = final_color + (foam_color * alpha);
             }
-#else
-            if( vVertex.z > osgOcean_FoamCapBottom )
-            {
-                vec4 foam_color = texture2D( osgOcean_FoamMap, gl_TexCoord[1].st / 10.0);
-                float alpha = alphaHeight( osgOcean_FoamCapBottom, osgOcean_FoamCapTop, vVertex.z ) * (fresnel*2.0);
-                final_color = final_color + (foam_color * alpha);
-            }
-#endif
         }
 
 
@@ -337,6 +322,12 @@ void main( void )
         {
             float fresnel = calcFresnel( dot(E, N), 0.7 );
             refractColor.rgb = osgOcean_UnderwaterFogColor.rgb*fresnel + (1.0-fresnel)* refractColor.rgb;
+        }
+
+        // mix in underwater light
+        if(osgOcean_EnableUnderwaterScattering)
+        {
+            refractColor.rgb = refractColor.rgb * vExtinction + vInScattering;
         }
 
         float fogFactor = computeFogFactor( osgOcean_UnderwaterFogDensity, gl_FogFragCoord );

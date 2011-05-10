@@ -32,6 +32,7 @@ namespace
     public:
         CameraTrackCallback(OceanScene* oceanScene)
             : _oceanScene (oceanScene)
+            , _cylinderMatrix(new osg::RefMatrix)
         {
         }
 
@@ -39,6 +40,8 @@ namespace
         {
             if( nv->getVisitorType() == osg::NodeVisitor::CULL_VISITOR )
             {
+                osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(nv);
+
                 osg::MatrixTransform* mt = static_cast<osg::MatrixTransform*>(node);
                 bool follow = true;
 
@@ -52,48 +55,52 @@ namespace
                     // The ocean cylinder should not be visible if the ocean 
                     // is constrained to an area, since the ocean will often 
                     // be in a pool or a river which already has walls.
-                    _oceanScene->getOceanCylinderTransform()->getChild(0)->setNodeMask(0);
+                    mt->getChild(0)->setNodeMask(0);
                 }
 
                 if (follow)
                 {
-                    osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(nv);
                     osg::Vec3f centre,up,eye;
                     // get MAIN camera eye,centre,up
                     cv->getRenderStage()->getCamera()->getViewMatrixAsLookAt(eye,centre,up);
-                    // update position
-                    mt->setMatrix( osg::Matrix::translate( eye.x(), eye.y(), mt->getMatrix().getTrans().z() ) );
+
+                    bool eyeAboveWater = _oceanScene->isEyeAboveWater(eye);
+                    float mult = 1.0;
+                    if (eyeAboveWater) mult = -1.0;
+
+                    // Translate the ocean cylinder down by the surface height 
+                    // if the eye went from below to above the surface (so the 
+                    // cylinder doesn't peek through the waves) and inversely
+                    // when the eye goes from above to below the surface (so
+                    // we don't see cracks between the cylinder's edge and the
+                    // waves).
+
+                    // Note, we set the ocean cylinder's own matrixTransform 
+                    // to identity, and push the relevant matrix onto the 
+                    // modelView matrix stack, because it is viewpoint 
+                    // dependent.
+                    mt->setMatrix(osg::Matrix::identity());
+
+                    _cylinderMatrix->set(osg::Matrix::translate(osg::Vec3(eye.x(),eye.y(),-_oceanScene->getOceanCylinder()->getHeight() + mult * _oceanScene->getOceanTechnique()->getMaximumHeight() * 2.0)));
+                    cv->pushModelViewMatrix(_cylinderMatrix.get(), osg::Transform::RELATIVE_RF);
+                }
+
+                traverse(node, nv);
+
+                if (follow)
+                {
+                    cv->popModelViewMatrix();
                 }
             }
-            traverse(node, nv); 
+            else
+            {
+                traverse(node, nv); 
+            }
         }
 
         osgOcean::OceanScene* _oceanScene;
+        osg::ref_ptr<osg::RefMatrix> _cylinderMatrix;
     };
-
-    class RefractionInverseTransformationMatrixCallback : public osg::Uniform::Callback
-    {
-    public:
-        RefractionInverseTransformationMatrixCallback(OceanScene* oceanScene)
-            : _oceanScene (oceanScene)
-        {
-        }
-
-        virtual void operator() ( osg::Uniform* uniform, osg::NodeVisitor* nv )
-        {
-            osg::Matrixd viewMatrix = _oceanScene->getRefractionCamera()->getViewMatrix();
-            osg::Matrixd projectionMatrix = _oceanScene->getRefractionCamera()->getProjectionMatrix();
-
-            osg::Matrixd inverseViewProjectionMatrix = osg::Matrixd::inverse(viewMatrix * projectionMatrix);
-
-            uniform->set(inverseViewProjectionMatrix);
-        }
-    
-    private:
-        osgOcean::OceanScene* _oceanScene;
-
-    };
-
 
     static const float OCEAN_CYLINDER_HEIGHT = 4000.f;
 
@@ -137,18 +144,12 @@ OceanScene::OceanScene( void )
     ,_underwaterAttenuation      ( 0.015f, 0.0075f, 0.005f)
     ,_underwaterFogDensity       ( 0.01f )
     ,_aboveWaterFogDensity       ( 0.0012f )
-    ,_surfaceStateSet            ( new osg::StateSet )
     ,_eyeHeightReflectionCutoff  ( FLT_MAX )
     ,_eyeHeightRefractionCutoff  (-FLT_MAX )
+    ,_surfaceHeight              ( 0.0f )
     ,_oceanTransform             ( new osg::MatrixTransform )
     ,_oceanCylinder              ( new Cylinder(1900.f, OCEAN_CYLINDER_HEIGHT, 16, false, true) )
     ,_oceanCylinderMT            ( new osg::MatrixTransform )
-    ,_fog                        ( new osg::Fog )
-    ,_eyeAboveWaterPreviousFrame ( true )
-    ,_reflectionMatrix           ( 1,  0,  0,  0,
-                                   0,  1,  0,  0,
-                                   0,  0, -1,  0,    
-                                   0,  0,  0,  1 )
 {
     //-----------------------------------------------------------------------
     // _oceanCylinder follows the camera underwater, so that the clear
@@ -218,18 +219,12 @@ OceanScene::OceanScene( OceanTechnique* technique )
     ,_underwaterAttenuation      ( 0.015f, 0.0075f, 0.005f)
     ,_underwaterFogDensity       ( 0.01f )
     ,_aboveWaterFogDensity       ( 0.0012f )
-    ,_surfaceStateSet            ( new osg::StateSet )
     ,_eyeHeightReflectionCutoff  ( FLT_MAX)
     ,_eyeHeightRefractionCutoff  (-FLT_MAX)
+    ,_surfaceHeight              ( 0.0f )
     ,_oceanTransform             ( new osg::MatrixTransform )
     ,_oceanCylinder              ( new Cylinder(1900.f, OCEAN_CYLINDER_HEIGHT, 16, false, true) )
     ,_oceanCylinderMT            ( new osg::MatrixTransform )
-    ,_fog                        ( new osg::Fog)
-    ,_eyeAboveWaterPreviousFrame ( true )
-    ,_reflectionMatrix           ( 1,  0,  0,  0,
-                                   0,  1,  0,  0,
-                                   0,  0, -1,  0,    
-                                   0,  0,  0,  1 )
 {
     //-----------------------------------------------------------------------
     // _oceanCylinder follows the camera underwater, so that the clear
@@ -290,8 +285,6 @@ OceanScene::OceanScene( const OceanScene& copy, const osg::CopyOp& copyop )
     ,_surfaceMask                ( copy._surfaceMask )
     ,_normalSceneMask            ( copy._normalSceneMask )
     ,_heightmapMask              ( copy._heightmapMask )
-    ,_reflectionCamera           ( copy._reflectionCamera )
-    ,_refractionCamera           ( copy._refractionCamera )
     ,_godrayPreRender            ( copy._godrayPreRender )
     ,_godrayPostRender           ( copy._godrayPostRender )
     ,_godrays                    ( copy._godrays )
@@ -299,8 +292,6 @@ OceanScene::OceanScene( const OceanScene& copy, const osg::CopyOp& copyop )
     ,_siltClipNode               ( copy._siltClipNode )
     ,_reflectionClipNode         ( copy._reflectionClipNode )
     ,_lightID                    ( copy._lightID )
-    ,_reflectionMatrix           ( copy._reflectionMatrix )
-    ,_surfaceStateSet            ( copy._surfaceStateSet )
     ,_underwaterFogDensity       ( copy._underwaterFogDensity )
     ,_aboveWaterFogDensity       ( copy._aboveWaterFogDensity ) 
     ,_underwaterFogColor         ( copy._underwaterFogColor )
@@ -323,11 +314,10 @@ OceanScene::OceanScene( const OceanScene& copy, const osg::CopyOp& copyop )
     ,_defaultSceneShader         ( copy._defaultSceneShader )
     ,_eyeHeightReflectionCutoff  ( copy._eyeHeightReflectionCutoff )
     ,_eyeHeightRefractionCutoff  ( copy._eyeHeightRefractionCutoff )
+    ,_surfaceHeight              ( copy._surfaceHeight )
     ,_oceanTransform             ( copy._oceanTransform )
     ,_oceanCylinder              ( copy._oceanCylinder )
     ,_oceanCylinderMT            ( copy._oceanCylinderMT )
-    ,_fog                        ( copy._fog )
-    ,_eyeAboveWaterPreviousFrame ( copy._eyeAboveWaterPreviousFrame )
 {
 }
 
@@ -336,16 +326,10 @@ OceanScene::~OceanScene( void )
 
 }
 
-#include <osgOcean/shaders/osgOcean_heightmap_vert.inl>
-#include <osgOcean/shaders/osgOcean_heightmap_frag.inl>
-
 void OceanScene::init( void )
 {
     osg::notify(osg::INFO) << "OceanScene::init()" << std::endl;
 
-    _refractionCamera = NULL;
-    _reflectionCamera = NULL;
-    _heightmapCamera  = NULL;
     _godrayPreRender  = NULL;
     _godrayPostRender = NULL;
 
@@ -383,8 +367,6 @@ void OceanScene::init( void )
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_EnableDOF", _enableDOF ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_EnableGlare", _enableGlare ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_EnableUnderwaterScattering", _enableUnderwaterScattering ) );
-        _globalStateSet->addUniform( new osg::Uniform("osgOcean_EyeUnderwater", false ) );
-        _globalStateSet->addUniform( new osg::Uniform("osgOcean_Eye", osg::Vec3f() ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_WaterHeight", float(getOceanSurfaceHeight()) ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterFogColor", _underwaterFogColor ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_AboveWaterFogColor", _aboveWaterFogColor ) );
@@ -393,49 +375,13 @@ void OceanScene::init( void )
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterDiffuse", _underwaterDiffuse ) );
         _globalStateSet->addUniform( new osg::Uniform("osgOcean_UnderwaterAttenuation", _underwaterAttenuation ) );
 
-        _fog->setMode(osg::Fog::EXP2);
-        _fog->setDensity(_aboveWaterFogDensity);
-        _fog->setColor(_aboveWaterFogColor);
-        _globalStateSet->setAttributeAndModes(_fog.get(), osg::StateAttribute::ON);
-
         if(_enableDefaultShader)
         {
             _globalStateSet->setAttributeAndModes( _defaultSceneShader.get(), osg::StateAttribute::ON );
         }
 
-        _surfaceStateSet = new osg::StateSet;
-        _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_EnableReflections", _enableReflections ) );
-        _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_EnableRefractions", _enableRefractions ) );
-        _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_ReflectionMap", _reflectionUnit ) );    
-        _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_RefractionMap", _refractionUnit ) );
-        _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_RefractionDepthMap", _refractionDepthUnit ) );
-        _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_Heightmap", _heightmapUnit ) );
-        
-        ShaderManager::instance().setGlobalDefinition("SHORETOSINUS", _enableHeightmap ? 1 : 0);
-
-        _surfaceStateSet->addUniform( new osg::Uniform(osg::Uniform::FLOAT_MAT4, "osgOcean_RefractionInverseTransformation") );
-
-        _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_ViewportDimensions", osg::Vec2(_screenDims.x(), _screenDims.y()) ) );
-        
         if( _enableReflections )
         {
-            // Update the reflection matrix's translation to take into account
-            // the ocean surface height. The translation we need is 2*h.
-            // See http://www.gamedev.net/columns/hardcore/rnerwater1/page3.asp
-            _reflectionMatrix.setTrans(0, 0, 2 * getOceanSurfaceHeight());
-
-            osg::ref_ptr<osg::Texture2D> reflectionTexture = createTexture2D( _reflectionTexSize, GL_RGBA );
-            
-            // clip everything below water line
-            _reflectionCamera=renderToTexturePass( reflectionTexture.get() );
-            _reflectionCamera->setClearColor( osg::Vec4( 0.0, 0.0, 0.0, 0.0 ) );
-            _reflectionCamera->setCullMask( _reflectionSceneMask );
-            _reflectionCamera->setCullCallback( new CameraCullCallback(this) );
-            _reflectionCamera->getOrCreateStateSet()->setMode( GL_CLIP_PLANE0+0, osg::StateAttribute::ON );
-            _reflectionCamera->getOrCreateStateSet()->setMode( GL_CULL_FACE, osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE );
-
-            _surfaceStateSet->setTextureAttributeAndModes( _reflectionUnit, reflectionTexture.get(), osg::StateAttribute::ON );
-
             osg::ClipPlane* reflClipPlane = new osg::ClipPlane();
             reflClipPlane->setClipPlaneNum(0);
             reflClipPlane->setClipPlane( 0.0, 0.0, 1.0, -getOceanSurfaceHeight() );
@@ -443,27 +389,6 @@ void OceanScene::init( void )
             _reflectionClipNode->addClipPlane( reflClipPlane );
 
             addChild( _reflectionClipNode.get() );
-        }
-
-        if( _enableRefractions )
-        {
-            osg::Texture2D* refractionTexture = createTexture2D( _refractionTexSize, GL_RGBA );
-            osg::Texture2D* refractionDepthTexture = createTexture2D( _refractionTexSize, GL_DEPTH_COMPONENT );
-
-            refractionTexture->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture2D::NEAREST );
-            refractionTexture->setFilter(osg::Texture2D::MAG_FILTER, osg::Texture2D::NEAREST );
-
-            _refractionCamera = multipleRenderTargetPass( 
-                refractionTexture, osg::Camera::COLOR_BUFFER, 
-                refractionDepthTexture, osg::Camera::DEPTH_BUFFER );
-
-            _refractionCamera->setClearDepth( 1.0 );
-            _refractionCamera->setClearColor( osg::Vec4( 0.0, 0.0, 0.0, 0.0 ) );
-            _refractionCamera->setCullMask( _refractionSceneMask );
-            _refractionCamera->setCullCallback( new CameraCullCallback(this) );
-
-            _surfaceStateSet->setTextureAttributeAndModes( _refractionUnit, refractionTexture, osg::StateAttribute::ON );
-            _surfaceStateSet->setTextureAttributeAndModes( _refractionDepthUnit, refractionDepthTexture, osg::StateAttribute::ON );
         }
 
         if( _enableGodRays )
@@ -484,38 +409,6 @@ void OceanScene::init( void )
 
             _godrayPostRender=godrayFinalPass();
             _godrayPostRender->addChild( _godRayBlendSurface.get() );
-        }
-
-        if ( _enableHeightmap ) 
-        {
-            osg::Texture2D* heightmapTexture = createTexture2D( _refractionTexSize, GL_DEPTH_COMPONENT );
-
-            _heightmapCamera = new osg::Camera;
-
-            _heightmapCamera->setClearMask( GL_DEPTH_BUFFER_BIT );
-            _heightmapCamera->setClearDepth( 1.0 );
-            _heightmapCamera->getOrCreateStateSet()->setAttributeAndModes(new osg::Depth(osg::Depth::LESS, 0.0f, 1.0f, true));
-
-            _heightmapCamera->setReferenceFrame( osg::Transform::ABSOLUTE_RF_INHERIT_VIEWPOINT );
-            _heightmapCamera->setViewport( 0,0, heightmapTexture->getTextureWidth(), heightmapTexture->getTextureHeight() );
-            _heightmapCamera->setRenderOrder(osg::Camera::PRE_RENDER);
-            _heightmapCamera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT);
-            _heightmapCamera->attach( osg::Camera::DEPTH_BUFFER, heightmapTexture );    
-
-            _heightmapCamera->setCullMask( _heightmapMask );
-            _heightmapCamera->setCullCallback( new CameraCullCallback(this) );
-
-            static const char osgOcean_heightmap_vert_file[] = "osgOcean_heightmap.vert";
-            static const char osgOcean_heightmap_frag_file[] = "osgOcean_heightmap.frag";
-
-            osg::ref_ptr<osg::Program> program = ShaderManager::instance().createProgram( "heightmap", 
-                                                                                          osgOcean_heightmap_vert_file, osgOcean_heightmap_frag_file, 
-                                                                                          osgOcean_heightmap_vert,      osgOcean_heightmap_frag );
-
-            if(program.valid())
-                _heightmapCamera->getOrCreateStateSet()->setAttributeAndModes( program.get(), osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
-
-            _surfaceStateSet->setTextureAttributeAndModes( _heightmapUnit, heightmapTexture, osg::StateAttribute::ON );
         }
 
         if( _enableDOF )
@@ -642,6 +535,257 @@ void OceanScene::init( void )
     _isDirty = false;
 }
 
+OceanScene::ViewData* OceanScene::getViewDependentData( osgUtil::CullVisitor * cv )
+{
+    OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_viewDataMapMutex);
+    return _viewDataMap[ cv ].get();
+}
+
+void OceanScene::setViewDependentData( osgUtil::CullVisitor * cv, ViewData * data )
+{
+    OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_viewDataMapMutex);
+    _viewDataMap[ cv ] = data;
+}
+
+OceanScene::ViewData * OceanScene::initViewDependentData( osgUtil::CullVisitor *cv, OceanScene::ViewData * vd )
+{
+    ViewData* viewData = vd;
+    if (!viewData) viewData = new ViewData;
+    viewData->init( this, cv );
+    return viewData;
+}
+
+void OceanScene::ViewData::dirty( bool flag )
+{
+    OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_mutex);
+    _dirty = flag;
+}
+
+#include <osgOcean/shaders/osgOcean_heightmap_vert.inl>
+#include <osgOcean/shaders/osgOcean_heightmap_frag.inl>
+
+void OceanScene::ViewData::init( OceanScene *oceanScene, osgUtil::CullVisitor * cv )
+{
+    _cv = cv;
+    _oceanScene = oceanScene;
+
+    _globalStateSet = new osg::StateSet;
+    _surfaceStateSet = new osg::StateSet;
+
+    _globalStateSet->addUniform( new osg::Uniform("osgOcean_EyeUnderwater", false ) );
+    _globalStateSet->addUniform( new osg::Uniform("osgOcean_Eye", osg::Vec3f() ) );
+
+    _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_EnableReflections",  _oceanScene->_enableReflections ) );
+    _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_ReflectionMap",      _oceanScene->_reflectionUnit ) );
+
+    _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_EnableRefractions",  _oceanScene->_enableRefractions ) );
+    _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_RefractionMap",      _oceanScene->_refractionUnit ) );
+    _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_RefractionDepthMap", _oceanScene->_refractionDepthUnit ) );
+
+    _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_EnableHeightmap",    _oceanScene->_enableHeightmap ) );
+    _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_Heightmap",          _oceanScene->_heightmapUnit ) );
+
+    _surfaceStateSet->addUniform( new osg::Uniform(osg::Uniform::FLOAT_MAT4, "osgOcean_RefractionInverseTransformation") );
+    _surfaceStateSet->addUniform( new osg::Uniform("osgOcean_ViewportDimensions", osg::Vec2(_oceanScene->_screenDims.x(), _oceanScene->_screenDims.y()) ) );
+
+    _fog = new osg::Fog;
+    _fog->setMode(osg::Fog::EXP2);
+    _fog->setDensity(_oceanScene->_aboveWaterFogDensity);
+    _fog->setColor(_oceanScene->_aboveWaterFogColor);
+    _globalStateSet->setAttributeAndModes(_fog.get(), osg::StateAttribute::ON);
+
+    if( _oceanScene->_enableReflections )
+    {
+        // Update the reflection matrix's translation to take into account
+        // the ocean surface height. The translation we need is 2*h.
+        // See http://www.gamedev.net/columns/hardcore/rnerwater1/page3.asp
+        _reflectionMatrix = osg::Matrixf(  1,  0,  0,  0,
+                                           0,  1,  0,  0,
+                                           0,  0, -1,  0,    
+                                           0,  0,  2 * _oceanScene->getOceanSurfaceHeight(),  1 );
+
+        osg::ref_ptr<osg::Texture2D> reflectionTexture = _oceanScene->createTexture2D( _oceanScene->_reflectionTexSize, GL_RGBA );
+        
+        // clip everything below water line
+        _reflectionCamera = _oceanScene->renderToTexturePass( reflectionTexture.get() );
+        _reflectionCamera->setClearColor( osg::Vec4( 0.0, 0.0, 0.0, 0.0 ) );
+        _reflectionCamera->setComputeNearFarMode( osg::Camera::DO_NOT_COMPUTE_NEAR_FAR );
+        _reflectionCamera->setCullMask( _oceanScene->_reflectionSceneMask );
+        _reflectionCamera->setCullCallback( new CameraCullCallback(_oceanScene.get()) );
+        _reflectionCamera->getOrCreateStateSet()->setMode( GL_CLIP_PLANE0+0, osg::StateAttribute::ON );
+        _reflectionCamera->getOrCreateStateSet()->setMode( GL_CULL_FACE, osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE );
+
+        _surfaceStateSet->setTextureAttributeAndModes( _oceanScene->_reflectionUnit, reflectionTexture.get(), osg::StateAttribute::ON );
+    }
+
+    if( _oceanScene->_enableRefractions )
+    {
+        osg::Texture2D* refractionTexture = _oceanScene->createTexture2D( _oceanScene->_refractionTexSize, GL_RGBA );
+        osg::Texture2D* refractionDepthTexture = _oceanScene->createTexture2D( _oceanScene->_refractionTexSize, GL_DEPTH_COMPONENT );
+
+        refractionTexture->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture2D::NEAREST );
+        refractionTexture->setFilter(osg::Texture2D::MAG_FILTER, osg::Texture2D::NEAREST );
+
+        _refractionCamera = _oceanScene->multipleRenderTargetPass( 
+            refractionTexture, osg::Camera::COLOR_BUFFER, 
+            refractionDepthTexture, osg::Camera::DEPTH_BUFFER );
+
+        _refractionCamera->setClearDepth( 1.0 );
+        _refractionCamera->setClearColor( osg::Vec4( 0.0, 0.0, 0.0, 0.0 ) );
+        _refractionCamera->setComputeNearFarMode( osg::Camera::DO_NOT_COMPUTE_NEAR_FAR );
+        _refractionCamera->setCullMask( _oceanScene->_refractionSceneMask );
+        _refractionCamera->setCullCallback( new CameraCullCallback(_oceanScene.get()) );
+
+        _surfaceStateSet->setTextureAttributeAndModes( _oceanScene->_refractionUnit, refractionTexture, osg::StateAttribute::ON );
+        _surfaceStateSet->setTextureAttributeAndModes( _oceanScene->_refractionDepthUnit, refractionDepthTexture, osg::StateAttribute::ON );
+    }
+
+    if ( _oceanScene->_enableHeightmap ) 
+    {
+        osg::Texture2D* heightmapTexture = _oceanScene->createTexture2D( _oceanScene->_refractionTexSize, GL_DEPTH_COMPONENT );
+
+        _heightmapCamera = new osg::Camera;
+
+        _heightmapCamera->setClearMask( GL_DEPTH_BUFFER_BIT );
+        _heightmapCamera->setClearDepth( 1.0 );
+        _heightmapCamera->setComputeNearFarMode( osg::Camera::DO_NOT_COMPUTE_NEAR_FAR );
+        _heightmapCamera->getOrCreateStateSet()->setAttributeAndModes(new osg::Depth(osg::Depth::LESS, 0.0f, 1.0f, true));
+
+        _heightmapCamera->setReferenceFrame( osg::Transform::ABSOLUTE_RF_INHERIT_VIEWPOINT );
+        _heightmapCamera->setViewport( 0,0, heightmapTexture->getTextureWidth(), heightmapTexture->getTextureHeight() );
+        _heightmapCamera->setRenderOrder(osg::Camera::PRE_RENDER);
+        _heightmapCamera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT);
+        _heightmapCamera->attach( osg::Camera::DEPTH_BUFFER, heightmapTexture );    
+
+        _heightmapCamera->setCullMask( _oceanScene->_heightmapMask );
+        _heightmapCamera->setCullCallback( new CameraCullCallback(_oceanScene.get()) );
+
+        static const char osgOcean_heightmap_vert_file[] = "osgOcean_heightmap.vert";
+        static const char osgOcean_heightmap_frag_file[] = "osgOcean_heightmap.frag";
+
+        osg::ref_ptr<osg::Program> program = ShaderManager::instance().createProgram( "heightmap", 
+                                                                                      osgOcean_heightmap_vert_file, osgOcean_heightmap_frag_file, 
+                                                                                      osgOcean_heightmap_vert,      osgOcean_heightmap_frag );
+
+        if(program.valid())
+            _heightmapCamera->getOrCreateStateSet()->setAttributeAndModes( program.get(), osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+
+        _surfaceStateSet->setTextureAttributeAndModes( _oceanScene->_heightmapUnit, heightmapTexture, osg::StateAttribute::ON );
+    }
+
+    dirty( false );
+}
+
+void OceanScene::ViewData::updateStateSet( bool eyeAboveWater )
+{
+    osg::Camera* currentCamera = _cv->getCurrentRenderBin()->getStage()->getCamera();
+
+    _globalStateSet->getUniform("osgOcean_EyeUnderwater")->set(!eyeAboveWater);
+    _globalStateSet->getUniform("osgOcean_Eye")->set( _cv->getEyePoint() );
+
+    // Switch the fog state from underwater to above water or vice versa if necessary.
+    if (_eyeAboveWaterPreviousFrame != eyeAboveWater)
+    {
+        _fog->setDensity(eyeAboveWater ? _oceanScene->_aboveWaterFogDensity : _oceanScene->_underwaterFogDensity);
+        _fog->setColor  (eyeAboveWater ? _oceanScene->_aboveWaterFogColor   : _oceanScene->_underwaterFogColor);
+        _eyeAboveWaterPreviousFrame = eyeAboveWater;
+    }
+
+    // Update viewport dimensions
+    osg::Viewport* viewport = currentCamera->getViewport();
+    _surfaceStateSet->getUniform("osgOcean_ViewportDimensions")->set( osg::Vec2(viewport->width(), viewport->height()) );
+
+    // Check if the RTT passes should be enabled for this view.
+    bool enabled = std::find(_oceanScene->_viewsWithRTTEffectsDisabled.begin(), 
+                             _oceanScene->_viewsWithRTTEffectsDisabled.end(), 
+                             currentCamera->getView()) == _oceanScene->_viewsWithRTTEffectsDisabled.end();
+
+    bool reflectionEnabled = _oceanScene->_enableReflections && eyeAboveWater && enabled && 
+                             ( _cv->getEyePoint().z() < _oceanScene->_eyeHeightReflectionCutoff - _oceanScene->getOceanSurfaceHeight() );
+    _surfaceStateSet->getUniform("osgOcean_EnableReflections")->set(reflectionEnabled);
+
+    // Refractions need to be calculated even when the eye is above water 
+    // for the shoreline foam effect and translucency.
+    bool refractionEnabled = _oceanScene->_enableRefractions && enabled;
+    _surfaceStateSet->getUniform("osgOcean_EnableRefractions")->set(refractionEnabled);
+
+    bool heightmapEnabled = _oceanScene->_enableHeightmap && eyeAboveWater && enabled;
+    _surfaceStateSet->getUniform("osgOcean_EnableHeightmap")->set(heightmapEnabled);
+}
+
+void OceanScene::ViewData::cull( bool eyeAboveWater, bool surfaceVisible )
+{
+    // Assume _stateSet has been pushed before we get here.
+
+    osg::Camera* currentCamera = _cv->getCurrentRenderBin()->getStage()->getCamera();
+
+    bool reflectionEnabled;
+    _surfaceStateSet->getUniform("osgOcean_EnableReflections")->get(reflectionEnabled);
+    bool refractionEnabled;
+    _surfaceStateSet->getUniform("osgOcean_EnableRefractions")->get(refractionEnabled);
+    bool heightmapEnabled;
+    _surfaceStateSet->getUniform("osgOcean_EnableHeightmap")->get(heightmapEnabled);
+
+    _cv->pushStateSet(_oceanScene->_globalStateSet.get());
+
+    // Render refraction if ocean surface is visible.
+    if( surfaceVisible && refractionEnabled )
+    {
+        // update refraction camera and render refracted scene
+        _refractionCamera->setViewMatrix( currentCamera->getViewMatrix() );
+        _refractionCamera->setProjectionMatrix( currentCamera->getProjectionMatrix() );
+
+        _refractionCamera->accept( *_cv );
+
+        // Update inverse view and projection matrix
+        osg::Matrixd viewMatrix = _refractionCamera->getViewMatrix();
+        osg::Matrixd projectionMatrix = _refractionCamera->getProjectionMatrix();
+        osg::Matrixd inverseViewProjectionMatrix = osg::Matrixd::inverse(viewMatrix * projectionMatrix);
+        _surfaceStateSet->getUniform("osgOcean_RefractionInverseTransformation")->set(inverseViewProjectionMatrix);
+    }
+
+    // Render reflection if ocean surface is visible.
+    if( surfaceVisible && reflectionEnabled )
+    {
+        // update reflection camera and render reflected scene
+        _reflectionCamera->setViewMatrix( _reflectionMatrix * currentCamera->getViewMatrix() );
+        _reflectionCamera->setProjectionMatrix( currentCamera->getProjectionMatrix() );
+        
+        _reflectionCamera->accept( *_cv );
+    }
+
+    // Render height map if ocean surface is visible.
+    if ( surfaceVisible && heightmapEnabled ) 
+    {
+        // update refraction camera and render refracted scene
+        _heightmapCamera->setViewMatrix( currentCamera->getViewMatrix() );
+        _heightmapCamera->setProjectionMatrix( currentCamera->getProjectionMatrix() );
+
+        _heightmapCamera->accept( *_cv );    
+    }
+
+    _cv->popStateSet();
+}
+
+
+void OceanScene::enableRTTEffectsForView(osg::View* view, bool enable)
+{
+    std::vector< osg::ref_ptr<osg::View> >::iterator it = 
+        std::find(_viewsWithRTTEffectsDisabled.begin(), _viewsWithRTTEffectsDisabled.end(), view);
+    if (enable)
+    {
+        // Default is enabled for all views, so if we find it we 
+        // remove it, if not then nothing to do.
+        if (it != _viewsWithRTTEffectsDisabled.end())
+            _viewsWithRTTEffectsDisabled.erase(it);
+    }
+    else
+    {
+        if (it == _viewsWithRTTEffectsDisabled.end())
+            _viewsWithRTTEffectsDisabled.push_back(view);
+    }
+}
+
 void OceanScene::traverse( osg::NodeVisitor& nv )
 {
     if( nv.getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR )
@@ -662,39 +806,27 @@ void OceanScene::traverse( osg::NodeVisitor& nv )
             osg::Camera* currentCamera = cv->getCurrentRenderBin()->getStage()->getCamera();
             if (currentCamera->getName() == "ShadowCamera" ||
                 currentCamera->getName() == "AnalysisCamera" )
+            {
                 // Do not do reflections and everything if we're in a shadow pass.
                 osg::Group::traverse(nv);
+            }
             else
             {
                 bool eyeAboveWater  = isEyeAboveWater(cv->getEyePoint());
 
-                // Switch the fog state from underwater to above water or vice versa if necessary.
-                if (_eyeAboveWaterPreviousFrame != eyeAboveWater)
+                // Push the stateset for view-dependent RTT effects.
+                ViewData * vd = getViewDependentData( cv );
+
+                if ( !vd || vd->_dirty || vd->_cv != cv || vd->_oceanScene != this )
                 {
-                    _fog->setDensity(eyeAboveWater ? _aboveWaterFogDensity : _underwaterFogDensity);
-                    _fog->setColor(eyeAboveWater ? _aboveWaterFogColor : _underwaterFogColor);
-                    _eyeAboveWaterPreviousFrame = eyeAboveWater;
+                    vd = initViewDependentData( cv, vd );
+                    setViewDependentData( cv, vd );
                 }
 
-                // Translate the ocean cylinder down by the surface height 
-                // if the eye went from below to above the surface (so the 
-                // cylinder doesn't peek through the waves) and inversely
-                // when the eye goes from above to below the surface (so
-                // we don't see cracks between the cylinder's edge and the
-                // waves).
-                if (_oceanCylinderMT.valid())
+                if (vd)
                 {
-                    osg::Matrix cylinderMatrix = _oceanCylinderMT->getMatrix();
-                    if (eyeAboveWater)
-                    {
-                        cylinderMatrix.setTrans(osg::Vec3(0,0,-_oceanCylinder->getHeight() - _oceanSurface->getMaximumHeight()*2.0));
-                        _oceanCylinderMT->setMatrix(cylinderMatrix);
-                    }
-                    else
-                    {
-                        cylinderMatrix.setTrans(osg::Vec3(0,0,-_oceanCylinder->getHeight() + _oceanSurface->getMaximumHeight()*2.0));
-                        _oceanCylinderMT->setMatrix(cylinderMatrix);
-                    }
+                    vd->updateStateSet(eyeAboveWater);
+                    cv->pushStateSet( vd->_globalStateSet.get() );
                 }
 
                 bool surfaceVisible = _oceanSurface->isVisible(*cv, eyeAboveWater);
@@ -717,6 +849,11 @@ void OceanScene::traverse( osg::NodeVisitor& nv )
                 }
 
                 postRenderCull(*cv, eyeAboveWater, surfaceVisible);    // god rays/dof/glare
+
+                if (vd)
+                {
+                    cv->popStateSet();
+                }
             }
         }
         else
@@ -742,65 +879,20 @@ void OceanScene::preRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, bo
 {
     osg::Camera* currentCamera = cv.getCurrentRenderBin()->getStage()->getCamera();
 
-    // Update viewport dimensions
-    osg::Viewport* viewport = currentCamera->getViewport();
-    _surfaceStateSet->getUniform("osgOcean_ViewportDimensions")->set( osg::Vec2(viewport->width(), viewport->height()) );
+    // Render all view-dependent RTT effects.
+    ViewData * vd = getViewDependentData( &cv );
 
-    // Refractions need to be calculated even when the eye is above water 
-    // for the shoreline foam effect and translucency.
-    bool refractionVisible = _enableRefractions;
-    _surfaceStateSet->getUniform("osgOcean_EnableRefractions")->set(refractionVisible);
-
-    // Render refraction if ocean surface is visible.
-    if( _enableRefractions && surfaceVisible && refractionVisible &&
-        _oceanSurface.valid() && _refractionCamera.valid() )
+    if( vd )
     {
-        // update refraction camera and render refracted scene
-        _refractionCamera->setViewMatrix( currentCamera->getViewMatrix() );
-        _refractionCamera->setProjectionMatrix( currentCamera->getProjectionMatrix() );
-        _refractionCamera->setComputeNearFarMode( osg::Camera::DO_NOT_COMPUTE_NEAR_FAR );
-        cv.pushStateSet(_globalStateSet.get());
-        _refractionCamera->accept( cv );
-        cv.popStateSet();
-
-        // Update inverse view and projection matrix
-        osg::Matrixd viewMatrix = _refractionCamera->getViewMatrix();
-        osg::Matrixd projectionMatrix = _refractionCamera->getProjectionMatrix();
-        osg::Matrixd inverseViewProjectionMatrix = osg::Matrixd::inverse(viewMatrix    * projectionMatrix);
-        _surfaceStateSet->getUniform("osgOcean_RefractionInverseTransformation")->set(inverseViewProjectionMatrix);
+        OpenThreads::ScopedLock<OpenThreads::Mutex> lock(vd->_mutex);
+        vd->cull(eyeAboveWater, surfaceVisible);
     }
 
-    // Render height map
-    if (_enableHeightmap && surfaceVisible && refractionVisible &&
-        _oceanSurface.valid() && _heightmapCamera.valid()) 
-    {
-        // update refraction camera and render refracted scene
-        _heightmapCamera->setViewMatrix( currentCamera->getViewMatrix() );
-        _heightmapCamera->setProjectionMatrix( currentCamera->getProjectionMatrix() );
-
-        cv.pushStateSet(_globalStateSet.get());
-        _heightmapCamera->accept( cv );    
-        cv.popStateSet();
-    }
+    // Now render other effects.
 
     // Above water
     if( eyeAboveWater )
     {
-        bool reflectionVisible = _enableReflections && ( cv.getEyePoint().z() < _eyeHeightReflectionCutoff - getOceanSurfaceHeight() );
-        _surfaceStateSet->getUniform("osgOcean_EnableReflections")->set(reflectionVisible);
-
-        // Render reflection if ocean surface is visible.
-        if( surfaceVisible && reflectionVisible && _oceanSurface.valid() && _reflectionCamera.valid() )
-        {
-            // update reflection camera and render reflected scene
-            _reflectionCamera->setViewMatrix( _reflectionMatrix * currentCamera->getViewMatrix() );
-            _reflectionCamera->setProjectionMatrix( currentCamera->getProjectionMatrix() );
-            
-            cv.pushStateSet(_globalStateSet.get());
-            _reflectionCamera->accept( cv );
-            cv.popStateSet();
-        }
-
         if( _enableGlare )
         {
             // set view and projection to match main camera
@@ -865,9 +957,6 @@ void OceanScene::postRenderCull( osgUtil::CullVisitor& cv, bool eyeAboveWater, b
 
 void OceanScene::cull(osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surfaceVisible)
 {
-    _globalStateSet->getUniform("osgOcean_EyeUnderwater")->set(!eyeAboveWater);
-    _globalStateSet->getUniform("osgOcean_Eye")->set( cv.getEyePoint() );
-
     unsigned int mask = cv.getTraversalMask();
 
     cv.pushStateSet(_globalStateSet.get());
@@ -886,12 +975,13 @@ void OceanScene::cull(osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surface
                 child->setNodeMask((child->getNodeMask() & ~_surfaceMask & ~_siltMask) | _normalSceneMask | _reflectionSceneMask | _refractionSceneMask);
         }
 
-        // render ocean surface with reflection / refraction stateset
-        cv.pushStateSet( _surfaceStateSet.get() );
+        // Push the view-dependent surface stateset.
+        ViewData * vd = getViewDependentData( &cv );
+        cv.pushStateSet( vd->_surfaceStateSet.get() );
+
         cv.setTraversalMask( mask & _surfaceMask );
         osg::Group::traverse(cv);
-        
-        // pop surfaceStateSet
+
         cv.popStateSet();
     }
 

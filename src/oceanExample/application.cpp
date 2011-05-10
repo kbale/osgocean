@@ -154,8 +154,11 @@ int main(int argc, char *argv[])
     bool compositeViewer = false;
     if (arguments.read("--compositeViewer")) compositeViewer = true;
 
-    bool mainViewLast = false;
-    if (arguments.read("--mainViewLast")) mainViewLast = true;
+    bool firstViewLast = false;
+    if (arguments.read("--firstViewLast")) firstViewLast = true;
+
+    bool disableEffectsForSecondView = false;
+    if (arguments.read("--disableEffectsForSecondView")) disableEffectsForSecondView = true;
 
     osg::ref_ptr<osg::Node> loadedModel = osgDB::readNodeFiles(arguments);
 
@@ -169,42 +172,15 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    osg::ref_ptr<osgViewer::ViewerBase> viewer;
-    osgViewer::View* view = 0;
-    if (compositeViewer)
-    {
-        viewer = new osgViewer::CompositeViewer;
-        view = new osgViewer::View;
-    }
-    else
-    {
-        osgViewer::Viewer* singleViewer = new osgViewer::Viewer;
-        viewer = singleViewer;
-        view = singleViewer;
-    }
+    //------------------------------------------------------------------------
+    // Set up the scene
+    //------------------------------------------------------------------------
 
-    view->setUpViewInWindow( 150,150,1024,768, 0 );
-    view->addEventHandler( new osgViewer::StatsHandler );
-    view->addEventHandler( new osgGA::StateSetManipulator( view->getCamera()->getOrCreateStateSet() ) );
-
-    osg::ref_ptr<TextHUD> hud = new TextHUD;
+    osg::ref_ptr<osg::Group> root = new osg::Group;
 
     osgOcean::ShaderManager::instance().enableShaders(!disableShaders);
     osg::ref_ptr<Scene> scene = new Scene(windDirection, windSpeed, depth, reflectionDamping, scale, isChoppy, choppyFactor, crestFoamHeight, useVBO);
     
-    if (compositeViewer)
-    {
-        // Post-render RTT effects don't work at all when using multiple 
-        // views. This is not an immediate concern for us because we don't
-        // use them anyways in our software.
-        scene->getOceanScene()->enableGodRays(false);
-        scene->getOceanScene()->enableSilt(false);
-        scene->getOceanScene()->enableUnderwaterDOF(false);
-        scene->getOceanScene()->enableUnderwaterScattering(false);
-        scene->getOceanScene()->enableDistortion(false);
-        scene->getOceanScene()->enableGlare(false);
-    }
-
     if (disableShaders)
     {
         // Disable all special effects that depend on shaders.
@@ -225,14 +201,7 @@ int main(int argc, char *argv[])
     }
 
     scene->getOceanScene()->setOceanSurfaceHeight(oceanSurfaceHeight);
-    view->addEventHandler(scene->getOceanSceneEventHandler());
-    view->addEventHandler(scene->getOceanSurface()->getEventHandler());
 
-    view->addEventHandler( new SceneEventHandler(scene.get(), hud.get(), view ) );
-    view->addEventHandler( new osgViewer::HelpHandler );
-    view->getCamera()->setName("MainCamera");
-
-    osg::Group* root = new osg::Group;
     root->addChild( scene->getScene() );
 
     if (loadedModel.valid())
@@ -269,20 +238,38 @@ int main(int argc, char *argv[])
         }
     }
 
-    view->setSceneData( root );
-    // Add the HUD to the main view only (if compositeViewer == true)
-    view->getCamera()->addChild( hud->getHudCamera() );
+    //------------------------------------------------------------------------
+    // Set up the viewer
+    //------------------------------------------------------------------------
 
+    osg::ref_ptr<osgViewer::ViewerBase> viewer;
+    osgViewer::View* view = 0;
     if (compositeViewer)
     {
-        // Create a small inset view.
+        viewer = new osgViewer::CompositeViewer;
+        view = new osgViewer::View;
+
+        // If testing a composite viewer, we'll make a splitscreen window with 
+        // 2 views side by side.
+        view->setUpViewInWindow( 50, 50, 1600, 768, 0 );
+        view->getCamera()->setViewport(0, 0, 800, 768);
+        double fovy, aspectRatio, zNear, zFar;
+        view->getCamera()->getProjectionMatrixAsPerspective(fovy, aspectRatio, zNear, zFar);
+        view->getCamera()->setProjectionMatrixAsPerspective(fovy, 800.0/768.0, zNear, zFar);
+
+        // Create a second view
         osgViewer::View* view2 = new osgViewer::View;
         view2->getCamera()->setGraphicsContext(view->getCamera()->getGraphicsContext());
-        view2->getCamera()->setViewport(10, view->getCamera()->getViewport()->height() - 200 - 10, 200, 200);
+        view2->getCamera()->setViewport(800, 0, 800, 768);
         osgGA::TrackballManipulator* tb = new osgGA::TrackballManipulator;
         tb->setHomePosition( osg::Vec3f(0.f,0.f,20.f), osg::Vec3f(0.f,20.f,20.f), osg::Vec3f(0,0,1) );
         view2->setCameraManipulator( tb );
-        view2->setSceneData(root);
+        view2->setSceneData(root.get());
+
+        if (disableEffectsForSecondView)
+        {
+            scene->getOceanScene()->enableRTTEffectsForView(view2, false);
+        }
 
         // The order here is important, the last view added to the viewer (so 
         // presumably the last one to be rendered by the viewer) controls the LOD 
@@ -291,7 +278,7 @@ int main(int argc, char *argv[])
         // at all, it works correctly in both views.
         osgViewer::CompositeViewer* compositeViewer = dynamic_cast<osgViewer::CompositeViewer*>(viewer.get());
 
-        if (mainViewLast)
+        if (firstViewLast)
         {
             // If we explicitly asked that the main view be added last to the 
             // viewer, we'll see that the refraction applies to it, and it 
@@ -303,13 +290,46 @@ int main(int argc, char *argv[])
         {
             // The "normal" case in most applications I've seen is that the 
             // main view is created and added first, and then inset views are
-            // created and added. So without the --mainViewLast argument, this
+            // created and added. So without the --firstViewLast argument, this
             // is what we'll demonstrate. The main view won't have refraction
             // effects, the inset view will.
             compositeViewer->addView(view);
             compositeViewer->addView(view2);
         }
+
+        // Post-render RTT effects don't work at all when using multiple 
+        // views. This is not an immediate concern for us because we don't
+        // use them anyways in our software.
+        scene->getOceanScene()->enableGodRays(false);
+        scene->getOceanScene()->enableUnderwaterDOF(false);
+        scene->getOceanScene()->enableDistortion(false);
+        scene->getOceanScene()->enableGlare(false);
     }
+    else
+    {
+        osgViewer::Viewer* singleViewer = new osgViewer::Viewer;
+        viewer = singleViewer;
+        view = singleViewer;
+
+        // Otherwise, a window with a single view.
+        view->setUpViewInWindow( 150, 150, 1024, 768, 0 );
+    }
+
+    view->setSceneData( root.get() );
+
+    view->addEventHandler( new osgViewer::StatsHandler );
+    view->addEventHandler( new osgGA::StateSetManipulator( view->getCamera()->getOrCreateStateSet() ) );
+
+    osg::ref_ptr<TextHUD> hud = new TextHUD;
+    // Add the HUD to the main view (if compositeViewer == true there will be a second one)
+    view->getCamera()->addChild( hud->getHudCamera() );
+
+    view->addEventHandler(scene->getOceanSceneEventHandler());
+    view->addEventHandler(scene->getOceanSurface()->getEventHandler());
+
+    view->addEventHandler( new SceneEventHandler(scene.get(), hud.get(), view ) );
+    view->addEventHandler( new osgViewer::HelpHandler );
+    view->getCamera()->setName("MainCamera");
 
     viewer->realize();
 
