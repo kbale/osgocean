@@ -151,8 +151,8 @@ void FFTOceanSurfaceVBO::initStateSet( void )
     _stateset->addUniform( new osg::Uniform("osgOcean_WaveTop", waveTop ) );
     _stateset->addUniform( new osg::Uniform("osgOcean_WaveBot", waveBot ) );
     _stateset->addUniform( new osg::Uniform("osgOcean_FresnelMul", _fresnelMul ) );    
-    _stateset->addUniform( new osg::Uniform("osgOcean_EyePosition", osg::Vec3f() ) );
-    
+    _stateset->addUniform( new osg::Uniform("osgOcean_FrameTime", 0.0f ) );    
+
     osg::ref_ptr<osg::Program> program = createShader();
         
     if(program.valid())
@@ -542,12 +542,15 @@ void FFTOceanSurfaceVBO::update( unsigned int frame, const double& dt, const osg
     else if(_isStateDirty)
         initStateSet();
 
-    getStateSet()->getUniform("osgOcean_EyePosition")->set(eye);
-
     if (_isAnimating)
     {
         static double time = 0.0;
-        time+=(dt*0.0008);
+        time += (dt * 0.001);      // dt is in milliseconds (see FFTOceanTechnique::OceanDataType::updateOcean() )
+
+        getStateSet()->getUniform("osgOcean_FrameTime")->set( float(time) );
+
+        static double noiseTime = 0.0;
+        noiseTime += (dt*0.0008);
 
         getStateSet()->getUniform("osgOcean_NoiseCoords0")->set( computeNoiseCoords( 32.f, osg::Vec2f( 2.f, 4.f), 2.f, time ) );
         getStateSet()->getUniform("osgOcean_NoiseCoords1")->set( computeNoiseCoords( 8.f,  osg::Vec2f(-4.f, 2.f), 1.f, time ) );

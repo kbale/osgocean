@@ -1,7 +1,6 @@
 uniform mat4 osg_ViewMatrixInverse;
-uniform float osg_FrameTime;
 
-uniform vec3 osgOcean_EyePosition;
+uniform vec3 osgOcean_Eye;
 
 uniform vec3 osgOcean_NoiseCoords0;
 uniform vec3 osgOcean_NoiseCoords1;
@@ -11,14 +10,25 @@ uniform vec4 osgOcean_WaveBot;
 
 uniform float osgOcean_FoamScale;
 
+uniform float osgOcean_FrameTime;
+
 // Used to blend the waves into a sinus curve near the shore
 uniform sampler2D osgOcean_Heightmap;
+uniform bool osgOcean_EnableHeightmap;
+
+uniform bool osgOcean_EnableUnderwaterScattering;
+uniform float osgOcean_WaterHeight;
+uniform vec3 osgOcean_UnderwaterAttenuation;
+uniform vec4 osgOcean_UnderwaterDiffuse;
 
 varying vec4 vVertex;
 varying vec4 vWorldVertex;
 varying vec3 vNormal;
 varying vec3 vViewerDir;
 varying vec3 vLightDir;
+
+varying vec3 vExtinction;
+varying vec3 vInScattering;
 
 varying vec3 vWorldViewDir;
 varying vec3 vWorldNormal;
@@ -44,6 +54,19 @@ mat3 get3x3Matrix( mat4 m )
     return result;
 }
 
+void computeScattering( in vec3 eye, in vec3 worldVertex, out vec3 extinction, out vec3 inScattering )
+{
+	float viewDist = length(eye-worldVertex);
+	
+	float depth = max(osgOcean_WaterHeight-worldVertex.z, 0.0);
+	
+	extinction = exp(-osgOcean_UnderwaterAttenuation*viewDist*2.0);
+
+	// Need to compute accurate kd constant.
+	// const vec3 kd = vec3(0.001, 0.001, 0.001);
+	inScattering = osgOcean_UnderwaterDiffuse.rgb * (1.0-extinction*exp(-depth*vec3(0.001)));
+}
+
 // -------------------------------
 //          Main Program
 // -------------------------------
@@ -57,18 +80,19 @@ void main( void )
     // Blend the wave into a sinus curve near the shore
     // note that this requires a vertex shader texture lookup
     // vertex has to be transformed a second time with the new z-value
-#if SHORETOSINUS
-    vec2 screenCoords = gl_Position.xy / gl_Position.w;
-    
-    height = pow(clamp(1.0 - texture2D(osgOcean_Heightmap, clamp(screenCoords * 0.5 + 0.5, 0.0, 1.0)).x, 0.0, 1.0), 32.0);
+    if (osgOcean_EnableHeightmap)
+    {
+        vec2 screenCoords = gl_Position.xy / gl_Position.w;
+        
+        height = pow(clamp(1.0 - texture2D(osgOcean_Heightmap, clamp(screenCoords * 0.5 + 0.5, 0.0, 1.0)).x, 0.0, 1.0), 32.0);
 
-    inputVertex = vec4(gl_Vertex.x, 
-                       gl_Vertex.y, 
-                       mix(gl_Vertex.z, sin(osg_FrameTime), height),
-                       gl_Vertex.w);
+        inputVertex = vec4(gl_Vertex.x, 
+                           gl_Vertex.y, 
+                           mix(gl_Vertex.z, sin(osgOcean_FrameTime), height),
+                           gl_Vertex.w);
 
-    gl_Position = gl_ModelViewProjectionMatrix * inputVertex;
-#endif
+        gl_Position = gl_ModelViewProjectionMatrix * inputVertex;
+    }
 
     // -----------------------------------------------------------
 
@@ -78,10 +102,10 @@ void main( void )
     vViewerDir = gl_ModelViewMatrixInverse[3].xyz - inputVertex.xyz;
     vNormal = normalize(gl_Normal);
 
-    vec4 waveColorDiff = osgOcean_WaveTop-osgOcean_WaveBot;
+    vec4 waveColorDiff = osgOcean_WaveTop - osgOcean_WaveBot;
 
     gl_FrontColor = waveColorDiff *
-        clamp((gl_Vertex.z + osgOcean_EyePosition.z) * 0.1111111 + vNormal.z - 0.4666667, 0.0, 1.0) + osgOcean_WaveBot;
+        clamp((gl_Vertex.z + osgOcean_Eye.z) * 0.1111111 + vNormal.z - 0.4666667, 0.0, 1.0) + osgOcean_WaveBot;
 
     // -------------------------------------------------------------
 
@@ -91,7 +115,7 @@ void main( void )
     // world space
     vWorldVertex = modelMatrix * gl_Vertex;
     vWorldNormal = modelMatrix3x3 * gl_Normal;
-    vWorldViewDir = vWorldVertex.xyz - osgOcean_EyePosition.xyz;
+    vWorldViewDir = vWorldVertex.xyz - osgOcean_Eye.xyz;
 
     // ------------- Texture Coords ---------------------------------
 
@@ -106,4 +130,7 @@ void main( void )
 
     // Fog coords
     gl_FogFragCoord = gl_Position.z;
+    
+    if (osgOcean_EnableUnderwaterScattering)
+        computeScattering( osgOcean_Eye, vWorldVertex.xyz, vExtinction, vInScattering);
 }
