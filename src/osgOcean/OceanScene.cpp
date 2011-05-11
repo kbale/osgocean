@@ -704,6 +704,17 @@ void OceanScene::ViewData::updateStateSet( bool eyeAboveWater )
                              ( _cv->getEyePoint().z() < _oceanScene->_eyeHeightReflectionCutoff - _oceanScene->getOceanSurfaceHeight() );
     _surfaceStateSet->getUniform("osgOcean_EnableReflections")->set(reflectionEnabled);
 
+    if (reflectionEnabled)
+    {
+        // Update the reflection matrix's translation to take into account
+        // the ocean surface height. The translation we need is 2*h.
+        // See http://www.gamedev.net/columns/hardcore/rnerwater1/page3.asp
+        _reflectionMatrix = osg::Matrixf(  1,  0,  0,  0,
+                                           0,  1,  0,  0,
+                                           0,  0, -1,  0,    
+                                           0,  0,  2 * _oceanScene->getOceanSurfaceHeight(),  1 );
+    }
+
     // Refractions need to be calculated even when the eye is above water 
     // for the shoreline foam effect and translucency.
     bool refractionEnabled = _oceanScene->_enableRefractions && enabled;
