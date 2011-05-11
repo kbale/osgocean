@@ -410,6 +410,12 @@ float FFTOceanSurface::getSurfaceHeightAt(float x, float y, osg::Vec3f* normal)
     if(_isDirty)
         build();
 
+    // Initialize normal so it's in a "known" state if we can't calculate it later.
+    if (normal != 0)
+    {
+        normal->set(0, 0, 1);
+    }
+
     // ocean surface coordinates
     float oceanX, oceanY;
 
@@ -424,7 +430,7 @@ float FFTOceanSurface::getSurfaceHeightAt(float x, float y, osg::Vec3f* normal)
     unsigned int frame = _oldFrame;
 
     // Test if the tile is valid 
-    if(ix < _numTiles && iy < _numTiles)
+    if (ix < _numTiles && iy < _numTiles)
     {
         const OceanTile& data = _mipmapData[_oldFrame][0];
 

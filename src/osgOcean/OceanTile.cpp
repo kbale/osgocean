@@ -344,39 +344,48 @@ float OceanTile::biLinearInterp(int lx, int hx, int ly, int hy, int tx, int ty )
 
 float OceanTile::biLinearInterp(float x, float y ) const
 {
-    float dx = x/_spacing;
-    float dy = y/_spacing;
-    unsigned int ix = (unsigned int)dx;
-    unsigned int iy = (unsigned int)dy;
-    dx -= ix;
-    dy -= iy;
+    if (x >= 0.0 && y >= 0.0)
+    {
+        float dx = x/_spacing;
+        float dy = y/_spacing;
+        unsigned int ix = (unsigned int)dx;
+        unsigned int iy = (unsigned int)dy;
+        dx -= ix;
+        dy -= iy;
 
-    float s00 = getVertex(ix  , iy  ).z();
-    float s01 = getVertex(ix+1, iy  ).z();
-    float s10 = getVertex(ix  , iy+1).z();
-    float s11 = getVertex(ix+1, iy+1).z();
+        float s00 = getVertex(ix  , iy  ).z();
+        float s01 = getVertex(ix+1, iy  ).z();
+        float s10 = getVertex(ix  , iy+1).z();
+        float s11 = getVertex(ix+1, iy+1).z();
 
-    return s00*(1.f-dx)*(1.f-dy) + s01*dx*(1.f-dy) + s10*(1.f-dx)*dy +
-    s11*dx*dy;
+        return s00*(1.f-dx)*(1.f-dy) + s01*dx*(1.f-dy) + s10*(1.f-dx)*dy + s11*dx*dy;
+    }
+
+    return 0.0;
 }
 
 osg::Vec3f OceanTile::normalBiLinearInterp(float x, float y ) const
 {
-    float dx = x / _spacing;
-    float dy = y / _spacing;
+    if (x >= 0.0 && y >= 0.0)
+    {
+        float dx = x / _spacing;
+        float dy = y / _spacing;
 
-    unsigned int ix = (unsigned int) dx;
-    unsigned int iy = (unsigned int) dy;
+        unsigned int ix = (unsigned int) dx;
+        unsigned int iy = (unsigned int) dy;
 
-    dx -= ix;
-    dy -= iy;
+        dx -= ix;
+        dy -= iy;
 
-    osg::Vec3f s00 = getNormal(ix,iy);
-    osg::Vec3f s01 = getNormal(ix + 1,iy);
-    osg::Vec3f s10 = getNormal(ix,iy + 1);
-    osg::Vec3f s11 = getNormal(ix + 1,iy + 1);
+        osg::Vec3f s00 = getNormal(ix,iy);
+        osg::Vec3f s01 = getNormal(ix + 1,iy);
+        osg::Vec3f s10 = getNormal(ix,iy + 1);
+        osg::Vec3f s11 = getNormal(ix + 1,iy + 1);
 
-    return s00*(1.f - dx)*(1.f-dy) + s01*dx*(1.f-dy) + s10*(1.f - dx)*dy + s11*dx*dy;
+        return s00*(1.f - dx)*(1.f-dy) + s01*dx*(1.f-dy) + s10*(1.f - dx)*dy + s11*dx*dy;
+    }
+
+    return osg::Vec3f(0, 0, 1);
 }
 
 osg::ref_ptr<osg::Texture2D> OceanTile::createNormalMap( void ) 
