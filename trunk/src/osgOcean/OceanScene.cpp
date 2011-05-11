@@ -1477,7 +1477,14 @@ bool OceanScene::EventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::G
                 osg::notify(osg::NOTICE) << "Silt " << (_oceanScene->isSiltEnabled()? "enabled" : "disabled") << std::endl;
                 return true;
             }
-            // Silt
+            // Underwater scattering
+            if (ea.getKey() == 'T')
+            {
+                _oceanScene->enableUnderwaterScattering(!_oceanScene->isUnderwaterScatteringEnabled());
+                osg::notify(osg::NOTICE) << "Underwater scattering " << (_oceanScene->isUnderwaterScatteringEnabled()? "enabled" : "disabled") << std::endl;
+                return true;
+            }
+            // Height map
             if (ea.getKey() == 'H')
             {
                 _oceanScene->enableHeightmap(!_oceanScene->isHeightmapEnabled());
@@ -1517,6 +1524,7 @@ void OceanScene::EventHandler::getUsage(osg::ApplicationUsage& usage) const
     usage.addKeyboardMouseBinding("g","Toggle glare (above water)");
     usage.addKeyboardMouseBinding("G","Toggle God rays (underwater)");
     usage.addKeyboardMouseBinding("t","Toggle silt (underwater)");
+    usage.addKeyboardMouseBinding("T","Toggle scattering (underwater)");
     usage.addKeyboardMouseBinding("H","Toggle Height lookup for shoreline foam and sine shape (above water)");
     usage.addKeyboardMouseBinding("+","Raise ocean surface");
     usage.addKeyboardMouseBinding("-","Lower ocean surface");
