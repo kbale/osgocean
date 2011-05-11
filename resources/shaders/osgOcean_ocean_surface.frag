@@ -25,6 +25,8 @@ uniform float osgOcean_UnderwaterFogDensity;
 uniform float osgOcean_AboveWaterFogDensity;
 uniform vec4  osgOcean_UnderwaterFogColor;
 uniform vec4  osgOcean_AboveWaterFogColor;
+uniform vec3  osgOcean_UnderwaterAttenuation;
+uniform vec4  osgOcean_UnderwaterDiffuse;
 
 uniform mat4 osg_ViewMatrixInverse;
 
@@ -53,17 +55,6 @@ varying float height;
 mat4 worldObjectMatrix;
 
 const float shininess = 2000.0;
-
-// Extinction level for red, green and blue light in ocean water
-// (maybe this should be changed into a user configurable shader uniform?)
-// Values are taken from 'Rendering Water as Post-process Effect', Wojciech Toman
-// http://www.gamedev.net/reference/programming/features/ppWaterRender/
-// vec4 colorExtinction = vec4(4.5, 75.0, 300.0, 1.0) * 5.0;
-const vec4 oneOverColorExtinction = vec4(1.0/22.5, 1.0/375.0, 1.0/1500.0, 1.0/5.0);
-
-// The amount of light extinction,
-// higher values means that less light is transmitted through the water
-const float oneOverLightExtinction = 1.0/60.0;
 
 const vec4 BlueEnvColor = vec4(0.75, 0.85, 1.0, 1.0);
 
@@ -210,29 +201,6 @@ void main( void )
         float waterDepth = distance(vWorldVertex, refraction_world);
         vec4 refraction_dir = refraction_world - vWorldVertex;
 
-        float waterHeight = 0.0;
-        if (osgOcean_EnableHeightmap)
-        {
-            // The vertical distance between the ocean surface and ocean floor, this uses the projected heightmap
-            waterHeight = (texture2DProj(osgOcean_Heightmap, distortedVertex).x) * 500.0;
-        }
-            
-        // Determine refraction color
-        vec4 refraction_color = vec4( gl_Color.rgb, 1.0 );
-
-        // Only use refraction for under the ocean surface.
-        if(osgOcean_EnableRefractions && dot(vWorldViewDir, refraction_dir.xyz) > 0.0)
-        {
-            vec4 refractionmap_color = texture2DProj(osgOcean_RefractionMap, distortedVertex );
-			
-            vec4 waterColor = mix(refractionmap_color, refraction_color, clamp(pow(waterDepth * oneOverLightExtinction, 0.3), 0.0, 1.0));
-
-            // If osgOcean_EnableHeightmap is false, this will always give waterColor.
-            refraction_color = mix(waterColor, refraction_color, clamp(waterHeight * oneOverColorExtinction, 0.0, 1.0));
-        }
-
-        float fresnel = calcFresnel(dotEN, osgOcean_FresnelMul );
-
         vec4 env_color;
 
         if(osgOcean_EnableReflections)
@@ -244,11 +212,45 @@ void main( void )
             env_color = BlueEnvColor * gl_LightSource[osgOcean_LightID].diffuse * vec4(vec3(1.25), 1.0);
         }
 
+        // Determine refraction color
+        vec4 refraction_color = vec4( gl_Color.rgb, 1.0 );
+        // Only use refraction for under the ocean surface.
+        if(osgOcean_EnableRefractions)
+        {
+            vec4 refractionmap_color = texture2DProj(osgOcean_RefractionMap, distortedVertex );
+
+            if(osgOcean_EnableUnderwaterScattering)
+            {
+                // Compute underwater scattering the same way as when underwater, 
+                // see vertex shader computeScattering() function, but a higher 
+                // underwater attenuation factor is required so it matches the 
+                // underwater look.
+                float depth = max(osgOcean_WaterHeight-vWorldVertex.z, 0.0);
+                vec3 extinction = exp(-osgOcean_UnderwaterAttenuation*waterDepth*4.0);
+                vec3 inScattering = osgOcean_UnderwaterDiffuse.rgb * vec3(0.6, 0.6, 0.5) * (1.0-extinction*exp(-depth*vec3(0.001)));
+
+                refraction_color.rgb = refractionmap_color.rgb * extinction + inScattering;
+            }
+            else
+            {
+                refraction_color.rgb *= refractionmap_color.rgb;
+            }
+        }
+
+        float fresnel = calcFresnel(dotEN, osgOcean_FresnelMul );
+
         final_color = mix(refraction_color, env_color, fresnel) + specular_color;
 
         // Store the color here to compute luminance later, we don't want
         // foam or fog to be taken into account for this calculation.
         vec4 lumColor = final_color;
+
+        float waterHeight = 0.0;
+        if (osgOcean_EnableHeightmap)
+        {
+            // The vertical distance between the ocean surface and ocean floor, this uses the projected heightmap
+            waterHeight = (texture2DProj(osgOcean_Heightmap, distortedVertex).x) * 500.0;
+        }
 
         if(osgOcean_EnableCrestFoam)
         {
