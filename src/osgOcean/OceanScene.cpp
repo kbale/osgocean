@@ -81,8 +81,10 @@ namespace
                     // dependent.
                     mt->setMatrix(osg::Matrix::identity());
 
-                    _cylinderMatrix->set(osg::Matrix::translate(osg::Vec3(eye.x(),eye.y(),-_oceanScene->getOceanCylinder()->getHeight() + mult * _oceanScene->getOceanTechnique()->getMaximumHeight() * 2.0)));
-                    cv->pushModelViewMatrix(_cylinderMatrix.get(), osg::Transform::RELATIVE_RF);
+                    osg::Camera* currentCamera = cv->getCurrentRenderBin()->getStage()->getCamera();
+
+                    _cylinderMatrix->set(osg::Matrix::translate(osg::Vec3(eye.x(),eye.y(),-_oceanScene->getOceanCylinder()->getHeight() + mult * _oceanScene->getOceanTechnique()->getMaximumHeight() * 2.0)) * currentCamera->getViewMatrix());
+                    cv->pushModelViewMatrix(_cylinderMatrix.get(), osg::Transform::ABSOLUTE_RF);
                 }
 
                 traverse(node, nv);
