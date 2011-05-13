@@ -265,6 +265,7 @@ int main(int argc, char *argv[])
         tb->setHomePosition( osg::Vec3f(0.f,0.f,20.f), osg::Vec3f(0.f,20.f,20.f), osg::Vec3f(0,0,1) );
         view2->setCameraManipulator( tb );
         view2->setSceneData(root.get());
+        view2->addEventHandler( new osgGA::StateSetManipulator( view2->getCamera()->getOrCreateStateSet() ) );
 
         if (disableEffectsForSecondView)
         {

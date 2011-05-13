@@ -32,7 +32,8 @@ namespace
     public:
         CameraTrackCallback(OceanScene* oceanScene)
             : _oceanScene (oceanScene)
-            , _cylinderMatrix(new osg::RefMatrix)
+            , _currentMatrix(0)
+            , _traversalNumber(-1)
         {
         }
 
@@ -41,6 +42,12 @@ namespace
             if( nv->getVisitorType() == osg::NodeVisitor::CULL_VISITOR )
             {
                 osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(nv);
+
+                if (nv->getTraversalNumber() > _traversalNumber)
+                {
+                    // Rendering new frame, reuse matrices used in the last frame.
+                    _currentMatrix = 0;
+                }
 
                 osg::MatrixTransform* mt = static_cast<osg::MatrixTransform*>(node);
                 bool follow = true;
@@ -83,8 +90,8 @@ namespace
 
                     osg::Camera* currentCamera = cv->getCurrentRenderBin()->getStage()->getCamera();
 
-                    _cylinderMatrix->set(osg::Matrix::translate(osg::Vec3(eye.x(),eye.y(),-_oceanScene->getOceanCylinder()->getHeight() + mult * _oceanScene->getOceanTechnique()->getMaximumHeight() * 2.0)) * currentCamera->getViewMatrix());
-                    cv->pushModelViewMatrix(_cylinderMatrix.get(), osg::Transform::ABSOLUTE_RF);
+                    osg::RefMatrix* cylinderMatrix = createOrReuseMatrix(osg::Matrix::translate(osg::Vec3(eye.x(),eye.y(),-_oceanScene->getOceanCylinder()->getHeight() + mult * _oceanScene->getOceanTechnique()->getMaximumHeight() * 2.0)) * currentCamera->getViewMatrix());
+                    cv->pushModelViewMatrix(cylinderMatrix, osg::Transform::ABSOLUTE_RF);
                 }
 
                 traverse(node, nv);
@@ -100,8 +107,37 @@ namespace
             }
         }
 
+        // See osg::CullStack::createOrReuseMatrix()
+        osg::RefMatrix* createOrReuseMatrix(const osg::Matrix& value)
+        {
+            // skip of any already reused matrix.
+            while (_currentMatrix < _matrices.size() && 
+                   _matrices[_currentMatrix]->referenceCount()>1)
+            {
+                ++_currentMatrix;
+            }
+
+            // if still within list, element must be singularly referenced
+            // there return it to be reused.
+            if (_currentMatrix < _matrices.size())
+            {
+                osg::RefMatrix* matrix = _matrices[_currentMatrix++].get();
+                matrix->set(value);
+                return matrix;
+            }
+
+            // otherwise need to create new matrix.
+            osg::RefMatrix* matrix = new osg::RefMatrix(value);
+            _matrices.push_back(matrix);
+            ++_currentMatrix;
+            return matrix;
+        }
+
         osgOcean::OceanScene* _oceanScene;
-        osg::ref_ptr<osg::RefMatrix> _cylinderMatrix;
+        std::vector< osg::ref_ptr<osg::RefMatrix> > _matrices;
+        unsigned int _currentMatrix;
+
+        int _traversalNumber;
     };
 
     static const float OCEAN_CYLINDER_HEIGHT = 4000.f;
