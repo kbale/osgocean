@@ -90,7 +90,10 @@ namespace
 
                     osg::Camera* currentCamera = cv->getCurrentRenderBin()->getStage()->getCamera();
 
-                    osg::RefMatrix* cylinderMatrix = createOrReuseMatrix(osg::Matrix::translate(osg::Vec3(eye.x(),eye.y(),-_oceanScene->getOceanCylinder()->getHeight() + mult * _oceanScene->getOceanTechnique()->getMaximumHeight() * 2.0)) * currentCamera->getViewMatrix());
+                    double z = -_oceanScene->getOceanCylinder()->getHeight() +                      // So the cylinder is underwater
+                                _oceanScene->getOceanSurfaceHeight() +                              // Follow the ocean surface's height
+                                mult * _oceanScene->getOceanTechnique()->getMaximumHeight();        // Offset either up or down by a bit.
+                    osg::RefMatrix* cylinderMatrix = createOrReuseMatrix(osg::Matrix::translate(eye.x(), eye.y(), z) * currentCamera->getViewMatrix());
                     cv->pushModelViewMatrix(cylinderMatrix, osg::Transform::ABSOLUTE_RF);
                 }
 
