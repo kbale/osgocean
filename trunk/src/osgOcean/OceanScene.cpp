@@ -734,9 +734,7 @@ void OceanScene::ViewData::updateStateSet( bool eyeAboveWater )
     _surfaceStateSet->getUniform("osgOcean_ViewportDimensions")->set( osg::Vec2(viewport->width(), viewport->height()) );
 
     // Check if the RTT passes should be enabled for this view.
-    bool enabled = std::find(_oceanScene->_viewsWithRTTEffectsDisabled.begin(), 
-                             _oceanScene->_viewsWithRTTEffectsDisabled.end(), 
-                             currentCamera->getView()) == _oceanScene->_viewsWithRTTEffectsDisabled.end();
+    bool enabled = (_oceanScene->_viewsWithRTTEffectsDisabled.find(currentCamera->getView()) == _oceanScene->_viewsWithRTTEffectsDisabled.end());
 
     bool reflectionEnabled = _oceanScene->_enableReflections && eyeAboveWater && enabled && 
                              ( _cv->getEyePoint().z() < _oceanScene->_eyeHeightReflectionCutoff - _oceanScene->getOceanSurfaceHeight() );
@@ -819,8 +817,7 @@ void OceanScene::ViewData::cull( bool eyeAboveWater, bool surfaceVisible )
 
 void OceanScene::enableRTTEffectsForView(osg::View* view, bool enable)
 {
-    std::vector< osg::ref_ptr<osg::View> >::iterator it = 
-        std::find(_viewsWithRTTEffectsDisabled.begin(), _viewsWithRTTEffectsDisabled.end(), view);
+    std::set< osg::ref_ptr<osg::View> >::iterator it = _viewsWithRTTEffectsDisabled.find(view);
     if (enable)
     {
         // Default is enabled for all views, so if we find it we 
@@ -831,7 +828,7 @@ void OceanScene::enableRTTEffectsForView(osg::View* view, bool enable)
     else
     {
         if (it == _viewsWithRTTEffectsDisabled.end())
-            _viewsWithRTTEffectsDisabled.push_back(view);
+            _viewsWithRTTEffectsDisabled.insert(view);
     }
 }
 

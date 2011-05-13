@@ -258,7 +258,7 @@ int main(int argc, char *argv[])
         view->getCamera()->setProjectionMatrixAsPerspective(fovy, 800.0/768.0, zNear, zFar);
 
         // Create a second view
-        osgViewer::View* view2 = new osgViewer::View;
+        osg::ref_ptr<osgViewer::View> view2 = new osgViewer::View;
         view2->getCamera()->setGraphicsContext(view->getCamera()->getGraphicsContext());
         view2->getCamera()->setViewport(800, 0, 800, 768);
         osgGA::TrackballManipulator* tb = new osgGA::TrackballManipulator;
@@ -269,7 +269,7 @@ int main(int argc, char *argv[])
 
         if (disableEffectsForSecondView)
         {
-            scene->getOceanScene()->enableRTTEffectsForView(view2, false);
+            scene->getOceanScene()->enableRTTEffectsForView(view2.get(), false);
         }
 
         // The order here is important, the last view added to the viewer (so 
@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
             // If we explicitly asked that the main view be added last to the 
             // viewer, we'll see that the refraction applies to it, and it 
             // controls ocean tile LOD.
-            compositeViewer->addView(view2);
+            compositeViewer->addView(view2.get());
             compositeViewer->addView(view);
         }
         else
@@ -295,7 +295,7 @@ int main(int argc, char *argv[])
             // is what we'll demonstrate. The main view won't have refraction
             // effects, the inset view will.
             compositeViewer->addView(view);
-            compositeViewer->addView(view2);
+            compositeViewer->addView(view2.get());
         }
 
         // Post-render RTT effects don't work at all when using multiple 
