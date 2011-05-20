@@ -41,6 +41,9 @@ include_directories (${OSGUTIL_INCLUDE_DIR})
 find_package (osgText REQUIRED)
 include_directories (${OSGTEXT_INCLUDE_DIR})
 
+find_package (osgShadow REQUIRED)
+include_directories (${OSGSHADOW_INCLUDE_DIR})
+
 find_package (OpenThreads REQUIRED)
 include_directories(${OPENTHREADS_INCLUDE_DIR})
 
