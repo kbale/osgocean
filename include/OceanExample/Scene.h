@@ -10,6 +10,14 @@
 
 #include "SkyDome.h"
 
+
+enum DrawMask
+{
+    CAST_SHADOW             = (0x1<<30),
+    RECEIVE_SHADOW          = (0x1<<29),
+};
+
+
 class Scene : public osg::Referenced
 {
 public:
@@ -51,7 +59,8 @@ public:
         bool  isChoppy = true,
         float choppyFactor = -2.5f,
         float crestFoamHeight = 2.2f,
-        bool  useVBO=false );
+        bool  useVBO=false, 
+        const std::string& terrain_shader_basename = "terrain" );
 
     void build( 
         const osg::Vec2f& windDirection,
@@ -62,7 +71,8 @@ public:
         bool  isChoppy,
         float choppyFactor,
         float crestFoamHeight,
-        bool  useVBO );
+        bool  useVBO,
+        const std::string& terrain_shader_basename );
 
     void changeScene( SCENE_TYPE type );
 
@@ -70,7 +80,7 @@ public:
     // Here we attach a custom shader to the model.
     // This shader overrides the default shader applied by OceanScene but uses uniforms applied by OceanScene.
     // The custom shader is needed to add multi-texturing and bump mapping to the terrain.
-    osg::Node* loadIslands(void);
+    osg::Node* loadIslands(const std::string& terrain_shader_basename);
 
     osg::ref_ptr<osg::TextureCubeMap> loadCubeMapTextures( const std::string& dir );
 
@@ -100,4 +110,6 @@ public:
     {
         return _oceanScene.get();
     }
+
+    osg::Light* getLight() { return _light.get(); }
 };

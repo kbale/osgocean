@@ -30,6 +30,9 @@
 
 #include <osgDB/ReadFile>
 
+#include <osgShadow/ShadowedScene>
+#include <osgShadow/LightSpacePerspectiveShadowMap>
+
 #include <osgOcean/OceanScene>
 #include <osgOcean/Version>
 #include <osgOcean/ShaderManager>
@@ -160,6 +163,9 @@ int main(int argc, char *argv[])
     bool disableEffectsForSecondView = false;
     if (arguments.read("--disableEffectsForSecondView")) disableEffectsForSecondView = true;
 
+    bool useShadows = false;
+    if (arguments.read("--useShadows")) useShadows = true;
+
     osg::ref_ptr<osg::Node> loadedModel = osgDB::readNodeFiles(arguments);
 
     // any option left unread are converted into errors to write out later.
@@ -176,11 +182,56 @@ int main(int argc, char *argv[])
     // Set up the scene
     //------------------------------------------------------------------------
 
-    osg::ref_ptr<osg::Group> root = new osg::Group;
+    std::string terrain_shader_basename = "terrain";
+	if (useShadows)
+    {
+        terrain_shader_basename = "terrain_lispsm";
+    }
 
     osgOcean::ShaderManager::instance().enableShaders(!disableShaders);
-    osg::ref_ptr<Scene> scene = new Scene(windDirection, windSpeed, depth, reflectionDamping, scale, isChoppy, choppyFactor, crestFoamHeight, useVBO);
-    
+    osg::ref_ptr<Scene> scene = new Scene(windDirection, windSpeed, depth, reflectionDamping, scale, isChoppy, choppyFactor, crestFoamHeight, useVBO, terrain_shader_basename);
+
+	osg::ref_ptr<osg::Group> root;
+
+	if (useShadows)
+	{
+        osg::ref_ptr<osgShadow::ShadowedScene> shadowedScene = new osgShadow::ShadowedScene;
+        root = shadowedScene;
+
+        shadowedScene->setCastsShadowTraversalMask(CAST_SHADOW);
+        shadowedScene->setReceivesShadowTraversalMask(RECEIVE_SHADOW);
+        osgShadow::LightSpacePerspectiveShadowMapVB* shadowTechnique = new osgShadow::LightSpacePerspectiveShadowMapVB;
+        shadowTechnique->setTextureSize(osg::Vec2s(1024,1024));
+        shadowTechnique->setShadowTextureUnit(7);
+        //shadowTechnique->setDebugDraw(true);
+        shadowedScene->setShadowTechnique(shadowTechnique);
+        shadowTechnique->setLight(scene->getLight());
+
+        osg::Shader* vs = osgDB::readShaderFile("osgOcean_ocean_scene_lispsm.vert");
+        vs->setType(osg::Shader::VERTEX);
+        shadowTechnique->setMainVertexShader(vs);
+
+        osg::Shader* fs = osgDB::readShaderFile("osgOcean_ocean_scene_lispsm.frag");
+        fs->setType(osg::Shader::FRAGMENT);
+        shadowTechnique->setMainFragmentShader(fs);
+
+        shadowTechnique->setShadowVertexShader(NULL);
+        shadowTechnique->setShadowFragmentShader(NULL);
+
+        scene->getOceanScene()->getOceanTechnique()->setNodeMask(scene->getOceanScene()->getOceanTechnique()->getNodeMask() & ~CAST_SHADOW & ~RECEIVE_SHADOW);
+        scene->getOceanScene()->getOceanCylinder()->getParent(0)->setNodeMask(scene->getOceanScene()->getOceanCylinder()->getParent(0)->getNodeMask() & ~CAST_SHADOW & ~RECEIVE_SHADOW);
+
+        osg::Program* sceneProgram = osgOcean::ShaderManager::instance().createProgram("scene_shader", 
+                                               "osgOcean_ocean_scene_lispsm.vert", "osgOcean_ocean_scene_lispsm.frag", "", "");
+        scene->getOceanScene()->setDefaultSceneShader(sceneProgram);
+
+        // TODO: 
+    }
+	else
+	{
+		root = new osg::Group;
+	}
+
     if (disableShaders)
     {
         // Disable all special effects that depend on shaders.
@@ -206,9 +257,10 @@ int main(int argc, char *argv[])
 
     if (loadedModel.valid())
     {
-        loadedModel->setNodeMask( scene->getOceanScene()->getNormalSceneMask() | 
+        loadedModel->setNodeMask( scene->getOceanScene()->getNormalSceneMask()    | 
                                   scene->getOceanScene()->getReflectedSceneMask() | 
-                                  scene->getOceanScene()->getRefractedSceneMask() );
+                                  scene->getOceanScene()->getRefractedSceneMask() |
+                                  CAST_SHADOW | RECEIVE_SHADOW );
 
         scene->getOceanScene()->addChild(loadedModel.get());
     }
@@ -221,9 +273,10 @@ int main(int argc, char *argv[])
 
         if(boat.valid())
         {
-            boat->setNodeMask( scene->getOceanScene()->getNormalSceneMask() | 
-                scene->getOceanScene()->getReflectedSceneMask() | 
-                scene->getOceanScene()->getRefractedSceneMask() );
+            boat->setNodeMask( scene->getOceanScene()->getNormalSceneMask()    | 
+                               scene->getOceanScene()->getReflectedSceneMask() | 
+                               scene->getOceanScene()->getRefractedSceneMask() |
+                               CAST_SHADOW | RECEIVE_SHADOW );
 
             osg::ref_ptr<osg::MatrixTransform> boatTransform = new osg::MatrixTransform;
             boatTransform->addChild(boat.get());

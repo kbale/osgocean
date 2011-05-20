@@ -355,7 +355,15 @@ void FFTOceanTechnique::OceanAnimationCallback::update(osg::Node* node, osg::Nod
         if( nv->getVisitorType() == osg::NodeVisitor::CULL_VISITOR )
         {
             osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(nv);
-            oceanData->setEye( cv->getEyePoint() );
+            osg::Camera* currentCamera = cv->getCurrentRenderBin()->getStage()->getCamera();
+            if (currentCamera->getName() == "ShadowCamera" ||
+                currentCamera->getName() == "AnalysisCamera" )
+            {
+            }
+            else
+            {
+                oceanData->setEye( cv->getEyePoint() );
+            }
         }
         else if( nv->getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR ){
             oceanData->updateOcean(simulationTime);
