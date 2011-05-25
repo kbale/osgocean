@@ -725,11 +725,12 @@ void OceanScene::ViewData::updateStateSet( bool eyeAboveWater )
     _globalStateSet->getUniform("osgOcean_Eye")->set( _cv->getEyePoint() );
 
     // Switch the fog state from underwater to above water or vice versa if necessary.
-    if (_eyeAboveWaterPreviousFrame != eyeAboveWater)
+    float requiredFogDensity = eyeAboveWater ? _oceanScene->_aboveWaterFogDensity : _oceanScene->_underwaterFogDensity;
+    osg::Vec4 requiredFogColor = eyeAboveWater ? _oceanScene->_aboveWaterFogColor   : _oceanScene->_underwaterFogColor;
+    if (requiredFogDensity != _fog->getDensity() || requiredFogColor != _fog->getColor())
     {
-        _fog->setDensity(eyeAboveWater ? _oceanScene->_aboveWaterFogDensity : _oceanScene->_underwaterFogDensity);
-        _fog->setColor  (eyeAboveWater ? _oceanScene->_aboveWaterFogColor   : _oceanScene->_underwaterFogColor);
-        _eyeAboveWaterPreviousFrame = eyeAboveWater;
+        _fog->setDensity(requiredFogDensity);
+        _fog->setColor  (requiredFogColor);
     }
 
     // Update viewport dimensions
@@ -820,7 +821,7 @@ void OceanScene::ViewData::cull( bool eyeAboveWater, bool surfaceVisible )
 
 void OceanScene::enableRTTEffectsForView(osg::View* view, bool enable)
 {
-    std::set< osg::ref_ptr<osg::View> >::iterator it = _viewsWithRTTEffectsDisabled.find(view);
+    ViewSet::iterator it = _viewsWithRTTEffectsDisabled.find(view);
     if (enable)
     {
         // Default is enabled for all views, so if we find it we 

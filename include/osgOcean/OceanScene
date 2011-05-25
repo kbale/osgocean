@@ -46,6 +46,9 @@ namespace osgOcean
     */
     class OSGOCEAN_EXPORT OceanScene : public osg::Group
     {
+    public:
+        typedef std::set< osg::observer_ptr<osg::View> > ViewSet;
+
     private:
         osg::ref_ptr<OceanTechnique> _oceanSurface;
 
@@ -123,7 +126,7 @@ namespace osgOcean
         osg::ref_ptr<osg::MatrixTransform>  _oceanCylinderMT;
         osg::ref_ptr<Cylinder>              _oceanCylinder;
 
-        std::set< osg::ref_ptr<osg::View> > _viewsWithRTTEffectsDisabled;
+        ViewSet                             _viewsWithRTTEffectsDisabled;
 
         struct ViewData : public osg::Referenced
         {
@@ -300,9 +303,10 @@ namespace osgOcean
         /// for the given view.
         void enableRTTEffectsForView(osg::View* view, bool enable);
 
-        /// Get the list of views where RTT effects (reflection, refraction, 
+
+        /// Get the list of views where RTT effects (reflection, refraction,
         /// height map) are disabled (enabled for all other views).
-        std::set< osg::ref_ptr<osg::View> > getViewsWithRTTEffectsDisabled() const
+        ViewSet getViewsWithRTTEffectsDisabled() const
         {
             return _viewsWithRTTEffectsDisabled;
         }
