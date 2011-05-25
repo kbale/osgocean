@@ -16,6 +16,7 @@
 */
 
 #include "osgOcean/MipmapGeometryVBO"
+#include <stdlib.h>
 
 namespace osgOcean
 {
