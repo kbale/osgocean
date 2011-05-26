@@ -183,8 +183,8 @@ int main(int argc, char *argv[])
     //------------------------------------------------------------------------
 
     std::string terrain_shader_basename = "terrain";
-	if (useShadows)
-    {
+	
+    if (useShadows){
         terrain_shader_basename = "terrain_lispsm";
     }
 
@@ -207,13 +207,23 @@ int main(int argc, char *argv[])
         shadowedScene->setShadowTechnique(shadowTechnique);
         shadowTechnique->setLight(scene->getLight());
 
-        osg::Shader* vs = osgDB::readShaderFile("osgOcean_ocean_scene_lispsm.vert");
-        vs->setType(osg::Shader::VERTEX);
-        shadowTechnique->setMainVertexShader(vs);
+        osg::Shader* vs = osgDB::readShaderFile(osg::Shader::VERTEX,"osgOcean_ocean_scene_lispsm.vert");
+        
+        if(vs){
+            shadowTechnique->setMainVertexShader(vs);
+        }
+        else{
+            osg::notify(osg::WARN) << "osgOcean: Could not read shader from file: osgOcean_ocean_scene_lispsm.vert"  << std::endl;
+        }
 
-        osg::Shader* fs = osgDB::readShaderFile("osgOcean_ocean_scene_lispsm.frag");
-        fs->setType(osg::Shader::FRAGMENT);
-        shadowTechnique->setMainFragmentShader(fs);
+        osg::Shader* fs = osgDB::readShaderFile(osg::Shader::FRAGMENT,"osgOcean_ocean_scene_lispsm.frag");
+
+        if(fs){
+            shadowTechnique->setMainFragmentShader(fs);
+        }
+        else{
+            osg::notify(osg::WARN) << "osgOcean: Could not read shader from file: osgOcean_ocean_scene_lispsm.frag" << std::endl;
+        }
 
         shadowTechnique->setShadowVertexShader(NULL);
         shadowTechnique->setShadowFragmentShader(NULL);
@@ -224,8 +234,6 @@ int main(int argc, char *argv[])
         osg::Program* sceneProgram = osgOcean::ShaderManager::instance().createProgram("scene_shader", 
                                                "osgOcean_ocean_scene_lispsm.vert", "osgOcean_ocean_scene_lispsm.frag", "", "");
         scene->getOceanScene()->setDefaultSceneShader(sceneProgram);
-
-        // TODO: 
     }
 	else
 	{

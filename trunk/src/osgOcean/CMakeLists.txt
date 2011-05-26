@@ -36,6 +36,8 @@ SET( SHADER_FILES
 
   ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_ocean_scene.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_ocean_scene.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_ocean_scene_lispsm.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_ocean_scene_lispsm.frag
   
   ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_heightmap.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/osgOcean_heightmap.frag
