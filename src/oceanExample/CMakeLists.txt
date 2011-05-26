@@ -39,6 +39,8 @@ SET( BOAT_RESOURCES
 SET( EXAMPLE_SHADERS
   ${osgOcean_SOURCE_DIR}/resources/shaders/terrain.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/terrain.frag
+  ${osgOcean_SOURCE_DIR}/resources/shaders/terrain_lispsm.vert
+  ${osgOcean_SOURCE_DIR}/resources/shaders/terrain_lispsm.frag
   ${osgOcean_SOURCE_DIR}/resources/shaders/skydome.vert
   ${osgOcean_SOURCE_DIR}/resources/shaders/skydome.frag
 )

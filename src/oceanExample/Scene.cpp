@@ -310,9 +310,10 @@ osg::Node* Scene::loadIslands(const std::string& terrain_shader_basename)
 #ifdef USE_CUSTOM_SHADER
     const std::string terrain_vertex   = terrain_shader_basename + ".vert";
     const std::string terrain_fragment = terrain_shader_basename + ".frag";
-
+    
     osg::Program* program = osgOcean::ShaderManager::instance().createProgram("terrain", terrain_vertex, terrain_fragment, "", "" );
-    program->addBindAttribLocation("aTangent", 6);
+    if(program) program->addBindAttribLocation("aTangent", 6);
+
 #endif
     island->setNodeMask( _oceanScene->getNormalSceneMask()    | 
 						 _oceanScene->getReflectedSceneMask() | 
