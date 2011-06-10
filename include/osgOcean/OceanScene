@@ -149,12 +149,12 @@ namespace osgOcean
 
             virtual void updateStateSet( bool eyeAboveWater );
 
-            /// Method called by ViewDependentShadowTechnique to allow ViewData 
-            /// do the hard work computing shadows for its associated view
+            /// Method called by OceanScene to allow ViewData 
+            /// do the hard work computing reflections/refractions for its associated view
             virtual void cull( bool eyeAboveWater, bool surfaceVisible );
 
-            /// Dirty is called by parent ViewDependentShadowTechnique to force 
-            /// update of resources after some of them were modified in parent technique
+            /// Dirty is called by parent OceanScene to force 
+            /// update of resources after some of them were modified in parent scene
             virtual void dirty( bool flag );
 
             /// View's CullVisitor associated with this ViewData instance 
@@ -186,7 +186,7 @@ namespace osgOcean
 
         /// Map of view dependent data per view cull visitor (CVs are used as indices) 
         /// ViewDependentShadowTechnique uses this map to find VieData for each cull vitior
-        typedef std::map< osg::ref_ptr< osgUtil::CullVisitor >,
+        typedef std::map< osg::observer_ptr< osgUtil::CullVisitor >,
                           osg::ref_ptr< ViewData > > ViewDataMap;
 
         ViewDataMap                                       _viewDataMap;

@@ -1027,12 +1027,18 @@ void OceanScene::cull(osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surface
 
         // Push the view-dependent surface stateset.
         ViewData * vd = getViewDependentData( &cv );
-        cv.pushStateSet( vd->_surfaceStateSet.get() );
+        if (vd)
+        {
+            cv.pushStateSet( vd->_surfaceStateSet.get() );
+        }
 
         cv.setTraversalMask( mask & _surfaceMask );
         osg::Group::traverse(cv);
 
-        cv.popStateSet();
+        if (vd)
+        {
+            cv.popStateSet();
+        }
     }
 
     // render rest of scene
