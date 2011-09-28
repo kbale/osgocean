@@ -8,20 +8,30 @@ This page will list hardware where osgOcean works. For now, no real details will
 
 == nVidia ==
 
+  * !GeForce GTX 285 (Mario)
   * !GeForce GTX 280 (Ruben Smelik)
+  * !GeForce GTS 240 (Mario)
+  * !GeForce GTS 250 (Mario)
+
+  * !GeForce G105M (laptop) (Tian Xiao)
 
   * !GeForce 9800 GT (JSG)
   * !GeForce 9800 GTX+ (JSG)
   * !GeForce 9800 GX2 (Ruben Smelik)
+  * !GeForce 9600 GT (KCB)
 
   * !GeForce 8800 GT (JSG)
   * !GeForce 8800 GTS (KCB)
+  * !GeForce 8600 GTS (Mario)
+  * !GeForce 8500 GT (Mario)
 
   * !GeForce 7900 GTX (JSG)
   * !GeForce 7800 GS (JSG)
   * !GeForce Go 7600 (laptop) (Jan Ciger)
 
   * Quadro FX 4500 (!GeForce 7800 equivalent) (Jan Ciger)
+  * Quadro FX 4600 (Felix)
+  * Quadro FX 2700M (laptop) (Felix)
 
 == ATI ==
 
