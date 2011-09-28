@@ -228,10 +228,10 @@ void Scene::build(
                 _islandSwitch->addChild( islandModel.get(), true );
                 
                 _islandSwitch->setNodeMask( _oceanScene->getNormalSceneMask()    | 
-                						    _oceanScene->getReflectedSceneMask() | 
-                    						_oceanScene->getRefractedSceneMask() |
-                    						_oceanScene->getHeightmapMask()      | 
-											RECEIVE_SHADOW);
+                                            _oceanScene->getReflectedSceneMask() | 
+                                            _oceanScene->getRefractedSceneMask() |
+                                            _oceanScene->getHeightmapMask()      | 
+                                            RECEIVE_SHADOW);
 
                 _oceanScene->addChild( _islandSwitch.get() );
             }
@@ -240,6 +240,7 @@ void Scene::build(
         {
             ScopedTimer lightingTimer("  . Setting up lighting: ", osg::notify(osg::NOTICE));
             osg::LightSource* lightSource = new osg::LightSource;
+            lightSource->setNodeMask(lightSource->getNodeMask() & ~CAST_SHADOW & ~RECEIVE_SHADOW);
             lightSource->setLocalStateSetModes();
 
             _light = lightSource->getLight();
@@ -247,7 +248,13 @@ void Scene::build(
             _light->setAmbient( osg::Vec4d(0.3f, 0.3f, 0.3f, 1.0f ));
             _light->setDiffuse( _sunDiffuse[_sceneType] );
             _light->setSpecular(osg::Vec4d( 0.1f, 0.1f, 0.1f, 1.0f ) );
+#ifdef POINT_LIGHT
             _light->setPosition( osg::Vec4f(_sunPositions[_sceneType], 1.f) ); // point light
+#else
+            osg::Vec3f direction(_sunPositions[_sceneType]);
+            direction.normalize();
+            _light->setPosition( osg::Vec4f(direction, 0.0) );  // directional light
+#endif
 
             _scene->addChild( lightSource );
             _scene->addChild( _oceanScene.get() );
@@ -278,7 +285,11 @@ void Scene::changeScene( SCENE_TYPE type )
 
     _oceanScene->setSunDirection( sunDir );
 
+#ifdef POINT_LIGHT
     _light->setPosition( osg::Vec4f(_sunPositions[_sceneType], 1.f) );
+#else
+    _light->setPosition( osg::Vec4f(-sunDir, 0.f) );
+#endif
     _light->setDiffuse( _sunDiffuse[_sceneType] ) ;
 
     if(_islandSwitch.valid() )
@@ -316,10 +327,10 @@ osg::Node* Scene::loadIslands(const std::string& terrain_shader_basename)
 
 #endif
     island->setNodeMask( _oceanScene->getNormalSceneMask()    | 
-						 _oceanScene->getReflectedSceneMask() | 
-						 _oceanScene->getRefractedSceneMask() | 
-						 _oceanScene->getHeightmapMask()      | 
-						 RECEIVE_SHADOW);
+                         _oceanScene->getReflectedSceneMask() | 
+                         _oceanScene->getRefractedSceneMask() | 
+                         _oceanScene->getHeightmapMask()      | 
+                         RECEIVE_SHADOW);
     island->getStateSet()->addUniform( new osg::Uniform( "uTextureMap", 0 ) );
 
 #ifdef USE_CUSTOM_SHADER

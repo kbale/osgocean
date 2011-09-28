@@ -31,7 +31,7 @@
 #include <osgDB/ReadFile>
 
 #include <osgShadow/ShadowedScene>
-#include <osgShadow/LightSpacePerspectiveShadowMap>
+#include <osgShadow/ViewDependentShadowMap>
 
 #include <osgOcean/OceanScene>
 #include <osgOcean/Version>
@@ -80,6 +80,10 @@ public:
     osg::observer_ptr<osgOcean::OceanScene> _oceanScene;
 };
 
+
+// Useful argument lists:
+// Test shadows:
+//    --useShadows cessna.osg.(-2400,0,120).trans --initialCameraPosition -2400 -100 120
 
 
 int main(int argc, char *argv[])
@@ -166,6 +170,12 @@ int main(int argc, char *argv[])
     bool useShadows = false;
     if (arguments.read("--useShadows")) useShadows = true;
 
+    bool useDebugDraw = false;
+    if (arguments.read("--debugDraw")) useDebugDraw = true;
+
+    osg::Vec3 initialCameraPosition(0,0,20);
+    while (arguments.read("--initialCameraPosition", initialCameraPosition.x(), initialCameraPosition.y(), initialCameraPosition.z()));
+
     osg::ref_ptr<osg::Node> loadedModel = osgDB::readNodeFiles(arguments);
 
     // any option left unread are converted into errors to write out later.
@@ -183,7 +193,7 @@ int main(int argc, char *argv[])
     //------------------------------------------------------------------------
 
     std::string terrain_shader_basename = "terrain";
-	
+
     if (useShadows){
         terrain_shader_basename = "terrain_lispsm";
     }
@@ -191,54 +201,69 @@ int main(int argc, char *argv[])
     osgOcean::ShaderManager::instance().enableShaders(!disableShaders);
     osg::ref_ptr<Scene> scene = new Scene(windDirection, windSpeed, depth, reflectionDamping, scale, isChoppy, choppyFactor, crestFoamHeight, useVBO, terrain_shader_basename);
 
-	osg::ref_ptr<osg::Group> root;
+    osg::ref_ptr<osg::Group> root;
 
-	if (useShadows)
-	{
+    if (useShadows)
+    {
         osg::ref_ptr<osgShadow::ShadowedScene> shadowedScene = new osgShadow::ShadowedScene;
         root = shadowedScene;
 
         shadowedScene->setCastsShadowTraversalMask(CAST_SHADOW);
         shadowedScene->setReceivesShadowTraversalMask(RECEIVE_SHADOW);
-        osgShadow::LightSpacePerspectiveShadowMapVB* shadowTechnique = new osgShadow::LightSpacePerspectiveShadowMapVB;
-        shadowTechnique->setTextureSize(osg::Vec2s(1024,1024));
-        shadowTechnique->setShadowTextureUnit(7);
-        //shadowTechnique->setDebugDraw(true);
+
+        osgShadow::ShadowSettings* shadowSettings = new osgShadow::ShadowSettings;
+        shadowSettings->setTextureSize(osg::Vec2s(1024,1024));
+        shadowSettings->setBaseShadowTextureUnit(7);
+        shadowSettings->setLightNum(scene->getLight()->getLightNum());
+        shadowSettings->setShaderHint(osgShadow::ShadowSettings::NO_SHADERS);
+        shadowSettings->setDebugDraw(useDebugDraw);
+
+        osgShadow::ViewDependentShadowMap* shadowTechnique = new osgShadow::ViewDependentShadowMap;
+        shadowedScene->setShadowSettings(shadowSettings);
         shadowedScene->setShadowTechnique(shadowTechnique);
-        shadowTechnique->setLight(scene->getLight());
 
-        osg::Shader* vs = osgDB::readShaderFile(osg::Shader::VERTEX,"osgOcean_ocean_scene_lispsm.vert");
-        
-        if(vs){
-            shadowTechnique->setMainVertexShader(vs);
-        }
-        else{
-            osg::notify(osg::WARN) << "osgOcean: Could not read shader from file: osgOcean_ocean_scene_lispsm.vert"  << std::endl;
-        }
+        if (!disableShaders)
+        {
+            osg::Shader* vs = osgDB::readShaderFile(osg::Shader::VERTEX,"osgOcean_ocean_scene_lispsm.vert");
+            osg::ref_ptr<osg::Program> program = new osg::Program;
+            
+            if (vs)
+            {
+                program->addShader(vs);
+            }
+            else
+            {
+                osg::notify(osg::WARN) << "osgOcean: Could not read shader from file: osgOcean_ocean_scene_lispsm.vert"  << std::endl;
+            }
 
-        osg::Shader* fs = osgDB::readShaderFile(osg::Shader::FRAGMENT,"osgOcean_ocean_scene_lispsm.frag");
+            osg::Shader* fs = osgDB::readShaderFile(osg::Shader::FRAGMENT,"osgOcean_ocean_scene_lispsm.frag");
 
-        if(fs){
-            shadowTechnique->setMainFragmentShader(fs);
-        }
-        else{
-            osg::notify(osg::WARN) << "osgOcean: Could not read shader from file: osgOcean_ocean_scene_lispsm.frag" << std::endl;
-        }
+            if (fs)
+            {
+                program->addShader(fs);
+            }
+            else
+            {
+                osg::notify(osg::WARN) << "osgOcean: Could not read shader from file: osgOcean_ocean_scene_lispsm.frag" << std::endl;
+            }
 
-        shadowTechnique->setShadowVertexShader(NULL);
-        shadowTechnique->setShadowFragmentShader(NULL);
+            if (program->getNumShaders() == 2)
+            {
+                shadowedScene->getOrCreateStateSet()->setAttributeAndModes(program.get(), osg::StateAttribute::ON);
+            }
+
+            osg::Program* sceneProgram = osgOcean::ShaderManager::instance().createProgram("scene_shader", 
+                                               "osgOcean_ocean_scene_lispsm.vert", "osgOcean_ocean_scene_lispsm.frag", "", "");
+            scene->getOceanScene()->setDefaultSceneShader(sceneProgram);
+        }
 
         scene->getOceanScene()->getOceanTechnique()->setNodeMask(scene->getOceanScene()->getOceanTechnique()->getNodeMask() & ~CAST_SHADOW & ~RECEIVE_SHADOW);
         scene->getOceanScene()->getOceanCylinder()->getParent(0)->setNodeMask(scene->getOceanScene()->getOceanCylinder()->getParent(0)->getNodeMask() & ~CAST_SHADOW & ~RECEIVE_SHADOW);
-
-        osg::Program* sceneProgram = osgOcean::ShaderManager::instance().createProgram("scene_shader", 
-                                               "osgOcean_ocean_scene_lispsm.vert", "osgOcean_ocean_scene_lispsm.frag", "", "");
-        scene->getOceanScene()->setDefaultSceneShader(sceneProgram);
     }
-	else
-	{
-		root = new osg::Group;
-	}
+    else
+    {
+        root = new osg::Group;
+    }
 
     if (disableShaders)
     {
@@ -389,7 +414,7 @@ int main(int argc, char *argv[])
     view->addEventHandler(scene->getOceanSceneEventHandler());
     view->addEventHandler(scene->getOceanSurface()->getEventHandler());
 
-    view->addEventHandler( new SceneEventHandler(scene.get(), hud.get(), view ) );
+    view->addEventHandler( new SceneEventHandler(scene.get(), hud.get(), view, initialCameraPosition ) );
     view->addEventHandler( new osgViewer::HelpHandler );
     view->getCamera()->setName("MainCamera");
 
