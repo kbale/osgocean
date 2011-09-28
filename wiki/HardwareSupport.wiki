@@ -10,8 +10,8 @@ This page will list hardware where osgOcean works. For now, no real details will
 
   * !GeForce GTX 285 (Mario)
   * !GeForce GTX 280 (Ruben Smelik)
-  * !GeForce GTS 240 (Mario)
   * !GeForce GTS 250 (Mario)
+  * !GeForce GTS 240 (Mario)
 
   * !GeForce G105M (laptop) (Tian Xiao)
 
