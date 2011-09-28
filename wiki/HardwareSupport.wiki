@@ -2,7 +2,7 @@
 
 = Introduction =
 
-This page will list hardware where osgOcean works. For now, no real details will be given, the hardware listed here is said to run it but no guarantee is made for the speed at which it runs.
+This page shows the cards that osgOcean has been tested on. This list is not exhaustive, it is purely representative of the cards that users have said they are able to run osgOcean on. No guarantee can be made for the speed at which it will run at.
 
 = Video cards =
 
