@@ -780,7 +780,7 @@ void OceanScene::ViewData::cull( bool eyeAboveWater, bool surfaceVisible )
     _cv->pushStateSet(_oceanScene->_globalStateSet.get());
 
     // Render refraction if ocean surface is visible.
-    if( surfaceVisible && refractionEnabled )
+    if( surfaceVisible && refractionEnabled && _refractionCamera )
     {
         // update refraction camera and render refracted scene
         _refractionCamera->setViewMatrix( currentCamera->getViewMatrix() );
@@ -796,7 +796,7 @@ void OceanScene::ViewData::cull( bool eyeAboveWater, bool surfaceVisible )
     }
 
     // Render reflection if ocean surface is visible.
-    if( surfaceVisible && reflectionEnabled )
+    if( surfaceVisible && reflectionEnabled && _reflectionCamera )
     {
         // update reflection camera and render reflected scene
         _reflectionCamera->setViewMatrix( _reflectionMatrix * currentCamera->getViewMatrix() );
@@ -806,7 +806,7 @@ void OceanScene::ViewData::cull( bool eyeAboveWater, bool surfaceVisible )
     }
 
     // Render height map if ocean surface is visible.
-    if ( surfaceVisible && heightmapEnabled ) 
+    if ( surfaceVisible && heightmapEnabled && _heightmapCamera ) 
     {
         // update refraction camera and render refracted scene
         _heightmapCamera->setViewMatrix( currentCamera->getViewMatrix() );
