@@ -20,13 +20,13 @@
 
 using namespace osgOcean;
 
-GodRays::GodRays(void):
-    _isDirty        (true),
-    _isStateDirty   (true),
-    _numOfRays      (10),
-    _sunDirection   (0.f,0.f,-1.f),
-    _extinction     (0.1f,0.1f,0.1f),
-    _baseWaterHeight(0.f)
+GodRays::GodRays(void)
+    :_isDirty         (true)
+    ,_isStateDirty    (true)
+    ,_numOfRays       (10)
+    ,_sunDirection    (0.f,0.f,-1.f)
+    ,_extinction      (0.1f,0.1f,0.1f)
+    ,_baseWaterHeight (0.f)
 {
     setUserData( new GodRayDataType(*this) );
     setUpdateCallback( new GodRayAnimationCallback );
@@ -34,13 +34,13 @@ GodRays::GodRays(void):
     setCullingActive(false);
 }
 
-GodRays::GodRays(unsigned int numOfRays, const osg::Vec3f& sunDir, float baseWaterHeight ):
-    _isDirty        (true),
-    _isStateDirty   (true),
-    _numOfRays      (numOfRays),
-    _sunDirection   (sunDir),
-    _extinction     (0.1f,0.1f,0.1f),
-    _baseWaterHeight(baseWaterHeight)
+GodRays::GodRays(unsigned int numOfRays, const osg::Vec3f& sunDir, float baseWaterHeight )
+    :_isDirty         (true)
+    ,_isStateDirty    (true)
+    ,_numOfRays       (numOfRays)
+    ,_sunDirection    (sunDir)
+    ,_extinction      (0.1f,0.1f,0.1f)
+    ,_baseWaterHeight (baseWaterHeight)
 {
     setUserData( new GodRayDataType(*this) );
     setUpdateCallback( new GodRayAnimationCallback );
@@ -48,17 +48,17 @@ GodRays::GodRays(unsigned int numOfRays, const osg::Vec3f& sunDir, float baseWat
     setCullingActive(false);
 }
 
-GodRays::GodRays(const GodRays& copy, const osg::CopyOp& copyop):
-    osg::Geode      (copy,copyop),
-    _isDirty        (copy._isDirty),
-    _isStateDirty   (copy._isStateDirty),
-    _numOfRays      (copy._numOfRays),
-    _sunDirection   (copy._sunDirection),
-    _extinction     (copy._extinction),
-    _baseWaterHeight(copy._baseWaterHeight),
-    _stateSet       (copy._stateSet),
-    _constants      (copy._constants),
-    _trochoids      (copy._trochoids)
+GodRays::GodRays(const GodRays& copy, const osg::CopyOp& copyop)
+    :osg::Geode       (copy,copyop)
+    ,_isDirty         (copy._isDirty)
+    ,_isStateDirty    (copy._isStateDirty)
+    ,_numOfRays       (copy._numOfRays)
+    ,_sunDirection    (copy._sunDirection)
+    ,_extinction      (copy._extinction)
+    ,_baseWaterHeight (copy._baseWaterHeight)
+    ,_stateSet        (copy._stateSet)
+    ,_constants       (copy._constants)
+    ,_trochoids       (copy._trochoids)
 {
 }
 
@@ -96,11 +96,11 @@ void GodRays::buildStateSet(void)
     osg::Uniform* waveUniform = new osg::Uniform( osg::Uniform::FLOAT, "osgOcean_Waves", (int)_constants->size() );
     waveUniform->setArray( _constants.get() );
 
-    _stateSet->addUniform( new osg::Uniform( "osgOcean_Origin",            osg::Vec3() ) );
-    _stateSet->addUniform( new osg::Uniform( "osgOcean_Extinction_c",    _extinction ) );
-    _stateSet->addUniform( new osg::Uniform( "osgOcean_Eye",                osg::Vec3() ) );
-    _stateSet->addUniform( new osg::Uniform( "osgOcean_Spacing",            1.f ) );
-    _stateSet->addUniform( new osg::Uniform( "osgOcean_SunDir",            _sunDirection ) );    
+    _stateSet->addUniform( new osg::Uniform( "osgOcean_Origin",       osg::Vec3() ) );
+    _stateSet->addUniform( new osg::Uniform( "osgOcean_Extinction_c", _extinction ) );
+    _stateSet->addUniform( new osg::Uniform( "osgOcean_Eye",          osg::Vec3() ) );
+    _stateSet->addUniform( new osg::Uniform( "osgOcean_Spacing",      1.f ) );
+    _stateSet->addUniform( new osg::Uniform( "osgOcean_SunDir",       _sunDirection ) );    
     
     _stateSet->addUniform( waveUniform );
 
@@ -354,15 +354,15 @@ osg::Program* GodRays::createGodRayGlareProgram( void )
 //          Callback implementations
 // --------------------------------------------
 
-GodRays::GodRayDataType::GodRayDataType(GodRays& godRays):
-    _godRays( godRays ),
-    _fov    ( 0.0 )
+GodRays::GodRayDataType::GodRayDataType(GodRays& godRays)
+    :_godRays( godRays )
+    ,_fov    ( 0.0 )
 {}
 
-GodRays::GodRayDataType::GodRayDataType( const GodRayDataType& copy, const osg::CopyOp& copyop ):
-    _godRays    (copy._godRays),
-    _eye        (copy._eye),
-    _fov     (copy._fov)
+GodRays::GodRayDataType::GodRayDataType( const GodRayDataType& copy, const osg::CopyOp& copyop )
+    :_godRays (copy._godRays)
+    ,_eye     (copy._eye)
+    ,_fov     (copy._fov)
 {}
 
 void GodRays::GodRayDataType::update( float time )
@@ -397,8 +397,8 @@ void GodRays::GodRayAnimationCallback::operator()(osg::Node* node, osg::NodeVisi
     traverse(node, nv); 
 }
 
-GodRays::ComputeBoundsCallback::ComputeBoundsCallback( GodRays& rays ):
-_rays(rays)
+GodRays::ComputeBoundsCallback::ComputeBoundsCallback( GodRays& rays )
+    :_rays(rays)
 {}
 
 osg::BoundingBox GodRays::ComputeBoundsCallback::computeBound(const osg::Drawable& draw) const
