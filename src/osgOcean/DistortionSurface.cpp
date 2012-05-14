@@ -15,26 +15,29 @@
 * http://www.gnu.org/copyleft/lesser.txt.
 */
 
-
 #include <osgOcean/DistortionSurface>
-#include <osgDB/Registry>
 #include <osgOcean/ShaderManager>
+
+#include <osgDB/Registry>
 
 using namespace osgOcean;
 
 DistortionSurface::DistortionSurface( void )
+    :_angle(0.f)
 {
     addResourcePaths();
 }
 
 DistortionSurface::DistortionSurface( const osg::Vec3f& corner, const osg::Vec2f& dims, osg::TextureRectangle* texture )
+    :_angle(0.f)
 {
     build(corner,dims,texture);
     addResourcePaths();
 }
 
-DistortionSurface::DistortionSurface( const DistortionSurface &copy, const osg::CopyOp &copyop ):
-    osg::Geode(copy,copyop)
+DistortionSurface::DistortionSurface( const DistortionSurface &copy, const osg::CopyOp &copyop )
+    :osg::Geode(copy,copyop)
+    ,_angle(copy._angle)
 {
 }
 
@@ -42,9 +45,14 @@ void DistortionSurface::build( const osg::Vec3f& corner, const osg::Vec2f& dims,
 {
     osg::notify(osg::INFO) << "DistortionSurface::build()"<< std::endl;
 
+    _angle = 0.f;
+
     removeDrawables( 0, getNumDrawables() );
 
-    osg::Geometry* geom = new ScreenAlignedQuad(corner,dims,texture);
+    osg::Geometry* geom = 
+        osg::createTexturedQuadGeometry( corner, osg::Vec3(dims.x(),0.f,0.f), 
+                                         osg::Vec3f(0.f,dims.y(),0.f), 
+                                         texture->getTextureWidth(), texture->getTextureHeight() );
     addDrawable(geom);
 
     osg::StateSet* ss = new osg::StateSet;
@@ -63,6 +71,9 @@ void DistortionSurface::build( const osg::Vec3f& corner, const osg::Vec2f& dims,
     ss->addUniform( new osg::Uniform( "osgOcean_Offset",       0.f ) );
     ss->addUniform( new osg::Uniform( "osgOcean_Speed",        1.f ) );
     ss->addUniform( new osg::Uniform( "osgOcean_ScreenRes",    dims ) );
+
+    ss->setMode(GL_LIGHTING,    osg::StateAttribute::OFF);
+    ss->setMode(GL_DEPTH_TEST,  osg::StateAttribute::OFF);
 
     setStateSet(ss);
 
@@ -85,15 +96,14 @@ osg::Program* DistortionSurface::createShader(void)
 
 void DistortionSurface::update( const double& dt )
 {
-    static float val = 0.f;
-    static float inc = 1.39624444f; //(2PI/4.5f;)
+    const float inc = 1.39624444f; //(2PI/4.5f;)
 
-    val += inc * dt; 
+    _angle += inc * dt; 
 
-    if(val >= 6.2831f) 
-        val = 0.f;
+    if(_angle >= 6.2831f) 
+        _angle = 0.f;
 
-    getOrCreateStateSet()->getOrCreateUniform("osgOcean_Offset", osg::Uniform::FLOAT)->set(val);
+    getStateSet()->getUniform( "osgOcean_Offset" )->set(_angle);
 }
 
 void DistortionSurface::addResourcePaths(void)
@@ -126,10 +136,10 @@ void DistortionSurface::addResourcePaths(void)
 //          Callback implementations
 // --------------------------------------------
 
-DistortionSurface::DistortionDataType::DistortionDataType(DistortionSurface& surface):
-_surface( surface ),
-_oldTime(0.0),
-_newTime(0.0)
+DistortionSurface::DistortionDataType::DistortionDataType(DistortionSurface& surface)
+    :_surface( surface )
+    ,_oldTime(0.0)
+    ,_newTime(0.0)
 {}
 
 void DistortionSurface::DistortionDataType::update( const double& time )
