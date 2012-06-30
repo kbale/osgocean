@@ -8,6 +8,8 @@ This page shows the cards that osgOcean has been tested on. This list is not exh
 
 == nVidia ==
 
+  * !Geforce GTX 480 (marioprats)
+
   * !GeForce GTX 285 (Mario)
   * !GeForce GTX 280 (Ruben Smelik)
   * !GeForce GTS 250 (Mario)
@@ -19,6 +21,7 @@ This page shows the cards that osgOcean has been tested on. This list is not exh
   * !GeForce 9800 GTX+ (JSG)
   * !GeForce 9800 GX2 (Ruben Smelik)
   * !GeForce 9600 GT (KCB)
+  * !GeForce 9400M (marioprats)
 
   * !GeForce 8800 GT (JSG)
   * !GeForce 8800 GTS (KCB)
@@ -36,6 +39,7 @@ This page shows the cards that osgOcean has been tested on. This list is not exh
 == ATI ==
 
   * Radeon HD 4350 (JSG)
+  * Radeon HD 6400M (feliperalmeida)
 
 = Notes =
 
