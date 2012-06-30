@@ -8,7 +8,7 @@ This page shows the cards that osgOcean has been tested on. This list is not exh
 
 == nVidia ==
 
-  * !Geforce GTX 480 (marioprats)
+  * !GeForce GTX 480 (marioprats)
 
   * !GeForce GTX 285 (Mario)
   * !GeForce GTX 280 (Ruben Smelik)
