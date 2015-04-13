@@ -130,4 +130,5 @@ IF (WIN32)
   ENDIF(WIN32_USE_DYNAMICBASE)
 ENDIF()
 
+option(ENABLE_EXAMPLE "Build and install the osgOcean example" ON)
 add_subdirectory (src)
