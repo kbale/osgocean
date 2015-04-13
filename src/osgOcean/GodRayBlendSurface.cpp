@@ -95,8 +95,8 @@ void GodRayBlendSurface::build( const osg::Vec3f& corner, const osg::Vec2f& dims
 
 osg::Program* GodRayBlendSurface::createShader(void)
 {
-    static const char osgOcean_godray_screen_blend_vert_file[] = "osgOcean_godray_screen_blend.vert";
-    static const char osgOcean_godray_screen_blend_frag_file[] = "osgOcean_godray_screen_blend.frag";
+    static const char osgOcean_godray_screen_blend_vert_file[] = "osgOcean/shaders/osgOcean_godray_screen_blend.vert";
+    static const char osgOcean_godray_screen_blend_frag_file[] = "osgOcean/shaders/osgOcean_godray_screen_blend.frag";
 
     return ShaderManager::instance().createProgram( "godray_blend", 
                                                     osgOcean_godray_screen_blend_vert_file, osgOcean_godray_screen_blend_frag_file,

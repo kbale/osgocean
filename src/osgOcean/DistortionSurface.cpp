@@ -25,14 +25,12 @@ using namespace osgOcean;
 DistortionSurface::DistortionSurface( void )
     :_angle(0.f)
 {
-    addResourcePaths();
 }
 
 DistortionSurface::DistortionSurface( const osg::Vec3f& corner, const osg::Vec2f& dims, osg::TextureRectangle* texture )
     :_angle(0.f)
 {
     build(corner,dims,texture);
-    addResourcePaths();
 }
 
 DistortionSurface::DistortionSurface( const DistortionSurface &copy, const osg::CopyOp &copyop )
@@ -86,8 +84,8 @@ void DistortionSurface::build( const osg::Vec3f& corner, const osg::Vec2f& dims,
 
 osg::Program* DistortionSurface::createShader(void)
 {
-    static const char osgOcean_water_distortion_vert_file[] = "osgOcean_water_distortion.vert";
-    static const char osgOcean_water_distortion_frag_file[] = "osgOcean_water_distortion.frag";
+    static const char osgOcean_water_distortion_vert_file[] = "osgOcean/shaders/osgOcean_water_distortion.vert";
+    static const char osgOcean_water_distortion_frag_file[] = "osgOcean/shaders/osgOcean_water_distortion.frag";
 
     return ShaderManager::instance().createProgram("distortion_surface", 
                                                    osgOcean_water_distortion_vert_file, osgOcean_water_distortion_frag_file, 
@@ -104,32 +102,6 @@ void DistortionSurface::update( const double& dt )
         _angle = 0.f;
 
     getStateSet()->getUniform( "osgOcean_Offset" )->set(_angle);
-}
-
-void DistortionSurface::addResourcePaths(void)
-{
-    const std::string shaderPath  = "resources/shaders/";
-    const std::string texturePath = "resources/textures/";
-
-    osgDB::FilePathList& pathList = osgDB::Registry::instance()->getDataFilePathList();
-
-    bool shaderPathPresent = false;
-    bool texturePathPresent = false;
-
-    for(unsigned int i = 0; i < pathList.size(); ++i )
-    {
-        if( pathList.at(i).compare(shaderPath) == 0 )
-            shaderPathPresent = true;
-
-        if( pathList.at(i).compare(texturePath) == 0 )
-            texturePathPresent = true;
-    }
-
-    if(!texturePathPresent)
-        pathList.push_back(texturePath);
-
-    if(!shaderPathPresent)
-        pathList.push_back(shaderPath);
 }
 
 // --------------------------------------------

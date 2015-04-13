@@ -214,8 +214,6 @@ OceanScene::OceanScene( void )
     _oceanTransform->setNodeMask( _normalSceneMask | _surfaceMask );
     addChild( _oceanTransform.get() );
 
-    addResourcePaths();
-
     setNumChildrenRequiringUpdateTraversal(1);
     
     _defaultSceneShader = createDefaultSceneShader();
@@ -291,8 +289,6 @@ OceanScene::OceanScene( OceanTechnique* technique )
 
     _oceanSurface->setNodeMask( _surfaceMask );
     _oceanTransform->addChild( _oceanSurface.get() );
-
-    addResourcePaths();
 
     setNumChildrenRequiringUpdateTraversal(1);
 
@@ -701,8 +697,8 @@ void OceanScene::ViewData::init( OceanScene *oceanScene, osgUtil::CullVisitor * 
         _heightmapCamera->setCullMask( _oceanScene->_heightmapMask );
         _heightmapCamera->setCullCallback( new CameraCullCallback(_oceanScene.get()) );
 
-        static const char osgOcean_heightmap_vert_file[] = "osgOcean_heightmap.vert";
-        static const char osgOcean_heightmap_frag_file[] = "osgOcean_heightmap.frag";
+        static const char osgOcean_heightmap_vert_file[] = "osgOcean/shaders/osgOcean_heightmap.vert";
+        static const char osgOcean_heightmap_frag_file[] = "osgOcean/shaders/osgOcean_heightmap.frag";
 
         osg::ref_ptr<osg::Program> program = ShaderManager::instance().createProgram( "heightmap", 
                                                                                       osgOcean_heightmap_vert_file, osgOcean_heightmap_frag_file, 
@@ -1123,9 +1119,9 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
                                         osg::TextureRectangle* outputTexture,
                                         bool isGlareEffect )
 {
-    static const char osgOcean_downsample_vert_file[]       = "osgOcean_downsample.vert";
-    static const char osgOcean_downsample_frag_file[]       = "osgOcean_downsample.frag";
-    static const char osgOcean_downsample_glare_frag_file[] = "osgOcean_downsample_glare.frag";
+    static const char osgOcean_downsample_vert_file[]       = "osgOcean/shaders/osgOcean_downsample.vert";
+    static const char osgOcean_downsample_frag_file[]       = "osgOcean/shaders/osgOcean_downsample.frag";
+    static const char osgOcean_downsample_glare_frag_file[] = "osgOcean/shaders/osgOcean_downsample_glare.frag";
 
     osg::Vec2s lowResDims = _screenDims/4;
 
@@ -1173,9 +1169,9 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
 
 osg::Camera* OceanScene::gaussianPass( osg::TextureRectangle* inputTexture, osg::TextureRectangle* outputTexture, bool isXAxis )
 {
-    static const char osgOcean_gaussian_vert_file[]  = "osgOcean_gaussian.vert";
-    static const char osgOcean_gaussian1_frag_file[] = "osgOcean_gaussian1.frag";
-    static const char osgOcean_gaussian2_frag_file[] = "osgOcean_gaussian2.frag";
+    static const char osgOcean_gaussian_vert_file[]  = "osgOcean/shaders/osgOcean_gaussian.vert";
+    static const char osgOcean_gaussian1_frag_file[] = "osgOcean/shaders/osgOcean_gaussian1.frag";
+    static const char osgOcean_gaussian2_frag_file[] = "osgOcean/shaders/osgOcean_gaussian2.frag";
 
     osg::Vec2s lowResDims = _screenDims/4.f;
 
@@ -1220,8 +1216,8 @@ osg::Camera* OceanScene::dofCombinerPass(osg::TextureRectangle* fullscreenTextur
                                          osg::TextureRectangle* blurTexture,
                                          osg::TextureRectangle* outputTexture )
 {
-    static const char osgOcean_dof_combiner_vert_file[] = "osgOcean_dof_combiner.vert";
-    static const char osgOcean_dof_combiner_frag_file[] = "osgOcean_dof_combiner.frag";
+    static const char osgOcean_dof_combiner_vert_file[] = "osgOcean/shaders/osgOcean_dof_combiner.vert";
+    static const char osgOcean_dof_combiner_frag_file[] = "osgOcean/shaders/osgOcean_dof_combiner.frag";
 
     osg::Vec2f screenRes( (float)_screenDims.x(), (float)_screenDims.y() );
     osg::Vec2f invScreenRes( 1.f / (float)_screenDims.x(), 1.f / (float)_screenDims.y() );
@@ -1279,8 +1275,8 @@ osg::Camera* OceanScene::glarePass(osg::TextureRectangle* streakInput,
                                    int pass, 
                                    osg::Vec2f direction )
 {
-    static const char osgOcean_streak_vert_file[] = "osgOcean_streak.vert";
-    static const char osgOcean_streak_frag_file[] = "osgOcean_streak.frag";
+    static const char osgOcean_streak_vert_file[] = "osgOcean/shaders/osgOcean_streak.vert";
+    static const char osgOcean_streak_frag_file[] = "osgOcean/shaders/osgOcean_streak.frag";
 
     osg::Vec2s lowResDims = _screenDims / 4;
 
@@ -1328,8 +1324,8 @@ osg::Camera* OceanScene::glareCombinerPass( osg::TextureRectangle* fullscreenTex
 
     osg::Geode* quad = createScreenQuad( _screenDims, _screenDims );
 
-    static const char osgOcean_glare_composite_vert_file[] = "osgOcean_glare_composite.vert";
-    static const char osgOcean_glare_composite_frag_file[] = "osgOcean_glare_composite.frag";
+    static const char osgOcean_glare_composite_vert_file[] = "osgOcean/shaders/osgOcean_glare_composite.vert";
+    static const char osgOcean_glare_composite_frag_file[] = "osgOcean/shaders/osgOcean_glare_composite.frag";
 
     osg::Program* program = 
         ShaderManager::instance().createProgram( "glare_composite", 
@@ -1401,38 +1397,12 @@ osg::Geode* OceanScene::createScreenQuad( const osg::Vec2s& dims, const osg::Vec
 
 osg::Program* OceanScene::createDefaultSceneShader(void)
 {
-    static const char osgOcean_ocean_scene_vert_file[] = "osgOcean_ocean_scene.vert";
-    static const char osgOcean_ocean_scene_frag_file[] = "osgOcean_ocean_scene.frag";
+    static const char osgOcean_ocean_scene_vert_file[] = "osgOcean/shaders/osgOcean_ocean_scene.vert";
+    static const char osgOcean_ocean_scene_frag_file[] = "osgOcean/shaders/osgOcean_ocean_scene.frag";
 
     return ShaderManager::instance().createProgram("scene_shader", 
                                                    osgOcean_ocean_scene_vert_file, osgOcean_ocean_scene_frag_file,
                                                    osgOcean_ocean_scene_vert,      osgOcean_ocean_scene_frag);
-}
-
-void OceanScene::addResourcePaths(void)
-{
-    const std::string shaderPath  = "resources/shaders/";
-    const std::string texturePath = "resources/textures/";
-
-    osgDB::FilePathList& pathList = osgDB::Registry::instance()->getDataFilePathList();
-
-    bool shaderPathPresent = false;
-    bool texturePathPresent = false;
-
-    for(unsigned int i = 0; i < pathList.size(); ++i )
-    {
-        if( pathList.at(i).compare(shaderPath) == 0 )
-            shaderPathPresent = true;
-
-        if( pathList.at(i).compare(texturePath) == 0 )
-            texturePathPresent = true;
-    }
-
-    if(!texturePathPresent)
-        pathList.push_back(texturePath);
-
-    if(!shaderPathPresent)
-        pathList.push_back(shaderPath);
 }
 
 // -------------------------------

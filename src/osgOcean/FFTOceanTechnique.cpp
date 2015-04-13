@@ -72,7 +72,6 @@ FFTOceanTechnique::FFTOceanTechnique( unsigned int FFTGridSize,
     ,_lightColor     ( 0.411764705f, 0.54117647f, 0.6823529f, 1.f )
 {
     _stateset = new osg::StateSet;
-    addResourcePaths();
     setUserData( new OceanDataType(*this, _NUMFRAMES, 25) );
     setOceanAnimationCallback( new OceanAnimationCallback );
 }

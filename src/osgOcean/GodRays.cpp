@@ -197,7 +197,7 @@ osg::Geometry* GodRays::createRayShafts(void)
 
 osg::Geometry* GodRays::createGlareQuad(void)
 {
-    osg::ref_ptr<osg::Image> glareImage = osgDB::readImageFile("sun_glare.png");
+    osg::ref_ptr<osg::Image> glareImage = osgDB::readImageFile("osgOcean/textures/sun_glare.png");
 
     if( !glareImage.valid() )
         return NULL;
@@ -329,8 +329,8 @@ osg::Vec3f GodRays::refract( const float ratio, const osg::Vec3f& I, const osg::
 
 osg::Program* GodRays::createGodRayProgram( void )
 {
-	static const char osgOcean_godrays_vert_file[] = "osgOcean_godrays.vert";
-	static const char osgOcean_godrays_frag_file[] = "osgOcean_godrays.frag";
+	static const char osgOcean_godrays_vert_file[] = "osgOcean/shaders/osgOcean_godrays.vert";
+	static const char osgOcean_godrays_frag_file[] = "osgOcean/shaders/osgOcean_godrays.frag";
 
 	return ShaderManager::instance().createProgram("godrays_shader", 
                                                    osgOcean_godrays_vert_file, osgOcean_godrays_frag_file, 
@@ -342,8 +342,8 @@ osg::Program* GodRays::createGodRayProgram( void )
 
 osg::Program* GodRays::createGodRayGlareProgram( void )
 {
-	static const char osgOcean_godray_glare_vert_file[] = "osgOcean_godray_glare.vert";
-	static const char osgOcean_godray_glare_frag_file[] = "osgOcean_godray_glare.frag";
+	static const char osgOcean_godray_glare_vert_file[] = "osgOcean/shaders/osgOcean_godray_glare.vert";
+	static const char osgOcean_godray_glare_frag_file[] = "osgOcean/shaders/osgOcean_godray_glare.frag";
 
 	return ShaderManager::instance().createProgram("godray_glare", 
                                                    osgOcean_godray_glare_vert_file, osgOcean_godray_glare_frag_file,

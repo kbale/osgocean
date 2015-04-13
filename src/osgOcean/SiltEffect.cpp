@@ -442,8 +442,8 @@ void SiltEffect::setUpGeometries(unsigned int numParticles)
 
         _quadStateSet->setRenderBinDetails(quadRenderBin,"DepthSortedBin");
 
-        static const char osgOcean_silt_quads_vert_file[] = "osgOcean_silt_quads.vert";
-	    static const char osgOcean_silt_quads_frag_file[] = "osgOcean_silt_quads.frag";
+        static const char osgOcean_silt_quads_vert_file[] = "osgOcean/shaders/osgOcean_silt_quads.vert";
+	    static const char osgOcean_silt_quads_frag_file[] = "osgOcean/shaders/osgOcean_silt_quads.frag";
 
         osg::Program* program = 
             ShaderManager::instance().createProgram("silt_quads", 
@@ -456,8 +456,8 @@ void SiltEffect::setUpGeometries(unsigned int numParticles)
     {
         _pointStateSet = new osg::StateSet;
 
-        static const char osgOcean_silt_points_vert_file[] = "osgOcean_silt_points.vert";
-	    static const char osgOcean_silt_points_frag_file[] = "osgOcean_silt_points.frag";
+        static const char osgOcean_silt_points_vert_file[] = "osgOcean/shaders/osgOcean_silt_points.vert";
+	    static const char osgOcean_silt_points_frag_file[] = "osgOcean/shaders/osgOcean_silt_points.frag";
 
         osg::Program* program = 
             ShaderManager::instance().createProgram("silt_point", 

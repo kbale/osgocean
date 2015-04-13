@@ -81,32 +81,6 @@ bool OceanTechnique::isVisible( osgUtil::CullVisitor& cv, bool eyeAboveWater )
     // return true.
 }
 
-void OceanTechnique::addResourcePaths(void)
-{
-    const std::string shaderPath  = "resources/shaders/";
-    const std::string texturePath = "resources/textures/";
-
-    osgDB::FilePathList& pathList = osgDB::Registry::instance()->getDataFilePathList();
-
-    bool shaderPathPresent = false;
-    bool texturePathPresent = false;
-
-    for(unsigned int i = 0; i < pathList.size(); ++i )
-    {
-        if( pathList.at(i).compare(shaderPath) == 0 )
-            shaderPathPresent = true;
-
-        if( pathList.at(i).compare(texturePath) == 0 )
-            texturePathPresent = true;
-    }
-
-    if(!texturePathPresent)
-        pathList.push_back(texturePath);
-
-    if(!shaderPathPresent)
-        pathList.push_back(shaderPath);
-}
-
 // --------------------------------------------------------
 //  EventHandler implementation
 // --------------------------------------------------------

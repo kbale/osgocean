@@ -110,12 +110,6 @@ namespace osgOcean
     protected:
         virtual ~OceanTechnique(void){};
 
-        /**
-        * Add the default resource paths to osgDB::Registry.
-        * Checks if already present.
-        * paths: resources/textures and resources/shaders.
-        */
-        virtual void addResourcePaths(void);
 
     protected:
         bool _isDirty;
