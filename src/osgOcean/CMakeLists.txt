@@ -152,3 +152,7 @@ INSTALL(
   FILES ${TEXTURE_FILES}
   DESTINATION ${CMAKE_INSTALL_PREFIX}/share/osgOcean/textures
 )
+
+configure_file(osgOcean.pc.in osgOcean.pc @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/osgOcean.pc
+    DESTINATION lib/pkgconfig)
