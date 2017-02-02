@@ -145,10 +145,14 @@ INSTALL(
 
 INSTALL(
   FILES ${SHADER_FILES}
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/resources/shaders
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/share/osgOcean/shaders
 )
 
 INSTALL(
   FILES ${TEXTURE_FILES}
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/resources/textures
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/share/osgOcean/textures
 )
+
+configure_file(osgOcean.pc.in osgOcean.pc @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/osgOcean.pc
+    DESTINATION lib/pkgconfig)

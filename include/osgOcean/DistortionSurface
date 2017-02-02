@@ -47,12 +47,6 @@ namespace osgOcean
     protected:
         ~DistortionSurface( void ){};
 
-        /**
-        * Add the default resource paths to osgDB::Registry.
-        * Checks if already present.
-        * paths: resources/textures and resources/shaders.
-        */
-        void addResourcePaths(void);
 
     private:
         void update(const double& dt);

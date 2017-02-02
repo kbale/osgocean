@@ -1,9 +1,9 @@
 /*
 * This source file is part of the osgOcean library
-* 
+*
 * Copyright (C) 2009 Kim Bale
 * Copyright (C) 2009 The University of Hull, UK
-* 
+*
 * This program is free software; you can redistribute it and/or modify it under
 * the terms of the GNU Lesser General Public License as published by the Free Software
 * Foundation; either version 3 of the License, or (at your option) any later
@@ -20,6 +20,10 @@
 #include <osgOcean/FFTOceanTechnique>
 
 #include <osg/Depth>
+
+
+#define SCREEN_WIDTH 1920
+#define SCREEN_HEIGHT 1080
 
 using namespace osgOcean;
 
@@ -55,12 +59,12 @@ namespace
                 osgOcean::FFTOceanTechnique* oceanTechnique = dynamic_cast<osgOcean::FFTOceanTechnique*>(_oceanScene->getOceanTechnique());
                 if (oceanTechnique && !oceanTechnique->isEndlessOceanEnabled())
                 {
-                    // Do not follow the eye when the ocean is constrained 
+                    // Do not follow the eye when the ocean is constrained
                     // to an area.
                     follow = false;
 
-                    // The ocean cylinder should not be visible if the ocean 
-                    // is constrained to an area, since the ocean will often 
+                    // The ocean cylinder should not be visible if the ocean
+                    // is constrained to an area, since the ocean will often
                     // be in a pool or a river which already has walls.
                     mt->getChild(0)->setNodeMask(0);
                 }
@@ -75,16 +79,16 @@ namespace
                     float mult = 1.0;
                     if (eyeAboveWater) mult = -1.0;
 
-                    // Translate the ocean cylinder down by the surface height 
-                    // if the eye went from below to above the surface (so the 
+                    // Translate the ocean cylinder down by the surface height
+                    // if the eye went from below to above the surface (so the
                     // cylinder doesn't peek through the waves) and inversely
                     // when the eye goes from above to below the surface (so
                     // we don't see cracks between the cylinder's edge and the
                     // waves).
 
-                    // Note, we set the ocean cylinder's own matrixTransform 
-                    // to identity, and push the relevant matrix onto the 
-                    // modelView matrix stack, because it is viewpoint 
+                    // Note, we set the ocean cylinder's own matrixTransform
+                    // to identity, and push the relevant matrix onto the
+                    // modelView matrix stack, because it is viewpoint
                     // dependent.
                     mt->setMatrix(osg::Matrix::identity());
 
@@ -106,7 +110,7 @@ namespace
             }
             else
             {
-                traverse(node, nv); 
+                traverse(node, nv);
             }
         }
 
@@ -114,7 +118,7 @@ namespace
         osg::RefMatrix* createOrReuseMatrix(const osg::Matrix& value)
         {
             // skip of any already reused matrix.
-            while (_currentMatrix < _matrices.size() && 
+            while (_currentMatrix < _matrices.size() &&
                    _matrices[_currentMatrix]->referenceCount()>1)
             {
                 ++_currentMatrix;
@@ -162,7 +166,7 @@ OceanScene::OceanScene( void )
     ,_enableDefaultShader        ( true )
     ,_reflectionTexSize          ( 512,512 )
     ,_refractionTexSize          ( 512,512 )
-    ,_screenDims                 ( 1024,768 )
+    ,_screenDims                 ( SCREEN_WIDTH , SCREEN_HEIGHT )
     ,_sunDirection               ( 0,0,-1 )
     ,_reflectionUnit             ( 1 )
     ,_refractionUnit             ( 2 )
@@ -214,10 +218,8 @@ OceanScene::OceanScene( void )
     _oceanTransform->setNodeMask( _normalSceneMask | _surfaceMask );
     addChild( _oceanTransform.get() );
 
-    addResourcePaths();
-
     setNumChildrenRequiringUpdateTraversal(1);
-    
+
     _defaultSceneShader = createDefaultSceneShader();
     ShaderManager::instance().setGlobalDefinition("osgOcean_LightID", _lightID);
 }
@@ -237,7 +239,7 @@ OceanScene::OceanScene( OceanTechnique* technique )
     ,_enableDefaultShader        ( true )
     ,_reflectionTexSize          ( 512,512 )
     ,_refractionTexSize          ( 512,512 )
-    ,_screenDims                 ( 1024,768 )
+    ,_screenDims                 ( SCREEN_WIDTH , SCREEN_HEIGHT )
     ,_sunDirection               ( 0,0,-1 )
     ,_reflectionUnit             ( 1 )
     ,_refractionUnit             ( 2 )
@@ -248,7 +250,7 @@ OceanScene::OceanScene( OceanTechnique* technique )
     ,_normalSceneMask            ( 0x4 )
     ,_surfaceMask                ( 0x8 )
     ,_siltMask                   ( 0x10 )
-    ,_heightmapMask              ( 0x20 ) 
+    ,_heightmapMask              ( 0x20 )
     ,_lightID                    ( 0 )
     ,_dofNear                    ( 0.f )
     ,_dofFar                     ( 160.f )
@@ -292,8 +294,6 @@ OceanScene::OceanScene( OceanTechnique* technique )
     _oceanSurface->setNodeMask( _surfaceMask );
     _oceanTransform->addChild( _oceanSurface.get() );
 
-    addResourcePaths();
-
     setNumChildrenRequiringUpdateTraversal(1);
 
     ShaderManager::instance().setGlobalDefinition("osgOcean_LightID", _lightID);
@@ -334,7 +334,7 @@ OceanScene::OceanScene( const OceanScene& copy, const osg::CopyOp& copyop )
     ,_reflectionClipNode         ( copy._reflectionClipNode )
     ,_lightID                    ( copy._lightID )
     ,_underwaterFogDensity       ( copy._underwaterFogDensity )
-    ,_aboveWaterFogDensity       ( copy._aboveWaterFogDensity ) 
+    ,_aboveWaterFogDensity       ( copy._aboveWaterFogDensity )
     ,_underwaterFogColor         ( copy._underwaterFogColor )
     ,_aboveWaterFogColor         ( copy._aboveWaterFogColor )
     ,_underwaterDiffuse          ( copy._underwaterDiffuse )
@@ -384,7 +384,7 @@ void OceanScene::init( void )
 
     _glarePasses.clear();
     _glareStateSet = NULL;
-    
+
     _distortionSurface = NULL;
 
     if( _siltClipNode.valid() ){
@@ -398,8 +398,8 @@ void OceanScene::init( void )
 
         _globalStateSet = new osg::StateSet;
 
-        // This is now a #define, added by the call to 
-        // ShaderManager::setGlobalDefinition() in the constructors above. 
+        // This is now a #define, added by the call to
+        // ShaderManager::setGlobalDefinition() in the constructors above.
         // Note that since _lightID can change, we will need to change the
         // global definition and reload all the shaders that depend on its
         // value when it does. This is not implemented yet.
@@ -478,7 +478,7 @@ void OceanScene::init( void )
             // Downsize image
             osg::TextureRectangle* downsizedTexture = createTextureRectangle( lowResDims, GL_RGBA );
             _dofPasses.push_back( downsamplePass( fullScreenTexture, NULL, downsizedTexture, false ) );
-            
+
             // Gaussian blur 1
             osg::TextureRectangle* gaussianTexture_1 = createTextureRectangle( lowResDims, GL_RGBA );
             _dofPasses.push_back( gaussianPass(downsizedTexture, gaussianTexture_1, true ) );
@@ -494,7 +494,7 @@ void OceanScene::init( void )
             // Post render pass
             _dofPasses.push_back( dofFinalPass( combinedTexture ) );
         }
-    
+
         if( _enableGlare )
         {
             _glarePasses.clear();
@@ -507,8 +507,8 @@ void OceanScene::init( void )
             // First capture screen
             osg::TextureRectangle* fullScreenTexture = createTextureRectangle( _screenDims, GL_RGBA );
             osg::TextureRectangle* luminanceTexture  = createTextureRectangle( _screenDims, GL_LUMINANCE );
-            
-            osg::Camera* fullPass = multipleRenderTargetPass( 
+
+            osg::Camera* fullPass = multipleRenderTargetPass(
                 fullScreenTexture, osg::Camera::COLOR_BUFFER0,
                 luminanceTexture,  osg::Camera::COLOR_BUFFER1 );
 
@@ -572,7 +572,7 @@ void OceanScene::init( void )
             addChild( _siltClipNode.get() );
         }
     }
-    
+
     _isDirty = false;
 }
 
@@ -642,11 +642,11 @@ void OceanScene::ViewData::init( OceanScene *oceanScene, osgUtil::CullVisitor * 
         // See http://www.gamedev.net/columns/hardcore/rnerwater1/page3.asp
         _reflectionMatrix = osg::Matrixf(  1,  0,  0,  0,
                                            0,  1,  0,  0,
-                                           0,  0, -1,  0,    
+                                           0,  0, -1,  0,
                                            0,  0,  2 * _oceanScene->getOceanSurfaceHeight(),  1 );
 
         osg::ref_ptr<osg::Texture2D> reflectionTexture = _oceanScene->createTexture2D( _oceanScene->_reflectionTexSize, GL_RGBA );
-        
+
         // clip everything below water line
         _reflectionCamera = _oceanScene->renderToTexturePass( reflectionTexture.get() );
         _reflectionCamera->setClearColor( osg::Vec4( 0.0, 0.0, 0.0, 0.0 ) );
@@ -667,8 +667,8 @@ void OceanScene::ViewData::init( OceanScene *oceanScene, osgUtil::CullVisitor * 
         refractionTexture->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture2D::NEAREST );
         refractionTexture->setFilter(osg::Texture2D::MAG_FILTER, osg::Texture2D::NEAREST );
 
-        _refractionCamera = _oceanScene->multipleRenderTargetPass( 
-            refractionTexture, osg::Camera::COLOR_BUFFER, 
+        _refractionCamera = _oceanScene->multipleRenderTargetPass(
+            refractionTexture, osg::Camera::COLOR_BUFFER,
             refractionDepthTexture, osg::Camera::DEPTH_BUFFER );
 
         _refractionCamera->setClearDepth( 1.0 );
@@ -681,7 +681,7 @@ void OceanScene::ViewData::init( OceanScene *oceanScene, osgUtil::CullVisitor * 
         _surfaceStateSet->setTextureAttributeAndModes( _oceanScene->_refractionDepthUnit, refractionDepthTexture, osg::StateAttribute::ON );
     }
 
-    if ( _oceanScene->_enableHeightmap ) 
+    if ( _oceanScene->_enableHeightmap )
     {
         osg::Texture2D* heightmapTexture = _oceanScene->createTexture2D( _oceanScene->_refractionTexSize, GL_DEPTH_COMPONENT );
 
@@ -696,16 +696,16 @@ void OceanScene::ViewData::init( OceanScene *oceanScene, osgUtil::CullVisitor * 
         _heightmapCamera->setViewport( 0,0, heightmapTexture->getTextureWidth(), heightmapTexture->getTextureHeight() );
         _heightmapCamera->setRenderOrder(osg::Camera::PRE_RENDER);
         _heightmapCamera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT);
-        _heightmapCamera->attach( osg::Camera::DEPTH_BUFFER, heightmapTexture );    
+        _heightmapCamera->attach( osg::Camera::DEPTH_BUFFER, heightmapTexture );
 
         _heightmapCamera->setCullMask( _oceanScene->_heightmapMask );
         _heightmapCamera->setCullCallback( new CameraCullCallback(_oceanScene.get()) );
 
-        static const char osgOcean_heightmap_vert_file[] = "osgOcean_heightmap.vert";
-        static const char osgOcean_heightmap_frag_file[] = "osgOcean_heightmap.frag";
+        static const char osgOcean_heightmap_vert_file[] = "osgOcean/shaders/osgOcean_heightmap.vert";
+        static const char osgOcean_heightmap_frag_file[] = "osgOcean/shaders/osgOcean_heightmap.frag";
 
-        osg::ref_ptr<osg::Program> program = ShaderManager::instance().createProgram( "heightmap", 
-                                                                                      osgOcean_heightmap_vert_file, osgOcean_heightmap_frag_file, 
+        osg::ref_ptr<osg::Program> program = ShaderManager::instance().createProgram( "heightmap",
+                                                                                      osgOcean_heightmap_vert_file, osgOcean_heightmap_frag_file,
                                                                                       osgOcean_heightmap_vert,      osgOcean_heightmap_frag );
 
         if(program.valid())
@@ -740,7 +740,7 @@ void OceanScene::ViewData::updateStateSet( bool eyeAboveWater )
     // Check if the RTT passes should be enabled for this view.
     bool enabled = (_oceanScene->_viewsWithRTTEffectsDisabled.find(currentCamera->getView()) == _oceanScene->_viewsWithRTTEffectsDisabled.end());
 
-    bool reflectionEnabled = _oceanScene->_enableReflections && eyeAboveWater && enabled && 
+    bool reflectionEnabled = _oceanScene->_enableReflections && eyeAboveWater && enabled &&
                              ( _cv->getEyePoint().z() < _oceanScene->_eyeHeightReflectionCutoff - _oceanScene->getOceanSurfaceHeight() );
     _surfaceStateSet->getUniform("osgOcean_EnableReflections")->set(reflectionEnabled);
 
@@ -751,11 +751,11 @@ void OceanScene::ViewData::updateStateSet( bool eyeAboveWater )
         // See http://www.gamedev.net/columns/hardcore/rnerwater1/page3.asp
         _reflectionMatrix = osg::Matrixf(  1,  0,  0,  0,
                                            0,  1,  0,  0,
-                                           0,  0, -1,  0,    
+                                           0,  0, -1,  0,
                                            0,  0,  2 * _oceanScene->getOceanSurfaceHeight(),  1 );
     }
 
-    // Refractions need to be calculated even when the eye is above water 
+    // Refractions need to be calculated even when the eye is above water
     // for the shoreline foam effect and translucency.
     bool refractionEnabled = _oceanScene->_enableRefractions && enabled;
     _surfaceStateSet->getUniform("osgOcean_EnableRefractions")->set(refractionEnabled);
@@ -801,18 +801,18 @@ void OceanScene::ViewData::cull( bool eyeAboveWater, bool surfaceVisible )
         // update reflection camera and render reflected scene
         _reflectionCamera->setViewMatrix( _reflectionMatrix * currentCamera->getViewMatrix() );
         _reflectionCamera->setProjectionMatrix( currentCamera->getProjectionMatrix() );
-        
+
         _reflectionCamera->accept( *_cv );
     }
 
     // Render height map if ocean surface is visible.
-    if ( surfaceVisible && heightmapEnabled && _heightmapCamera ) 
+    if ( surfaceVisible && heightmapEnabled && _heightmapCamera )
     {
         // update refraction camera and render refracted scene
         _heightmapCamera->setViewMatrix( currentCamera->getViewMatrix() );
         _heightmapCamera->setProjectionMatrix( currentCamera->getProjectionMatrix() );
 
-        _heightmapCamera->accept( *_cv );    
+        _heightmapCamera->accept( *_cv );
     }
 
     _cv->popStateSet();
@@ -824,7 +824,7 @@ void OceanScene::enableRTTEffectsForView(osg::View* view, bool enable)
     ViewSet::iterator it = _viewsWithRTTEffectsDisabled.find(view);
     if (enable)
     {
-        // Default is enabled for all views, so if we find it we 
+        // Default is enabled for all views, so if we find it we
         // remove it, if not then nothing to do.
         if (it != _viewsWithRTTEffectsDisabled.end())
             _viewsWithRTTEffectsDisabled.erase(it);
@@ -851,7 +851,7 @@ void OceanScene::traverse( osg::NodeVisitor& nv )
     {
         osgUtil::CullVisitor* cv = dynamic_cast<osgUtil::CullVisitor*>(&nv);
 
-        if (cv) 
+        if (cv)
         {
             osg::Camera* currentCamera = cv->getCurrentRenderBin()->getStage()->getCamera();
             if (currentCamera->getName() == "ShadowCamera" ||
@@ -884,7 +884,7 @@ void OceanScene::traverse( osg::NodeVisitor& nv )
                 (*_oceanSurface->getCullCallback())(_oceanSurface.get(), &nv);
 
                 preRenderCull(*cv, eyeAboveWater, surfaceVisible);     // reflections/refractions
-                
+
                 // Above water
                 if( eyeAboveWater )
                 {
@@ -892,7 +892,7 @@ void OceanScene::traverse( osg::NodeVisitor& nv )
                         cull(*cv, eyeAboveWater, surfaceVisible);        // normal scene render
                 }
                 // Below water passes
-                else 
+                else
                 {
                     if(!_enableDOF)
                         cull(*cv, eyeAboveWater, surfaceVisible);        // normal scene render
@@ -1013,7 +1013,7 @@ void OceanScene::cull(osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surface
 
     if ( _oceanSurface.valid() && _oceanSurface->getNodeMask() != 0 && surfaceVisible )
     {
-        // HACK: Make sure masks are set correctly on children... This 
+        // HACK: Make sure masks are set correctly on children... This
         // assumes that the ocean surface is the only child that should have
         // the _surfaceMask bit set, and the silt node is the only child that
         // should have the _siltMask bit set. Otherwise other children will be
@@ -1046,7 +1046,7 @@ void OceanScene::cull(osgUtil::CullVisitor& cv, bool eyeAboveWater, bool surface
     osg::Group::traverse(cv);
 
     // pop globalStateSet
-    cv.popStateSet(); 
+    cv.popStateSet();
 
     if( !eyeAboveWater )
     {
@@ -1082,7 +1082,7 @@ osg::Camera* OceanScene::renderToTexturePass( osg::Texture* textureBuffer )
     return camera;
 }
 
-osg::Camera* OceanScene::multipleRenderTargetPass(osg::Texture* texture0, osg::Camera::BufferComponent buffer0, 
+osg::Camera* OceanScene::multipleRenderTargetPass(osg::Texture* texture0, osg::Camera::BufferComponent buffer0,
                                                   osg::Texture* texture1, osg::Camera::BufferComponent buffer1 )
 {
     osg::Camera* camera = new osg::Camera;
@@ -1110,7 +1110,7 @@ osg::Camera* OceanScene::godrayFinalPass( void )
     camera->setProjectionMatrixAsOrtho( -1.f, 1.f, -1.f, 1.f, 1.0, 500.f );
     camera->setViewMatrix(osg::Matrix::identity());
     camera->setViewport( 0, 0, _screenDims.x(), _screenDims.y() );
-    
+
     return camera;
 }
 
@@ -1118,14 +1118,14 @@ osg::Camera* OceanScene::godrayFinalPass( void )
 #include <osgOcean/shaders/osgOcean_downsample_frag.inl>
 #include <osgOcean/shaders/osgOcean_downsample_glare_frag.inl>
 
-osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer, 
+osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
                                         osg::TextureRectangle* auxBuffer,
                                         osg::TextureRectangle* outputTexture,
                                         bool isGlareEffect )
 {
-    static const char osgOcean_downsample_vert_file[]       = "osgOcean_downsample.vert";
-    static const char osgOcean_downsample_frag_file[]       = "osgOcean_downsample.frag";
-    static const char osgOcean_downsample_glare_frag_file[] = "osgOcean_downsample_glare.frag";
+    static const char osgOcean_downsample_vert_file[]       = "osgOcean/shaders/osgOcean_downsample.vert";
+    static const char osgOcean_downsample_frag_file[]       = "osgOcean/shaders/osgOcean_downsample.frag";
+    static const char osgOcean_downsample_glare_frag_file[] = "osgOcean/shaders/osgOcean_downsample_glare.frag";
 
     osg::Vec2s lowResDims = _screenDims/4;
 
@@ -1133,10 +1133,10 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
 
     if (isGlareEffect)
     {
-        ss->setAttributeAndModes( 
-            ShaderManager::instance().createProgram("downsample_glare", 
+        ss->setAttributeAndModes(
+            ShaderManager::instance().createProgram("downsample_glare",
                                                     osgOcean_downsample_vert_file, osgOcean_downsample_glare_frag_file,
-                                                    osgOcean_downsample_vert,      osgOcean_downsample_glare_frag), 
+                                                    osgOcean_downsample_vert,      osgOcean_downsample_glare_frag),
                                                     osg::StateAttribute::ON );
 
         ss->setTextureAttributeAndModes( 1, auxBuffer,   osg::StateAttribute::ON );
@@ -1146,10 +1146,10 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
     }
     else
     {
-        ss->setAttributeAndModes( 
-            ShaderManager::instance().createProgram("downsample", 
+        ss->setAttributeAndModes(
+            ShaderManager::instance().createProgram("downsample",
                                                     osgOcean_downsample_vert_file,  osgOcean_downsample_frag_file,
-                                                    osgOcean_downsample_vert,       osgOcean_downsample_frag ), 
+                                                    osgOcean_downsample_vert,       osgOcean_downsample_frag ),
                                                     osg::StateAttribute::ON );
     }
 
@@ -1173,28 +1173,28 @@ osg::Camera* OceanScene::downsamplePass(osg::TextureRectangle* colorBuffer,
 
 osg::Camera* OceanScene::gaussianPass( osg::TextureRectangle* inputTexture, osg::TextureRectangle* outputTexture, bool isXAxis )
 {
-    static const char osgOcean_gaussian_vert_file[]  = "osgOcean_gaussian.vert";
-    static const char osgOcean_gaussian1_frag_file[] = "osgOcean_gaussian1.frag";
-    static const char osgOcean_gaussian2_frag_file[] = "osgOcean_gaussian2.frag";
+    static const char osgOcean_gaussian_vert_file[]  = "osgOcean/shaders/osgOcean_gaussian.vert";
+    static const char osgOcean_gaussian1_frag_file[] = "osgOcean/shaders/osgOcean_gaussian1.frag";
+    static const char osgOcean_gaussian2_frag_file[] = "osgOcean/shaders/osgOcean_gaussian2.frag";
 
     osg::Vec2s lowResDims = _screenDims/4.f;
 
     osg::StateSet* ss = new osg::StateSet;
-    
+
     if (isXAxis)
     {
-        ss->setAttributeAndModes( 
-            ShaderManager::instance().createProgram("gaussian1", 
-                                                    osgOcean_gaussian_vert_file, osgOcean_gaussian1_frag_file, 
-                                                    osgOcean_gaussian_vert,      osgOcean_gaussian1_frag), 
+        ss->setAttributeAndModes(
+            ShaderManager::instance().createProgram("gaussian1",
+                                                    osgOcean_gaussian_vert_file, osgOcean_gaussian1_frag_file,
+                                                    osgOcean_gaussian_vert,      osgOcean_gaussian1_frag),
                                                     osg::StateAttribute::ON );
     }
     else
     {
-        ss->setAttributeAndModes( 
-            ShaderManager::instance().createProgram("gaussian2", 
-                                                    osgOcean_gaussian_vert_file, osgOcean_gaussian2_frag_file, 
-                                                    osgOcean_gaussian_vert,      osgOcean_gaussian2_frag), 
+        ss->setAttributeAndModes(
+            ShaderManager::instance().createProgram("gaussian2",
+                                                    osgOcean_gaussian_vert_file, osgOcean_gaussian2_frag_file,
+                                                    osgOcean_gaussian_vert,      osgOcean_gaussian2_frag),
                                                     osg::StateAttribute::ON );
     }
 
@@ -1215,13 +1215,13 @@ osg::Camera* OceanScene::gaussianPass( osg::TextureRectangle* inputTexture, osg:
 #include <osgOcean/shaders/osgOcean_dof_combiner_vert.inl>
 #include <osgOcean/shaders/osgOcean_dof_combiner_frag.inl>
 
-osg::Camera* OceanScene::dofCombinerPass(osg::TextureRectangle* fullscreenTexture, 
+osg::Camera* OceanScene::dofCombinerPass(osg::TextureRectangle* fullscreenTexture,
                                          osg::TextureRectangle* fullDepthTexture,
                                          osg::TextureRectangle* blurTexture,
                                          osg::TextureRectangle* outputTexture )
 {
-    static const char osgOcean_dof_combiner_vert_file[] = "osgOcean_dof_combiner.vert";
-    static const char osgOcean_dof_combiner_frag_file[] = "osgOcean_dof_combiner.frag";
+    static const char osgOcean_dof_combiner_vert_file[] = "osgOcean/shaders/osgOcean_dof_combiner.vert";
+    static const char osgOcean_dof_combiner_frag_file[] = "osgOcean/shaders/osgOcean_dof_combiner.frag";
 
     osg::Vec2f screenRes( (float)_screenDims.x(), (float)_screenDims.y() );
     osg::Vec2f invScreenRes( 1.f / (float)_screenDims.x(), 1.f / (float)_screenDims.y() );
@@ -1232,10 +1232,10 @@ osg::Camera* OceanScene::dofCombinerPass(osg::TextureRectangle* fullscreenTextur
     ss->setTextureAttributeAndModes( 1, fullDepthTexture,  osg::StateAttribute::ON );
     ss->setTextureAttributeAndModes( 2, blurTexture,       osg::StateAttribute::ON );
 
-    ss->setAttributeAndModes( 
-        ShaderManager::instance().createProgram("dof_combiner", 
+    ss->setAttributeAndModes(
+        ShaderManager::instance().createProgram("dof_combiner",
                                                 osgOcean_dof_combiner_vert_file, osgOcean_dof_combiner_frag_file,
-                                                osgOcean_dof_combiner_vert,      osgOcean_dof_combiner_frag), 
+                                                osgOcean_dof_combiner_vert,      osgOcean_dof_combiner_frag),
                                                 osg::StateAttribute::ON );
 
     ss->addUniform( new osg::Uniform( "osgOcean_FullColourMap", 0 ) );
@@ -1274,13 +1274,13 @@ osg::Camera* OceanScene::dofFinalPass( osg::TextureRectangle* combinedTexture )
 #include <osgOcean/shaders/osgOcean_streak_vert.inl>
 #include <osgOcean/shaders/osgOcean_streak_frag.inl>
 
-osg::Camera* OceanScene::glarePass(osg::TextureRectangle* streakInput, 
-                                   osg::TextureRectangle* steakOutput, 
-                                   int pass, 
+osg::Camera* OceanScene::glarePass(osg::TextureRectangle* streakInput,
+                                   osg::TextureRectangle* steakOutput,
+                                   int pass,
                                    osg::Vec2f direction )
 {
-    static const char osgOcean_streak_vert_file[] = "osgOcean_streak.vert";
-    static const char osgOcean_streak_frag_file[] = "osgOcean_streak.frag";
+    static const char osgOcean_streak_vert_file[] = "osgOcean/shaders/osgOcean_streak.vert";
+    static const char osgOcean_streak_frag_file[] = "osgOcean/shaders/osgOcean_streak.frag";
 
     osg::Vec2s lowResDims = _screenDims / 4;
 
@@ -1289,9 +1289,9 @@ osg::Camera* OceanScene::glarePass(osg::TextureRectangle* streakInput,
     glarePass->setProjectionMatrixAsOrtho( 0, lowResDims.x(), 0.f, lowResDims.y(), 1.0, 500.f );
     glarePass->setRenderTargetImplementation( osg::Camera::FRAME_BUFFER_OBJECT );
     {
-        osg::Program* program = 
-            ShaderManager::instance().createProgram( "streak_shader", 
-                                                     osgOcean_streak_vert_file, osgOcean_streak_frag_file, 
+        osg::Program* program =
+            ShaderManager::instance().createProgram( "streak_shader",
+                                                     osgOcean_streak_vert_file, osgOcean_streak_frag_file,
                                                      osgOcean_streak_vert,      osgOcean_streak_frag );
 
         osg::Geode* screenQuad = createScreenQuad(lowResDims, lowResDims);
@@ -1302,7 +1302,7 @@ osg::Camera* OceanScene::glarePass(osg::TextureRectangle* streakInput,
         screenQuad->getStateSet()->addUniform( new osg::Uniform("osgOcean_Direction", direction) );
         screenQuad->getStateSet()->addUniform( new osg::Uniform("osgOcean_Attenuation", _glareAttenuation ) );
         screenQuad->getOrCreateStateSet()->setTextureAttributeAndModes(0,streakInput,osg::StateAttribute::ON);
-        glarePass->addChild( screenQuad ); 
+        glarePass->addChild( screenQuad );
     }
 
     return glarePass;
@@ -1328,12 +1328,12 @@ osg::Camera* OceanScene::glareCombinerPass( osg::TextureRectangle* fullscreenTex
 
     osg::Geode* quad = createScreenQuad( _screenDims, _screenDims );
 
-    static const char osgOcean_glare_composite_vert_file[] = "osgOcean_glare_composite.vert";
-    static const char osgOcean_glare_composite_frag_file[] = "osgOcean_glare_composite.frag";
+    static const char osgOcean_glare_composite_vert_file[] = "osgOcean/shaders/osgOcean_glare_composite.vert";
+    static const char osgOcean_glare_composite_frag_file[] = "osgOcean/shaders/osgOcean_glare_composite.frag";
 
-    osg::Program* program = 
-        ShaderManager::instance().createProgram( "glare_composite", 
-                                                 osgOcean_glare_composite_vert_file, osgOcean_glare_composite_frag_file, 
+    osg::Program* program =
+        ShaderManager::instance().createProgram( "glare_composite",
+                                                 osgOcean_glare_composite_vert_file, osgOcean_glare_composite_frag_file,
                                                  osgOcean_glare_composite_vert,      osgOcean_glare_composite_frag );
 
     osg::StateSet* ss = quad->getOrCreateStateSet();
@@ -1384,9 +1384,9 @@ osg::Geode* OceanScene::createScreenQuad( const osg::Vec2s& dims, const osg::Vec
 {
     osg::Geode* geode = new osg::Geode;
 
-    osg::Geometry* quad = osg::createTexturedQuadGeometry( 
-        osg::Vec3f(0.f,0.f,0.f), 
-        osg::Vec3f(dims.x(), 0.f, 0.f), 
+    osg::Geometry* quad = osg::createTexturedQuadGeometry(
+        osg::Vec3f(0.f,0.f,0.f),
+        osg::Vec3f(dims.x(), 0.f, 0.f),
         osg::Vec3f( 0.f,dims.y(), 0.0 ),
         (float)texSize.x(),
         (float)texSize.y() );
@@ -1401,38 +1401,12 @@ osg::Geode* OceanScene::createScreenQuad( const osg::Vec2s& dims, const osg::Vec
 
 osg::Program* OceanScene::createDefaultSceneShader(void)
 {
-    static const char osgOcean_ocean_scene_vert_file[] = "osgOcean_ocean_scene.vert";
-    static const char osgOcean_ocean_scene_frag_file[] = "osgOcean_ocean_scene.frag";
+    static const char osgOcean_ocean_scene_vert_file[] = "osgOcean/shaders/osgOcean_ocean_scene.vert";
+    static const char osgOcean_ocean_scene_frag_file[] = "osgOcean/shaders/osgOcean_ocean_scene.frag";
 
-    return ShaderManager::instance().createProgram("scene_shader", 
+    return ShaderManager::instance().createProgram("scene_shader",
                                                    osgOcean_ocean_scene_vert_file, osgOcean_ocean_scene_frag_file,
                                                    osgOcean_ocean_scene_vert,      osgOcean_ocean_scene_frag);
-}
-
-void OceanScene::addResourcePaths(void)
-{
-    const std::string shaderPath  = "resources/shaders/";
-    const std::string texturePath = "resources/textures/";
-
-    osgDB::FilePathList& pathList = osgDB::Registry::instance()->getDataFilePathList();
-
-    bool shaderPathPresent = false;
-    bool texturePathPresent = false;
-
-    for(unsigned int i = 0; i < pathList.size(); ++i )
-    {
-        if( pathList.at(i).compare(shaderPath) == 0 )
-            shaderPathPresent = true;
-
-        if( pathList.at(i).compare(texturePath) == 0 )
-            texturePathPresent = true;
-    }
-
-    if(!texturePathPresent)
-        pathList.push_back(texturePath);
-
-    if(!shaderPathPresent)
-        pathList.push_back(shaderPath);
 }
 
 // -------------------------------

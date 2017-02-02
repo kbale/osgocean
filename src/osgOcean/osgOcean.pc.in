@@ -1,0 +1,12 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: osgOcean
+Description: OpenSceneGraph node kit to render ocean effects (surface and underwater)
+Version: 1.0.1
+Requires: 
+Libs: -L${libdir} -losgOcean
+Cflags: -I${includedir}
+

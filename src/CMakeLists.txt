@@ -1,2 +1,4 @@
 add_subdirectory (osgOcean)
-add_subdirectory (oceanExample)
+if (ENABLE_EXAMPLE)
+    add_subdirectory (oceanExample)
+endif()

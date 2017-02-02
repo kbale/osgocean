@@ -110,7 +110,7 @@ void FFTOceanSurface::initStateSet( void )
 
     if( _useCrestFoam )
     {
-        osg::Texture2D* foam_tex = createTexture("sea_foam.png", osg::Texture::REPEAT );
+        osg::Texture2D* foam_tex = createTexture("osgOcean/textures/sea_foam.png", osg::Texture::REPEAT );
         if (ShaderManager::instance().areShadersEnabled())
             _stateset->setTextureAttributeAndModes( FOAM_MAP, foam_tex, osg::StateAttribute::ON );
     }
@@ -1038,8 +1038,8 @@ osg::Vec3f FFTOceanSurface::computeNoiseCoords(float noiseSize, const osg::Vec2f
 
 osg::Program* FFTOceanSurface::createShader(void)
 {
-    static const char osgOcean_ocean_surface_vert_file[] = "osgOcean_ocean_surface.vert";
-    static const char osgOcean_ocean_surface_frag_file[] = "osgOcean_ocean_surface.frag";
+    static const char osgOcean_ocean_surface_vert_file[] = "osgOcean/shaders/osgOcean_ocean_surface.vert";
+    static const char osgOcean_ocean_surface_frag_file[] = "osgOcean/shaders/osgOcean_ocean_surface.frag";
 
     osg::Program* program = 
         ShaderManager::instance().createProgram("ocean_surface", 

@@ -841,11 +841,6 @@ namespace osgOcean
 
         osg::Program* createDefaultSceneShader( void );
 
-        /// Add the default resource paths to osgDB::Registry.
-        /// Checks if already present.
-        /// paths: resources/textures and resources/shaders.
-        void addResourcePaths(void);
-
     protected:
         osg::ref_ptr<EventHandler> _eventHandler;
 
