@@ -318,7 +318,7 @@ void OceanTile::computeMaxDelta( void )
                     float delta = biLinearInterp(posX, posX+step, posY, posY+step, j, i);
                     delta -= getVertex(j, i).z();
                     delta = fabs(delta);
-                    deltaMax = std::max(deltaMax, delta);
+                    deltaMax = osg::maximum(deltaMax, delta);
                 }
             }
         }
