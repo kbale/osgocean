@@ -2,34 +2,34 @@ SET(HEADER_PATH ${osgOcean_SOURCE_DIR}/include/OceanExample )
 SET(LIB_HEADER_PATH ${osgOcean_SOURCE_DIR}/include )
 
 SET( SKYBOX_TEXTURES_1
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/down.png
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/east.png
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/north.png
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/south.png
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/up.png
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_clear/west.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_clear/down.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_clear/east.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_clear/north.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_clear/south.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_clear/up.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_clear/west.png
 )
 
 SET( SKYBOX_TEXTURES_2
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/down.png
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/east.png
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/north.png
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/south.png
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/up.png
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_dusk/west.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_dusk/down.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_dusk/east.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_dusk/north.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_dusk/south.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_dusk/up.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_dusk/west.png
 )
 
 SET( SKYBOX_TEXTURES_3
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/down.png
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/east.png
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/north.png
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/south.png
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/up.png
-  ${osgOcean_SOURCE_DIR}/resources/textures/sky_fair_cloudy/west.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_fair_cloudy/down.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_fair_cloudy/east.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_fair_cloudy/north.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_fair_cloudy/south.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_fair_cloudy/up.png
+  ${osgOcean_SOURCE_DIR}/demo/textures/sky_fair_cloudy/west.png
 )
 
 SET( ISLAND_RESOURCES
-  ${osgOcean_SOURCE_DIR}/resources/island/islands.ive
+  ${osgOcean_SOURCE_DIR}/demo/island/islands.ive
 )
 
 SET( BOAT_RESOURCES 
