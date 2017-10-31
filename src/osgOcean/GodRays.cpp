@@ -401,7 +401,11 @@ GodRays::ComputeBoundsCallback::ComputeBoundsCallback( GodRays& rays )
     :_rays(rays)
 {}
 
+#if OSG_VERSION_GREATER_THAN(3,2,1)
+osg::BoundingBox GodRays::ComputeBoundsCallback::computeBoundingBox(const osg::Drawable& draw) const
+#else
 osg::BoundingBox GodRays::ComputeBoundsCallback::computeBound(const osg::Drawable& draw) const
+#endif
 {
     GodRays::GodRayDataType* data = static_cast<GodRays::GodRayDataType*> (_rays.getUserData() );
 

@@ -17,6 +17,7 @@
 
 #pragma once
 #include <osg/Geometry>
+#include <osg/Version>
 #include <assert.h>
 
 namespace osgOcean
@@ -144,8 +145,11 @@ namespace osgOcean
         * Rather than use standard computeBound() this computes the bounding box
         * using the offset and the worldSize.
         */
+#if OSG_VERSION_GREATER_THAN(3,2,1)
+        osg::BoundingBox computeBoundingBox( void ) const;
+#else
         osg::BoundingBox computeBound( void ) const;
-
+#endif
         /** 
         * Set the tile offset for shader positioning.
         * Calls dirtyBound() on its parents and recomputes recomputes
@@ -164,7 +168,11 @@ namespace osgOcean
             }
             
             dirtyBound();
+#if OSG_VERSION_GREATER_THAN(3,2,1)
+            setBound( computeBoundingBox() );
+#else
             setBound( computeBound() );
+#endif
         }
 
         /** 

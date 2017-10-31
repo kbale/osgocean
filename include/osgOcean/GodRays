@@ -21,6 +21,7 @@
 #include <osg/Geometry>
 #include <osg/BlendFunc>
 #include <osg/Texture2D>
+#include <osg/Version>
 #include <osgDB/ReadFile>
 #include <osgUtil/CullVisitor>
 #include <string>
@@ -206,7 +207,11 @@ namespace osgOcean
 		public:
 			ComputeBoundsCallback( GodRays& rays );
 
+#if OSG_VERSION_GREATER_THAN(3,2,1)
+			virtual osg::BoundingBox computeBoundingBox(const osg::Drawable&) const;
+#else
 			virtual osg::BoundingBox computeBound(const osg::Drawable&) const;
+#endif
 		};
 	};
 }

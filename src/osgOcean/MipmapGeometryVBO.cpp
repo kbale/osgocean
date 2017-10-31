@@ -83,7 +83,11 @@ namespace osgOcean
     {
     }
 
+#if OSG_VERSION_GREATER_THAN(3,2,1)
+    osg::BoundingBox MipmapGeometryVBO::computeBoundingBox( void ) const 
+#else
     osg::BoundingBox MipmapGeometryVBO::computeBound( void ) const 
+#endif
     {
         osg::BoundingBox bb;
         
