@@ -26,8 +26,10 @@
 #include <osg/io_utils>
 #include <osg/Timer>
 #include <osg/Version>
+#include <osg/Geometry>
 
 using namespace osgOcean;
+using namespace osg;
 
 static float random(float min,float max) { return min + (max-min)*(float)rand()/(float)RAND_MAX; }
 
@@ -648,7 +650,14 @@ void SiltEffect::SiltDrawable::drawImplementation(osg::RenderInfo& renderInfo) c
 {
     if (!_geometry) return;
 
+#if OSG_VERSION_GREATER_THAN(3,0,0)
+    State& state = *renderInfo.getState();
+    unsigned int contextID = state.getContextID();
+    GLExtensions* extensions = state.get<GLExtensions>();
+    if (!extensions) return;
+#else
     const osg::Geometry::Extensions* extensions = osg::Geometry::getExtensions(renderInfo.getContextID(),true);
+#endif
 
     glPushMatrix();
 
