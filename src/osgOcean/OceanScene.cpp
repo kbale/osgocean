@@ -881,10 +881,10 @@ void OceanScene::traverse( osg::NodeVisitor& nv )
 
                 bool surfaceVisible = _oceanSurface->isVisible(*cv, eyeAboveWater);
 
-#if OSG_VERSION_GREATER_THAN(3,3,2)
-                (*_oceanSurface->getCullCallback()).run(_oceanSurface.get(), &nv);
-#else
+#if OSG_VERSION_LESS_THAN(3,3,9)
                 (*_oceanSurface->getCullCallback())(_oceanSurface.get(), &nv);
+#else
+                (*_oceanSurface->getCullCallback()).run(_oceanSurface.get(), &nv);
 #endif
 
                 preRenderCull(*cv, eyeAboveWater, surfaceVisible);     // reflections/refractions

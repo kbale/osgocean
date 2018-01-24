@@ -207,10 +207,10 @@ namespace osgOcean
 		public:
 			ComputeBoundsCallback( GodRays& rays );
 
-#if OSG_VERSION_GREATER_THAN(3,2,1)
-			virtual osg::BoundingBox computeBoundingBox(const osg::Drawable&) const;
+#if OSG_VERSION_LESS_THAN(3,3,2)
+                        virtual osg::BoundingBox computeBound(const osg::Drawable&) const;
 #else
-			virtual osg::BoundingBox computeBound(const osg::Drawable&) const;
+			virtual osg::BoundingBox computeBoundingBox(const osg::Drawable&) const;
 #endif
 		};
 	};
