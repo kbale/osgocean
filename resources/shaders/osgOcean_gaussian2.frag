@@ -9,10 +9,10 @@ void main( void )
    vec4 color = 0.5 * texture2DRect(osgOcean_GaussianTexture, gl_TexCoord[0].st );
 
    texCoordSample.y = gl_TexCoord[0].y;
-   texCoordSample.x = gl_TexCoord[0].x + 1;
+   texCoordSample.x = gl_TexCoord[0].x + 1.0;
    color += 0.25 * texture2DRect(osgOcean_GaussianTexture, texCoordSample);
 
-   texCoordSample.x = gl_TexCoord[0].x - 1;
+   texCoordSample.x = gl_TexCoord[0].x - 1.0;
    color += 0.25 * texture2DRect(osgOcean_GaussianTexture, texCoordSample);
 
    gl_FragColor = color;
