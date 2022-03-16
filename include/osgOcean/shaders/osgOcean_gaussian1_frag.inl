@@ -28,7 +28,7 @@ static const char osgOcean_gaussian1_frag[] =
 	"{\n"
 	"   vec2 texCoordSample = vec2( 0.0 );\n"
 	"\n"
-	"   vec4 color = 0.5 * texture2DRect( osgOcean_GaussianTexture, gl_TexCoord[0] );\n"
+	"   vec4 color = 0.5 * texture2DRect( osgOcean_GaussianTexture, gl_TexCoord[0].st );\n"
 	"\n"
 	"   texCoordSample.x = gl_TexCoord[0].x;\n"
 	"   texCoordSample.y = gl_TexCoord[0].y + 1;\n"
