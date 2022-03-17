@@ -36,9 +36,9 @@ void main(void)
     // pixel size of low resolution image
     vec2 pixelSizeLow = 4.0 * pixelSizeHigh;
 
-    vec4 color = texture2DRect( osgOcean_FullColourMap, gl_TexCoord[0] );	// fetch center tap
+    vec4 color = texture2DRect( osgOcean_FullColourMap, gl_TexCoord[0].st );	// fetch center tap
     //	float centerDepth = color.a; // save its depth
-    float centerDepth = texture2DRect( osgOcean_FullDepthMap, gl_TexCoord[0] ).r; // save its depth
+    float centerDepth = texture2DRect( osgOcean_FullDepthMap, gl_TexCoord[0].st ).r; // save its depth
 
     // convert depth into blur radius in pixels
     float discRadius = abs(centerDepth * vMaxCoC.y - vMaxCoC.x);
