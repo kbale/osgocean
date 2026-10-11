@@ -33,7 +33,7 @@ SET( ISLAND_RESOURCES
 )
 
 SET( BOAT_RESOURCES 
-  ${osgOcean_SOURCE_DIR}/resources/boat/boat.3ds
+  ${osgOcean_SOURCE_DIR}/demo/boat/boat.3ds
 )
 
 SET( EXAMPLE_SHADERS
