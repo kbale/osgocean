@@ -2,7 +2,7 @@
 # refer to the root source directory of the project as ${osgOcean_SOURCE_DIR}
 # to the root binary directory of the project as ${osgOcean_BINARY_DIR}.
 
-cmake_minimum_required (VERSION 2.6 FATAL_ERROR)
+cmake_minimum_required (VERSION 3.10 FATAL_ERROR)
 
 project (osgOcean)
 
@@ -68,6 +68,9 @@ IF (NOT WIN32)
   ENDIF()
   IF (NOT OPENTHREADS_LIBRARY_DEBUG)
     SET(OPENTHREADS_LIBRARY_DEBUG ${OPENTHREADS_LIBRARY})
+  ENDIF()
+  IF (NOT OSGSHADOW_LIBRARY_DEBUG)
+    SET(OSGSHADOW_LIBRARY_DEBUG ${OSGSHADOW_LIBRARY})
   ENDIF()
 ENDIF()
 
